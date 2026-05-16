@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sidebar:   #0d1f2e;
+  --accent:    #10b981;
+  --navy:      #0d1f2e;
+  --blue:      #2558A8;
+  --teal:      #0d9488;
+  --off-white: #F5F6F9;
+  --gray-100:  #F0F2F5;
+  --gray-200:  #E4E7EC;
+}
+
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: #FFFFFF;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #C8CDD5; border-radius: 3px; }
+
+/* ── prose-nexus: markdown inside assistant chat bubbles ── */
+.prose-nexus { font-size: 14px; line-height: 1.65; color: #1a2637; }
+.prose-nexus h1, .prose-nexus h2, .prose-nexus h3 { font-weight: 700; margin: 1rem 0 0.35rem; color: #0d2438; }
+.prose-nexus h1 { font-size: 1.15rem; }
+.prose-nexus h2 { font-size: 1.05rem; border-bottom: 1px solid #e8ede8; padding-bottom: 0.3rem; }
+.prose-nexus h3 { font-size: 0.95rem; }
+.prose-nexus p { margin: 0.5rem 0; }
+.prose-nexus ul, .prose-nexus ol { margin: 0.5rem 0 0.5rem 1.3rem; }
+.prose-nexus li { margin: 0.25rem 0; }
+.prose-nexus li > ul, .prose-nexus li > ol { margin: 0.2rem 0 0.2rem 1rem; }
+.prose-nexus strong { font-weight: 600; color: #0d2438; }
+.prose-nexus em { font-style: italic; color: #415268; }
+.prose-nexus code { background: #f0f4f2; color: #0c5847; padding: 0.15rem 0.4rem; border-radius: 4px; font-family: monospace; font-size: 0.82em; }
+.prose-nexus pre { background: #1a2637; color: #e8edf5; padding: 0.85rem 1rem; border-radius: 8px; overflow-x: auto; margin: 0.6rem 0; }
+.prose-nexus pre code { background: none; padding: 0; color: inherit; font-size: 0.85em; }
+.prose-nexus table { width: 100%; border-collapse: collapse; margin: 0.6rem 0; font-size: 0.875rem; }
+.prose-nexus th { background: #0c5847; color: #fff; padding: 0.45rem 0.7rem; text-align: left; font-weight: 600; }
+.prose-nexus td { padding: 0.4rem 0.7rem; border-bottom: 1px solid #e8ede8; }
+.prose-nexus tr:nth-child(even) { background: #f7faf8; }
+.prose-nexus blockquote { border-left: 3px solid #0c5847; padding-left: 0.75rem; margin: 0.5rem 0; color: #415268; font-style: italic; }
+.prose-nexus hr { border: none; border-top: 1px solid #e8ede8; margin: 0.8rem 0; }
+.prose-nexus > *:first-child { margin-top: 0; }
+.prose-nexus > *:last-child { margin-bottom: 0; }
+
+.md-content h1, .md-content h2, .md-content h3 { font-weight: 700; margin: 0.75rem 0 0.25rem; color: #1B3A6B; }
+.md-content h1 { font-size: 1.25rem; }
+.md-content h2 { font-size: 1.1rem; }
+.md-content h3 { font-size: 1rem; }
+.md-content p { margin: 0.4rem 0; line-height: 1.6; }
+.md-content ul, .md-content ol { margin: 0.4rem 0 0.4rem 1.2rem; }
+.md-content li { margin: 0.15rem 0; line-height: 1.5; }
+.md-content code { background: #F0F2F5; padding: 0.1rem 0.3rem; border-radius: 3px; font-family: monospace; font-size: 0.85em; }
+.md-content pre { background: #1E2533; color: #E8EDF5; padding: 0.75rem; border-radius: 6px; overflow-x: auto; margin: 0.5rem 0; }
+.md-content pre code { background: none; padding: 0; color: inherit; }
+.md-content table { width: 100%; border-collapse: collapse; margin: 0.5rem 0; font-size: 0.875rem; }
+.md-content th { background: #1B3A6B; color: white; padding: 0.4rem 0.6rem; text-align: left; }
+.md-content td { padding: 0.35rem 0.6rem; border-bottom: 1px solid #E8EAED; }
+.md-content tr:nth-child(even) { background: #F4F5F7; }
+.md-content strong { font-weight: 600; }
+.md-content em { font-style: italic; }
+.md-content hr { border: none; border-top: 1px solid #E8EAED; margin: 0.75rem 0; }
+.md-content blockquote { border-left: 3px solid #2558A8; padding-left: 0.75rem; margin: 0.4rem 0; color: #555; }
