@@ -197,12 +197,13 @@ function AssistantMessage({ content, decisionType, loading }) {
 }
 
 // ── main component ────────────────────────────────────────────────────────────
-export default function Chat() {
+export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
   const { user } = useAuth();
 
   // landing state
   const [landingQuery, setLandingQuery] = useState('');
   const [metrics, setMetrics] = useState({ connections: null, documents: null, agents: null });
+  const [suggestedQuestions, setSuggestedQuestions] = useState([]);
 
   // chat state
   const [chatMode, setChatMode] = useState(false);
@@ -242,6 +243,22 @@ export default function Chat() {
     } finally {
       setConversationsLoading(false);
     }
+  }, []);
+
+  // Fetch suggested questions from onboarding status
+  useEffect(() => {
+    api.onboarding.status()
+      .then(s => { if (s.suggested_questions?.length) setSuggestedQuestions(s.suggested_questions); })
+      .catch(() => {});
+  }, []);
+
+  // Auto-fire prefilled question from onboarding wizard completion
+  useEffect(() => {
+    if (prefillQuestion) {
+      onPrefillUsed?.();
+      sendQuestion(prefillQuestion, true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -425,6 +442,24 @@ export default function Chat() {
                     </button>
                   </div>
                 </form>
+
+                {/* Suggested first questions from onboarding */}
+                {suggestedQuestions.length > 0 && (
+                  <div className="mt-7">
+                    <p className="text-[11px] font-semibold text-[#9AA6B5] uppercase tracking-wider text-center mb-3">
+                      Try asking
+                    </p>
+                    <div className="space-y-2">
+                      {suggestedQuestions.map((q, i) => (
+                        <button key={i} onClick={() => { setLandingQuery(q); }}
+                          className="w-full text-left px-4 py-3 rounded-[10px] border border-[#E8EBF0] hover:border-[#0C5847]/40 hover:bg-[#f0faf5] text-[13px] text-[#344054] transition-all group flex items-center gap-2.5">
+                          <span className="text-[#0C5847] opacity-60 shrink-0 group-hover:opacity-100">→</span>
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="mt-9 flex items-center justify-center gap-8 text-[13px] font-medium text-[#415268]">
                   <div className="flex items-center gap-2.5">

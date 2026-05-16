@@ -183,6 +183,15 @@ export const api = {
     patchAnomaly:    (key, body)    => patch(`/temporal/anomalies/${key}`, body),
   },
 
+  // ── Onboarding ─────────────────────────────────────────────────────────────
+  onboarding: {
+    status:   ()     => get('/onboarding/status'),
+    scan:     (body) => post('/onboarding/scan', body),
+    analyze:  (body) => post('/onboarding/analyze', body),
+    apply:    (body) => post('/onboarding/apply', body),
+    complete: ()     => post('/onboarding/complete'),
+  },
+
   // ── Knowledge Graph ────────────────────────────────────────────────────────
   graph: {
     full:      (domainKey)     => get(domainKey ? `/knowledge-graph?domainKey=${encodeURIComponent(domainKey)}` : '/knowledge-graph'),

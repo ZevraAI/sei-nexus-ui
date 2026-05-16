@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { api } from './api.js';
 import Login from './pages/Login.jsx';
+import OnboardingWizard from './pages/OnboardingWizard.jsx';
 import Layout from './components/Layout.jsx';
 import Chat from './pages/Chat.jsx';
 import Memory from './pages/Memory.jsx';
@@ -63,6 +64,7 @@ function normalizeAuth(payload) {
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const hash = useHash();
+
   const [user, setUser] = useState(() => {
     try {
       const stored = JSON.parse(localStorage.getItem('nexus_user'));
@@ -76,8 +78,14 @@ export default function App() {
       return null;
     }
   });
-  const [checking, setChecking] = useState(true);
 
+  const [checking,          setChecking]          = useState(true);
+  // null = not yet checked, false = show wizard, true = skip wizard
+  const [onboardingComplete, setOnboardingComplete] = useState(null);
+  // First question to pre-fill in chat after onboarding
+  const [firstQuestion,      setFirstQuestion]      = useState(null);
+
+  // ── Verify session on load ─────────────────────────────────────────────────
   useEffect(() => {
     if (user && localStorage.getItem('nexus_token')) {
       setChecking(false);
@@ -95,34 +103,75 @@ export default function App() {
       .finally(() => setChecking(false));
   }, []);
 
+  // ── Check onboarding status once authenticated ─────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    api.onboarding.status()
+      .then(s => setOnboardingComplete(!!s.complete))
+      .catch(() => setOnboardingComplete(true)); // fail open — don't block the app
+  }, [user]);
+
+  // ── Logout ─────────────────────────────────────────────────────────────────
   const logout = useCallback(async () => {
     try { await api.auth.logout(); } catch (_) {}
     localStorage.removeItem('nexus_user');
     localStorage.removeItem('nexus_token');
     setUser(null);
+    setOnboardingComplete(null);
     navigate('/');
   }, []);
 
-  if (checking) {
+  // ── Loading spinner ─────────────────────────────────────────────────────────
+  if (checking || (user && onboardingComplete === null)) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <div className="flex items-center justify-center h-screen bg-[#f0faf5]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-[3px] border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
+          <p className="text-sm text-gray-400">Loading Zevra…</p>
+        </div>
       </div>
     );
   }
 
-  if (!user) return <Login onLogin={payload => {
-    const nextUser = normalizeAuth(payload);
-    setUser(nextUser);
-    localStorage.setItem('nexus_user', JSON.stringify(nextUser));
-  }} />;
+  // ── Login ───────────────────────────────────────────────────────────────────
+  if (!user) {
+    return (
+      <Login onLogin={payload => {
+        const nextUser = normalizeAuth(payload);
+        setUser(nextUser);
+        localStorage.setItem('nexus_user', JSON.stringify(nextUser));
+      }} />
+    );
+  }
 
+  // ── Onboarding wizard (shown once, on first login) ─────────────────────────
+  if (onboardingComplete === false) {
+    return (
+      <AuthContext.Provider value={{ user, logout }}>
+        <OnboardingWizard
+          user={user}
+          onComplete={(question) => {
+            setOnboardingComplete(true);
+            if (question) {
+              setFirstQuestion(question);
+            }
+            navigate('/chat');
+          }}
+        />
+      </AuthContext.Provider>
+    );
+  }
+
+  // ── Normal app ──────────────────────────────────────────────────────────────
   const page = ROUTES[hash] ?? ROUTES[hash.split('?')[0]] ?? <Chat />;
 
   return (
     <AuthContext.Provider value={{ user, logout }}>
       <Layout currentPath={hash}>
-        {page}
+        {hash === '/chat' || hash === '/'
+          ? React.cloneElement(<Chat />, { prefillQuestion: firstQuestion,
+                                           onPrefillUsed: () => setFirstQuestion(null) })
+          : page}
       </Layout>
     </AuthContext.Provider>
   );
