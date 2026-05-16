@@ -185,11 +185,12 @@ export const api = {
 
   // ── Onboarding ─────────────────────────────────────────────────────────────
   onboarding: {
-    status:   ()     => get('/onboarding/status'),
-    scan:     (body) => post('/onboarding/scan', body),
-    analyze:  (body) => post('/onboarding/analyze', body),
-    apply:    (body) => post('/onboarding/apply', body),
-    complete: ()     => post('/onboarding/complete'),
+    status:    ()     => get('/onboarding/status'),
+    recommend: (body) => post('/onboarding/recommend', body),
+    scan:      (body) => post('/onboarding/scan', body),
+    analyze:   (body) => post('/onboarding/analyze', body),
+    apply:     (body) => post('/onboarding/apply', body),
+    complete:  ()     => post('/onboarding/complete'),
   },
 
   // ── Knowledge Graph ────────────────────────────────────────────────────────

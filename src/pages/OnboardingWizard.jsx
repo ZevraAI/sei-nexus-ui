@@ -237,29 +237,63 @@ function StepConnect({ onNext }) {
   );
 }
 
-// ── Step 3 — Select tables ────────────────────────────────────────────────────
+// ── Step 3 — Select tables (recommendation-first) ────────────────────────────
+//
+// Scalability design:
+// - POST /onboarding/recommend: ONE SQL query + ONE AI call covers any size DB
+// - POST /onboarding/scan: called lazily only when user opens "Browse all" tab
+// - Browse all tab: paginated (PAGE_SIZE rows) + client-side search to avoid
+//   rendering hundreds of DOM nodes at once
+// - Selected set is the source of truth — both tabs read/write the same set
+
+const PAGE_SIZE = 50;
+
+const CATEGORY_COLORS = {
+  Customers:  'bg-blue-100 text-blue-700',
+  Orders:     'bg-purple-100 text-purple-700',
+  Finance:    'bg-yellow-100 text-yellow-700',
+  Inventory:  'bg-orange-100 text-orange-700',
+  Logistics:  'bg-emerald-100 text-emerald-700',
+  HR:         'bg-pink-100 text-pink-700',
+  Other:      'bg-gray-100 text-gray-600',
+};
 
 function StepSelectTables({ connectionKey, schemaName, onNext, onBack }) {
-  const [tables, setTables]   = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState('');
-  const [search, setSearch]   = useState('');
-  const [selected, setSelected] = useState(new Set());
+  const [tab, setTab]             = useState('recommended'); // 'recommended' | 'browse'
+  const [recommended, setRecommended] = useState([]);
+  const [totalTables, setTotalTables] = useState(null);
+  const [allTables, setAllTables]     = useState([]);
+  const [loadingRec, setLoadingRec]   = useState(true);
+  const [loadingAll, setLoadingAll]   = useState(false);
+  const [error, setError]             = useState('');
+  const [search, setSearch]           = useState('');
+  const [page, setPage]               = useState(1);
+  const [selected, setSelected]       = useState(new Set());
 
+  // Load AI recommendations on mount — single DB query + single AI call
   useEffect(() => {
-    setLoading(true);
-    api.onboarding.scan({ connectionKey, schemaName })
+    setLoadingRec(true);
+    api.onboarding.recommend({ connectionKey, schemaName })
       .then(r => {
-        const t = safeArray(r.tables);
-        setTables(t);
-        setSelected(new Set(t.map(x => x.table_name)));
+        const recs = safeArray(r.recommended);
+        setRecommended(recs);
+        setTotalTables(r.total_tables ?? recs.length);
+        // Pre-select all recommended tables
+        setSelected(new Set(recs.map(t => t.table_name)));
       })
-      .catch(e => setError(e.message || 'Could not load tables'))
-      .finally(() => setLoading(false));
+      .catch(e => setError(e.message || 'Could not load recommendations'))
+      .finally(() => setLoadingRec(false));
   }, [connectionKey, schemaName]);
 
-  const filtered = tables.filter(t =>
-    !search || t.table_name.toLowerCase().includes(search.toLowerCase()));
+  // Load full table list lazily — only when user opens "Browse all" tab
+  const loadAllTables = () => {
+    if (allTables.length > 0) return;
+    setLoadingAll(true);
+    api.onboarding.scan({ connectionKey, schemaName })
+      .then(r => setAllTables(safeArray(r.tables)))
+      .catch(e => setError(e.message || 'Could not load tables'))
+      .finally(() => setLoadingAll(false));
+  };
 
   const toggle = (name) => setSelected(prev => {
     const next = new Set(prev);
@@ -267,21 +301,31 @@ function StepSelectTables({ connectionKey, schemaName, onNext, onBack }) {
     return next;
   });
 
-  const toggleAll = () =>
-    setSelected(selected.size === filtered.length ? new Set() : new Set(filtered.map(t => t.table_name)));
+  // Filtered + paginated slice for Browse All tab
+  const filtered = allTables.filter(t =>
+    !search || t.table_name.toLowerCase().includes(search.toLowerCase()));
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const pageSlice  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const handleTabChange = (t) => {
+    setTab(t);
+    if (t === 'browse') loadAllTables();
+  };
 
   return (
-    <div className="max-w-lg mx-auto">
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Select tables to import</h2>
-      <p className="text-[14px] text-gray-500 mb-6">
-        Choose the tables Zevra should learn about. You can always add more later.
+    <div className="max-w-2xl mx-auto">
+      <div className="flex items-start justify-between mb-1">
+        <h2 className="text-xl font-bold text-gray-900">Choose your tables</h2>
+        {totalTables !== null && (
+          <span className="text-[13px] text-gray-400 mt-1">
+            {totalTables} tables in database
+          </span>
+        )}
+      </div>
+      <p className="text-[14px] text-gray-500 mb-5">
+        Zevra identified the most important tables to start with.
+        You can add more later from the Semantic Layer page.
       </p>
-
-      {loading && (
-        <div className="flex items-center gap-2 text-gray-500 py-12 justify-center">
-          <RefreshCw size={16} className="animate-spin" /> Scanning database…
-        </div>
-      )}
 
       {error && (
         <div className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm mb-4">
@@ -289,49 +333,152 @@ function StepSelectTables({ connectionKey, schemaName, onNext, onBack }) {
         </div>
       )}
 
-      {!loading && tables.length > 0 && (
+      {/* Tab bar */}
+      <div className="flex gap-0 border-b border-gray-200 mb-4">
+        {[
+          ['recommended', `AI Recommended (${recommended.length})`],
+          ['browse',      `Browse all${totalTables ? ` (${totalTables})` : ''}`],
+        ].map(([key, label]) => (
+          <button key={key} onClick={() => handleTabChange(key)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              tab === key
+                ? 'border-emerald-600 text-emerald-700'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Recommended tab ── */}
+      {tab === 'recommended' && (
+        <>
+          {loadingRec ? (
+            <div className="flex flex-col items-center py-12 gap-3 text-gray-500">
+              <div className="w-10 h-10 border-[3px] border-emerald-100 border-t-emerald-500 rounded-full animate-spin" />
+              <p className="text-sm">AI is scanning your schema…</p>
+              <p className="text-xs text-gray-400">One moment — analysing table names and columns</p>
+            </div>
+          ) : recommended.length === 0 ? (
+            <p className="text-sm text-gray-400 py-8 text-center">
+              No recommendations available. Use Browse all to select tables manually.
+            </p>
+          ) : (
+            <div className="space-y-2 mb-5">
+              {recommended.map((t, i) => {
+                const catColor = CATEGORY_COLORS[t.category] || CATEGORY_COLORS.Other;
+                const isSelected = selected.has(t.table_name);
+                return (
+                  <label key={t.table_name}
+                    className={`flex items-start gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${
+                      isSelected
+                        ? 'border-emerald-200 bg-emerald-50/40'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}>
+                    <input type="checkbox" checked={isSelected}
+                      onChange={() => toggle(t.table_name)}
+                      className="accent-emerald-600 w-4 h-4 mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-mono font-semibold text-gray-800">
+                          {t.table_name}
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${catColor}`}>
+                          {t.category}
+                        </span>
+                        <span className="text-xs text-gray-400 ml-auto">#{i + 1}</span>
+                      </div>
+                      {t.reason && (
+                        <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{t.reason}</p>
+                      )}
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Browse all tab ── */}
+      {tab === 'browse' && (
         <>
           <div className="flex items-center gap-3 mb-3">
             <div className="relative flex-1">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Filter tables…"
+              <input value={search}
+                onChange={e => { setSearch(e.target.value); setPage(1); }}
+                placeholder="Search tables…"
                 className="w-full h-9 border border-gray-200 rounded-lg pl-9 pr-3 text-sm focus:outline-none focus:border-emerald-500" />
             </div>
-            <button onClick={toggleAll}
-              className="text-xs text-emerald-600 hover:underline whitespace-nowrap">
-              {selected.size === filtered.length ? 'Deselect all' : 'Select all'}
-            </button>
+            {filtered.length > 0 && (
+              <span className="text-xs text-gray-400 whitespace-nowrap">
+                {filtered.length} result{filtered.length !== 1 ? 's' : ''}
+              </span>
+            )}
           </div>
 
-          <div className="border border-gray-200 rounded-xl overflow-hidden max-h-64 overflow-y-auto mb-6">
-            {filtered.map(t => (
-              <label key={t.table_name}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0">
-                <input type="checkbox" checked={selected.has(t.table_name)}
-                  onChange={() => toggle(t.table_name)}
-                  className="accent-emerald-600 w-4 h-4" />
-                <span className="text-sm font-mono text-gray-700 flex-1">{t.table_name}</span>
-                <span className="text-xs text-gray-400">{t.column_count} cols</span>
-              </label>
-            ))}
-          </div>
+          {loadingAll ? (
+            <div className="flex items-center gap-2 text-gray-500 py-8 justify-center">
+              <RefreshCw size={15} className="animate-spin" /> Loading tables…
+            </div>
+          ) : (
+            <>
+              <div className="border border-gray-200 rounded-xl overflow-hidden mb-3">
+                {pageSlice.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-6">No tables match your search.</p>
+                ) : (
+                  pageSlice.map(t => (
+                    <label key={t.table_name}
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0">
+                      <input type="checkbox" checked={selected.has(t.table_name)}
+                        onChange={() => toggle(t.table_name)}
+                        className="accent-emerald-600 w-4 h-4 shrink-0" />
+                      <span className="text-sm font-mono text-gray-700 flex-1 truncate">
+                        {t.table_name}
+                      </span>
+                      <span className="text-xs text-gray-400 shrink-0">{t.column_count} cols</span>
+                    </label>
+                  ))
+                )}
+              </div>
 
-          <div className="flex items-center justify-between">
-            <button onClick={onBack} className="text-sm text-gray-400 hover:text-gray-600">
-              ← Back
-            </button>
-            <button
-              onClick={() => onNext(Array.from(selected))}
-              disabled={selected.size === 0}
-              className="inline-flex items-center gap-2 h-10 px-6 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
-            >
-              Analyse {selected.size} table{selected.size !== 1 ? 's' : ''} with AI
-              <Sparkles size={15} />
-            </button>
-          </div>
+              {/* Pagination — only render when needed, never dump 500 rows at once */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-1 mb-4">
+                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                    className="h-7 px-2 text-xs border border-gray-200 rounded disabled:opacity-40">←</button>
+                  <span className="text-xs text-gray-500 px-2">
+                    Page {page} of {totalPages}
+                  </span>
+                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                    className="h-7 px-2 text-xs border border-gray-200 rounded disabled:opacity-40">→</button>
+                </div>
+              )}
+            </>
+          )}
         </>
       )}
+
+      {/* Footer */}
+      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+        <button onClick={onBack} className="text-sm text-gray-400 hover:text-gray-600">← Back</button>
+        <div className="flex items-center gap-3">
+          {selected.size > 0 && (
+            <span className="text-xs text-gray-500">
+              {selected.size} table{selected.size !== 1 ? 's' : ''} selected
+            </span>
+          )}
+          <button
+            onClick={() => onNext(Array.from(selected))}
+            disabled={selected.size === 0 || loadingRec}
+            className="inline-flex items-center gap-2 h-10 px-6 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
+          >
+            Analyse {selected.size} table{selected.size !== 1 ? 's' : ''} with AI
+            <Sparkles size={15} />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
