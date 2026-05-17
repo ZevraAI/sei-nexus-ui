@@ -191,6 +191,7 @@ export const api = {
     analyze:   (body) => post('/onboarding/analyze', body),
     apply:     (body) => post('/onboarding/apply', body),
     complete:  ()     => post('/onboarding/complete'),
+    reset:     ()     => post('/onboarding/reset'),
   },
 
   // ── Knowledge Graph ────────────────────────────────────────────────────────
