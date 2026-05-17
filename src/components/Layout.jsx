@@ -6,7 +6,7 @@ import {
   Network, Settings, ShieldCheck, Sparkles,
 } from 'lucide-react';
 
-function buildGroups(isAdmin) {
+function buildGroups(isPlatformAdmin) {
   const groups = [
     {
       label: 'Workspace',
@@ -30,7 +30,7 @@ function buildGroups(isAdmin) {
         { path: '/connections', label: 'Connections', icon: GitBranch },
         { path: '/domains',     label: 'Admin',       icon: Settings },
         // Tenant management is only visible to ADMIN role
-        ...(isAdmin ? [{ path: '/tenants', label: 'Tenants', icon: Building2 }] : []),
+        ...(isPlatformAdmin ? [{ path: '/tenants', label: 'Tenants', icon: Building2 }] : []),
       ],
     },
   ];
@@ -65,7 +65,12 @@ export default function Layout({ children, currentPath }) {
   const [profileOpen, setProfileOpen] = useState(false);
 
   const isAdmin = user?.role === 'ADMIN';
-  const groups  = buildGroups(isAdmin);
+  // Tenant management is only for the platform super-admin (default workspace).
+  // A tenant admin (acme-corp) has ADMIN role in their own schema but must not
+  // see or access the Tenants page — that would expose cross-tenant controls.
+  const isPlatformAdmin = isAdmin &&
+    (user?.tenant_schema === 'public' || !user?.tenant_schema);
+  const groups = buildGroups(isPlatformAdmin);
 
   const active = (path) => {
     if (path === '/chat' && (currentPath === '/' || currentPath === '/chat')) return true;
@@ -153,7 +158,7 @@ export default function Layout({ children, currentPath }) {
                 {tenantLabel(user)}
               </p>
             </div>
-            {isAdmin && (
+            {isPlatformAdmin && (
               <button
                 onClick={() => navigate('/tenants')}
                 title="Manage tenants"
@@ -168,7 +173,7 @@ export default function Layout({ children, currentPath }) {
           <div className="relative border-t border-white/12 pt-3">
             {profileOpen && (
               <div className="absolute bottom-[68px] left-0 right-0 rounded-[14px] border border-white/10 bg-[#092D26] p-2 shadow-2xl z-10">
-                {isAdmin && (
+                {isPlatformAdmin && (
                   <button
                     type="button"
                     onClick={() => { navigate('/tenants'); setProfileOpen(false); }}
