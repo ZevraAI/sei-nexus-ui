@@ -738,7 +738,7 @@ function StepReview({ suggestions, connectionKey, schemaName, domainKey, onNext,
         You can always change these later in the Semantic Layer.
       </p>
 
-      <div className="space-y-3 mb-6">
+      <div className="space-y-3 mb-6 max-h-[55vh] overflow-y-auto pr-1">
         {entities.map((e, i) => (
           <EntityCard key={e.table_name} suggestion={e} approved={e.approved}
             onToggle={() => toggle(i)}
@@ -860,7 +860,7 @@ export default function OnboardingWizard({ user, onComplete }) {
         )}
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.08)] border border-gray-100 p-8 min-h-[420px] flex flex-col justify-center">
+        <div className="bg-white rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.08)] border border-gray-100 p-8 min-h-[420px] flex flex-col">
 
           {analyseError && (
             <div className="mb-6 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
@@ -870,7 +870,7 @@ export default function OnboardingWizard({ user, onComplete }) {
             </div>
           )}
 
-          {step === 0 && <StepWelcome user={user} onNext={() => setStep(1)} />}
+          {step === 0 && <div className="flex-1 flex flex-col justify-center"><StepWelcome user={user} onNext={() => setStep(1)} /></div>}
 
           {step === 1 && (
             <StepConnect
@@ -890,14 +890,16 @@ export default function OnboardingWizard({ user, onComplete }) {
           )}
 
           {step === 3 && (
-            <StepAnalysing
-              connectionKey={connection.connectionKey}
-              schemaName={schemaName}
-              domainKey={domainKey}
-              tableNames={selectedTables}
-              onNext={results => { setSuggestions(results); setStep(4); }}
-              onError={msg => { setAnalyseError(msg); setStep(2); }}
-            />
+            <div className="flex-1 flex flex-col justify-center">
+              <StepAnalysing
+                connectionKey={connection.connectionKey}
+                schemaName={schemaName}
+                domainKey={domainKey}
+                tableNames={selectedTables}
+                onNext={results => { setSuggestions(results); setStep(4); }}
+                onError={msg => { setAnalyseError(msg); setStep(2); }}
+              />
+            </div>
           )}
 
           {step === 4 && (
@@ -912,10 +914,12 @@ export default function OnboardingWizard({ user, onComplete }) {
           )}
 
           {step === 5 && (
-            <StepDone
-              suggestedQuestions={suggested}
-              onFinish={handleComplete}
-            />
+            <div className="flex-1 flex flex-col justify-center">
+              <StepDone
+                suggestedQuestions={suggested}
+                onFinish={handleComplete}
+              />
+            </div>
           )}
         </div>
       </div>
