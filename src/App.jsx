@@ -106,6 +106,14 @@ export default function App() {
   // ── Check onboarding status once authenticated ─────────────────────────────
   useEffect(() => {
     if (!user) return;
+    // Platform admins (ADMIN in the default/public workspace) manage tenants —
+    // they never need to run the onboarding wizard themselves.
+    const isPlatformAdmin = user.role === 'ADMIN' &&
+      (!user.tenant_schema || user.tenant_schema === 'public');
+    if (isPlatformAdmin) {
+      setOnboardingComplete(true);
+      return;
+    }
     api.onboarding.status()
       .then(s => setOnboardingComplete(!!s.complete))
       .catch(() => setOnboardingComplete(true)); // fail open — don't block the app
