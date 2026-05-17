@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
+import DataViz from '../components/DataViz.jsx';
 
 // ── markdown ──────────────────────────────────────────────────────────────────
 marked.setOptions({ breaks: true, gfm: true });
@@ -390,7 +391,7 @@ function UserMessage({ text }) {
   );
 }
 
-function AssistantMessage({ content, decisionType, loading, exportMenu }) {
+function AssistantMessage({ content, decisionType, loading, exportMenu, queryData }) {
   return (
     <div className="flex justify-start">
       <div className="flex items-start gap-3 max-w-[90%]">
@@ -408,6 +409,7 @@ function AssistantMessage({ content, decisionType, loading, exportMenu }) {
                 {exportMenu}
               </div>
               <MarkdownBody content={content} />
+              {queryData?.length > 0 && <DataViz queryData={queryData} />}
               {decisionType && (
                 <div className="mt-3 pt-3 border-t border-[#F0EDE8] flex items-center gap-1.5">
                   <span className="text-[11px] text-[#8A96A6]">via</span>
@@ -544,6 +546,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
           role: 'assistant',
           content: response.answer || response.error || 'No response received.',
           decisionType: response.decision?.type || response.decision_type,
+          queryData: response.query_data || response.queryData || null,
           loading: false,
         };
         return next;
@@ -867,6 +870,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                       content={msg.content}
                       decisionType={msg.decisionType}
                       loading={msg.loading}
+                      queryData={msg.queryData}
                       exportMenu={
                         <ExportMenu
                           open={openExportMenu === i}
