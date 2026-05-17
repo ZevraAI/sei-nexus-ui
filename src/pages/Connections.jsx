@@ -13,7 +13,7 @@ const JDBC_PLACEHOLDER = {
 
 const STATUS_COLOR = { ACTIVE: 'green', FAILED: 'red', TESTING: 'blue', PENDING: 'yellow' };
 
-const EMPTY_FORM = { connectionKey: '', name: '', connectionType: 'POSTGRES', jdbcUrl: '', username: '', secret: '', domainKeys: '' };
+const EMPTY_FORM = { connectionKey: '', name: '', connectionType: 'POSTGRES', jdbcUrl: '', allowedSchemas: 'public', username: '', secret: '', domainKeys: '' };
 
 export default function Connections() {
   const [conns, setConns] = useState([]);
@@ -42,6 +42,7 @@ export default function Connections() {
       name:           conn.name,
       connectionType: conn.connection_type,
       jdbcUrl:        conn.jdbc_url ?? '',
+      allowedSchemas: conn.allowed_schemas ?? 'public',
       username:       conn.username ?? '',
       secret:         '',
       domainKeys:     '',
@@ -168,6 +169,12 @@ export default function Connections() {
             placeholder={JDBC_PLACEHOLDER[form.connectionType] ?? ''}
             value={form.jdbcUrl}
             onChange={e => set('jdbcUrl', e.target.value)}
+          />
+          <Input
+            label="Database Schema"
+            placeholder="public"
+            value={form.allowedSchemas}
+            onChange={e => set('allowedSchemas', e.target.value)}
           />
           <div className="grid grid-cols-2 gap-3">
             <Input label="Username" value={form.username} onChange={e => set('username', e.target.value)} />

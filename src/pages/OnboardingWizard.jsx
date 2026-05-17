@@ -130,7 +130,7 @@ const JDBC_HINT  = {
 };
 
 function StepConnect({ onNext }) {
-  const [form, setForm]       = useState({ name: '', connectionType: 'POSTGRES', jdbcUrl: '', username: '', secret: '' });
+  const [form, setForm]       = useState({ name: '', connectionType: 'POSTGRES', jdbcUrl: '', schemaName: 'public', username: '', secret: '' });
   const [testing, setTesting] = useState(false);
   const [tested, setTested]   = useState(null); // null | 'ok' | 'fail'
   const [testMsg, setTestMsg] = useState('');
@@ -146,6 +146,7 @@ function StepConnect({ onNext }) {
       const created = await api.connections.create({
         name: form.name, connectionType: form.connectionType,
         jdbcUrl: form.jdbcUrl, username: form.username, secret: form.secret,
+        allowedSchemas: form.schemaName || 'public',
       });
       const connKey = created.connection_key;
       const result  = await api.connections.test(connKey);
@@ -156,7 +157,7 @@ function StepConnect({ onNext }) {
       } else {
         setTested('ok');
         setTestMsg(result?.message || 'Connection successful');
-        onNext({ connectionKey: connKey, schemaName: 'public' });
+        onNext({ connectionKey: connKey, schemaName: form.schemaName || 'public' });
       }
     } catch (e) {
       setTested('fail');
