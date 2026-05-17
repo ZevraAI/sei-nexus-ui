@@ -3,8 +3,21 @@ import { api } from '../api.js';
 import {
   Database, Check, ChevronRight, Sparkles, ArrowRight,
   AlertCircle, Search, RefreshCw, ChevronDown, ChevronUp,
-  CheckCircle2, XCircle, Pencil,
+  CheckCircle2, XCircle, Pencil, Eye, EyeOff,
 } from 'lucide-react';
+
+// ── Onboarding state persistence ─────────────────────────────────────────────
+const STORAGE_KEY = 'zevra_onboarding_progress';
+
+function saveProgress(state) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
+}
+function loadProgress() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch (_) { return null; }
+}
+function clearProgress() {
+  localStorage.removeItem(STORAGE_KEY);
+}
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -78,6 +91,30 @@ function Input({ value, onChange, placeholder, type = 'text', disabled }) {
   );
 }
 
+function PasswordInput({ value, onChange, placeholder, disabled }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="relative">
+      <input
+        type={show ? 'text' : 'password'}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        disabled={disabled}
+        className="w-full h-10 border border-gray-200 rounded-lg px-3.5 pr-10 text-sm text-gray-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 disabled:bg-gray-50 disabled:text-gray-400 placeholder:text-gray-300"
+      />
+      <button
+        type="button"
+        onClick={() => setShow(s => !s)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+        tabIndex={-1}
+      >
+        {show ? <EyeOff size={14} /> : <Eye size={14} />}
+      </button>
+    </div>
+  );
+}
+
 function Select({ value, onChange, children }) {
   return (
     <select
@@ -129,14 +166,21 @@ const JDBC_HINT  = {
   REST_API: 'https://api.example.com/v1',
 };
 
-function StepConnect({ onNext }) {
-  const [form, setForm]       = useState({ name: '', connectionType: 'POSTGRES', jdbcUrl: '', schemaName: 'public', username: '', secret: '' });
+function StepConnect({ onNext, savedForm, onFormChange }) {
+  const [form, setForm] = useState(savedForm || { name: '', connectionType: 'POSTGRES', jdbcUrl: '', schemaName: 'public', username: '', secret: '' });
   const [testing, setTesting] = useState(false);
   const [tested, setTested]   = useState(null); // null | 'ok' | 'fail'
   const [testMsg, setTestMsg] = useState('');
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState('');
-  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setTested(null); };
+  const set = (k, v) => {
+    setForm(f => {
+      const next = { ...f, [k]: v };
+      onFormChange?.(next);
+      return next;
+    });
+    setTested(null);
+  };
 
   const testConnection = async () => {
     if (!form.jdbcUrl || !form.name) return;
@@ -205,7 +249,7 @@ function StepConnect({ onNext }) {
               placeholder="db_user" />
           </Field>
           <Field label="Password">
-            <Input type="password" value={form.secret} onChange={e => set('secret', e.target.value)}
+            <PasswordInput value={form.secret} onChange={e => set('secret', e.target.value)}
               placeholder="••••••••" />
           </Field>
         </div>
@@ -762,15 +806,29 @@ function StepDone({ suggestedQuestions, onFinish }) {
 // ── Main wizard ───────────────────────────────────────────────────────────────
 
 export default function OnboardingWizard({ user, onComplete }) {
-  const [step, setStep]                   = useState(0);
-  const [connection, setConnection]       = useState(null);
-  const [selectedTables, setSelectedTables] = useState([]);
-  const [suggestions, setSuggestions]     = useState([]);
-  const [suggested, setSuggested]         = useState([]);
+  // Restore saved progress so users can resume where they left off
+  const saved = loadProgress();
+
+  const [step, setStep]                   = useState(saved?.step ?? 0);
+  const [connection, setConnection]       = useState(saved?.connection ?? null);
+  const [selectedTables, setSelectedTables] = useState(saved?.selectedTables ?? []);
+  const [suggestions, setSuggestions]     = useState(saved?.suggestions ?? []);
+  const [suggested, setSuggested]         = useState(saved?.suggested ?? []);
   const [analyseError, setAnalyseError]   = useState('');
+  const [connForm, setConnForm]           = useState(saved?.connForm ?? null);
 
   const schemaName = connection?.schemaName || 'public';
   const domainKey  = 'PLATFORM';
+
+  // Persist state on every change so the user can resume after a refresh
+  useEffect(() => {
+    saveProgress({ step, connection, selectedTables, suggestions, suggested, connForm });
+  }, [step, connection, selectedTables, suggestions, suggested, connForm]);
+
+  const handleComplete = (question) => {
+    clearProgress();
+    onComplete(question);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f0faf5] via-white to-[#f5f9ff] flex items-start justify-center pt-12 pb-16 px-4">
@@ -789,6 +847,18 @@ export default function OnboardingWizard({ user, onComplete }) {
 
         <StepBar step={step} />
 
+        {/* Resume banner — shown when saved progress exists and user is on step 0 */}
+        {step === 0 && saved && (
+          <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-800">
+            <CheckCircle2 size={15} className="shrink-0" />
+            <span>You have unfinished setup. <strong>Your progress has been saved.</strong></span>
+            <button onClick={() => { clearProgress(); setStep(0); setConnection(null); setSelectedTables([]); setSuggestions([]); setSuggested([]); setConnForm(null); }}
+              className="ml-auto text-xs text-emerald-600 underline hover:text-emerald-800">
+              Start over
+            </button>
+          </div>
+        )}
+
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.08)] border border-gray-100 p-8 min-h-[420px] flex flex-col justify-center">
 
@@ -804,6 +874,8 @@ export default function OnboardingWizard({ user, onComplete }) {
 
           {step === 1 && (
             <StepConnect
+              savedForm={connForm}
+              onFormChange={setConnForm}
               onNext={conn => { setConnection(conn); setStep(2); }}
             />
           )}
@@ -842,7 +914,7 @@ export default function OnboardingWizard({ user, onComplete }) {
           {step === 5 && (
             <StepDone
               suggestedQuestions={suggested}
-              onFinish={question => onComplete(question)}
+              onFinish={handleComplete}
             />
           )}
         </div>

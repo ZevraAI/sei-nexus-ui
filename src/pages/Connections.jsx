@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api.js';
 import { Card, PageHeader, Badge, Btn, EmptyState, Modal, Input, Select, Spinner } from '../components/Card.jsx';
-import { Database, Plus, Pencil, Trash2, CheckCircle, XCircle, RefreshCw, TestTube } from 'lucide-react';
+import { Database, Plus, Pencil, Trash2, CheckCircle, XCircle, RefreshCw, TestTube, Eye, EyeOff } from 'lucide-react';
 
 const CONN_TYPES = ['ORACLE', 'POSTGRES', 'REST_API'];
 
@@ -25,6 +25,7 @@ export default function Connections() {
   const [testingKey, setTestingKey] = useState(null);
   const [error, setError] = useState('');
   const [testErrors, setTestErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -32,6 +33,7 @@ export default function Connections() {
     setEditingKey(null);
     setForm(EMPTY_FORM);
     setError('');
+    setShowPassword(false);
     setShowModal(true);
   };
 
@@ -48,6 +50,7 @@ export default function Connections() {
       domainKeys:     '',
     });
     setError('');
+    setShowPassword(false);
     setShowModal(true);
   };
 
@@ -178,7 +181,25 @@ export default function Connections() {
           />
           <div className="grid grid-cols-2 gap-3">
             <Input label="Username" value={form.username} onChange={e => set('username', e.target.value)} />
-            <Input label={editingKey ? 'New Password (leave blank to keep existing)' : 'Password'} type="password" value={form.secret} onChange={e => set('secret', e.target.value)} />
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                {editingKey ? 'Password (leave blank to keep existing)' : 'Password'}
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={form.secret}
+                  onChange={e => set('secret', e.target.value)}
+                  placeholder={editingKey ? '(unchanged)' : '••••••••'}
+                  className="w-full h-9 border border-gray-300 rounded-lg px-3 pr-9 text-sm focus:outline-none focus:border-indigo-400 placeholder:text-gray-300"
+                />
+                <button type="button" tabIndex={-1}
+                  onClick={() => setShowPassword(s => !s)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
           </div>
           <Input label="Domain Keys (comma-separated)" placeholder="invoicing,procurement"
             value={form.domainKeys} onChange={e => set('domainKeys', e.target.value)} />
