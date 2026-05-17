@@ -28,6 +28,9 @@ function nodeStyle(nodeType) {
 
 function safeArray(v) { return Array.isArray(v) ? v : []; }
 function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '…' : (s || ''); }
+function finiteNumber(value, fallback = 0) {
+  return Number.isFinite(value) ? value : fallback;
+}
 
 function normaliseNode(n) {
   return {
@@ -322,7 +325,10 @@ export default function KnowledgeGraph() {
   const drawNode = useCallback((node, ctx, globalScale) => {
     const style    = nodeStyle(node.nodeType);
     const color    = node.color || style.color;
-    const r        = style.radius;
+    const x        = finiteNumber(node.x);
+    const y        = finiteNumber(node.y);
+    const r        = Math.max(1, finiteNumber(style.radius, 11));
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(r)) return;
     const isSelected = selectedNode?.id === node.id;
     const isHover    = hoverNode?.id === node.id;
     const isDimmed   = highlightNodes && !highlightNodes.has(node.id) && !isSelected;
@@ -340,7 +346,7 @@ export default function KnowledgeGraph() {
     // outer ring for selected
     if (isSelected) {
       ctx.beginPath();
-      ctx.arc(node.x, node.y, r + 5, 0, 2 * Math.PI);
+      ctx.arc(x, y, r + 5, 0, 2 * Math.PI);
       ctx.strokeStyle = color + '60';
       ctx.lineWidth   = 2;
       ctx.stroke();
@@ -348,13 +354,13 @@ export default function KnowledgeGraph() {
 
     // node fill with radial gradient
     const grad = ctx.createRadialGradient(
-      node.x - r * 0.3, node.y - r * 0.3, 0,
-      node.x, node.y, r
+      x - r * 0.3, y - r * 0.3, 0,
+      x, y, r
     );
     grad.addColorStop(0, lighten(color, 0.35));
     grad.addColorStop(1, color);
     ctx.beginPath();
-    ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
+    ctx.arc(x, y, r, 0, 2 * Math.PI);
     ctx.fillStyle = grad;
     ctx.fill();
 
@@ -375,15 +381,15 @@ export default function KnowledgeGraph() {
 
     // label background pill
     const tw = ctx.measureText(label).width;
-    const lx = node.x - tw / 2 - 4;
-    const ly = node.y + r + 4;
+    const lx = x - tw / 2 - 4;
+    const ly = y + r + 4;
     ctx.fillStyle = 'rgba(14,17,23,0.75)';
     ctx.beginPath();
     ctx.roundRect(lx, ly, tw + 8, fontSize + 5, 3);
     ctx.fill();
 
     ctx.fillStyle  = isSelected ? '#fff' : 'rgba(255,255,255,0.80)';
-    ctx.fillText(label, node.x, ly + 2.5);
+    ctx.fillText(label, x, ly + 2.5);
 
     ctx.restore();
   }, [selectedNode, hoverNode, highlightNodes]);
@@ -411,6 +417,7 @@ export default function KnowledgeGraph() {
 
   const panelOpen = !!selectedNode;
   const canvasW   = panelOpen ? Math.max(200, dims.w - 340) : dims.w;
+  const canvasH   = Math.max(200, dims.h - 56);
 
   return (
     <div className="flex-1 flex overflow-hidden" style={{ background: CANVAS_BG }}>
@@ -509,7 +516,7 @@ export default function KnowledgeGraph() {
           <ForceGraph2D
             ref={graphRef}
             width={canvasW}
-            height={dims.h - 56}
+            height={canvasH}
             graphData={graphData}
             nodeId="id"
             nodeLabel={() => ''}
@@ -535,10 +542,13 @@ export default function KnowledgeGraph() {
             d3VelocityDecay={0.35}
             backgroundColor={CANVAS_BG}
             nodePointerAreaPaint={(node, color, ctx) => {
-              const r = nodeStyle(node.nodeType).radius + 6;
+              const x = finiteNumber(node.x);
+              const y = finiteNumber(node.y);
+              const r = Math.max(1, finiteNumber(nodeStyle(node.nodeType).radius, 11) + 6);
+              if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(r)) return;
               ctx.fillStyle = color;
               ctx.beginPath();
-              ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
+              ctx.arc(x, y, r, 0, 2 * Math.PI);
               ctx.fill();
             }}
           />

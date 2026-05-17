@@ -872,7 +872,7 @@ export default function Semantic() {
   // ── render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex-1 overflow-auto p-6">
+    <div className="h-full min-h-0 overflow-y-auto p-6">
       <PageHeader
         title="Semantic Layer"
         subtitle="Business entity definitions, operational vocabulary, and investigation context for the AI"
