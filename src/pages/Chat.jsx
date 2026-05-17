@@ -252,9 +252,13 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
       .catch(() => {});
   }, []);
 
-  // Auto-fire prefilled question from onboarding wizard completion
+  const prefillFiredRef = useRef(false);
+
+  // Auto-fire prefilled question from onboarding wizard completion.
+  // Guard with a ref so React StrictMode's double-invoke doesn't send it twice.
   useEffect(() => {
-    if (prefillQuestion) {
+    if (prefillQuestion && !prefillFiredRef.current) {
+      prefillFiredRef.current = true;
       onPrefillUsed?.();
       sendQuestion(prefillQuestion, true);
     }
