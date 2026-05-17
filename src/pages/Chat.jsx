@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { marked } from 'marked';
 import {
   ArrowLeft, Bot, Clipboard, Database, Download, FileDown, FileSpreadsheet,
@@ -375,45 +375,159 @@ function ChatHistory({ conversations, loading, error, onRefresh, onOpen }) {
   );
 }
 
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+function fmtCell(v) {
+  if (v == null) return '—';
+  const n = parseFloat(v);
+  if (!isNaN(n) && isFinite(v)) {
+    if (Math.abs(n) >= 1_000_000) return (n / 1_000_000).toFixed(2) + 'M';
+    if (Math.abs(n) >= 1_000)     return n.toLocaleString();
+    return Number.isInteger(n) ? n.toLocaleString() : parseFloat(n.toFixed(4)).toString();
+  }
+  return String(v);
+}
+
+function colLabel(key) {
+  return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// ── DataTable ─────────────────────────────────────────────────────────────────
+
+function DataTable({ rows }) {
+  if (!rows?.length) return null;
+  const cols = Object.keys(rows[0]);
+  return (
+    <div className="mt-4 rounded-xl border border-gray-200 overflow-hidden">
+      <div className="overflow-x-auto">
+        <div className="max-h-[260px] overflow-y-auto">
+          <table className="w-full text-[12px] border-collapse">
+            <thead className="sticky top-0 z-10">
+              <tr>
+                {cols.map(col => (
+                  <th key={col}
+                      className="bg-[#0C5847] px-3.5 py-2.5 text-left text-[11px] font-semibold text-white/90 tracking-wide whitespace-nowrap">
+                    {colLabel(col)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-[#f8faf9]'}>
+                  {cols.map(col => (
+                    <td key={col}
+                        className="px-3.5 py-2 text-[#344054] border-t border-gray-100 whitespace-nowrap max-w-[220px] truncate">
+                      {fmtCell(row[col])}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div className="px-3.5 py-1.5 bg-gray-50 border-t border-gray-200 text-[11px] text-gray-400">
+        {rows.length.toLocaleString()} row{rows.length !== 1 ? 's' : ''}
+      </div>
+    </div>
+  );
+}
+
+// ── SuggestedQuestions ────────────────────────────────────────────────────────
+
+function buildSuggestions(quickRefinements, queryData) {
+  const chips = [];
+
+  // Data-driven: detect useful follow-ups from column patterns
+  if (queryData?.length > 0) {
+    const cols = Object.keys(queryData[0]);
+    const statusCol = cols.find(c => /status|state|type/i.test(c));
+    const numCol    = cols.find(c => {
+      const vals = queryData.map(r => r[c]).filter(v => v != null);
+      return vals.length > 0 && vals.every(v => !isNaN(parseFloat(v)));
+    });
+    const dateCol   = cols.find(c => /date|_at|time|month|year/i.test(c));
+
+    if (statusCol) {
+      const statuses = [...new Set(queryData.map(r => r[statusCol]).filter(Boolean))].slice(0, 2);
+      if (statuses.length) chips.push({ label: `Filter: ${statuses[0]}`, prompt: `Show only records where ${colLabel(statusCol)} is ${statuses[0]}` });
+    }
+    if (numCol)  chips.push({ label: `Total ${colLabel(numCol)}`, prompt: `What is the total ${colLabel(numCol)}?` });
+    if (dateCol && !chips.find(c => c.label.startsWith('Total')))
+      chips.push({ label: 'Trend over time', prompt: `Show the trend by month` });
+  }
+
+  // Backend refinements (exclude "Run in background" — too technical)
+  safeArray(quickRefinements)
+    .filter(r => !String(r.prompt || '').startsWith('/async'))
+    .slice(0, 2)
+    .forEach(r => chips.push({ label: r.label, prompt: r.prompt }));
+
+  // Deduplicate and cap at 3
+  const seen = new Set();
+  return chips.filter(c => { if (seen.has(c.label)) return false; seen.add(c.label); return true; }).slice(0, 3);
+}
+
+function SuggestedQuestions({ quickRefinements, queryData, onAsk }) {
+  const chips = useMemo(() => buildSuggestions(quickRefinements, queryData), [quickRefinements, queryData]);
+  if (!chips.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-[#F0EDE8]">
+      <span className="text-[10px] font-semibold text-gray-300 uppercase tracking-wider self-center mr-0.5">
+        Ask next
+      </span>
+      {chips.map((c, i) => (
+        <button key={i} onClick={() => onAsk(c.prompt)}
+          className="px-2.5 py-1 text-[11px] font-medium rounded-full border border-[#D1E9E2] bg-[#f0faf5] text-[#0C5847] hover:bg-[#0C5847] hover:text-white hover:border-[#0C5847] transition-all">
+          {c.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ── message bubbles ────────────────────────────────────────────────────────────
 function UserMessage({ text }) {
   return (
     <div className="flex justify-end">
-      <div className="flex items-start gap-3 max-w-[80%]">
-        <div className="rounded-[14px] bg-[#0C5847] px-5 py-3.5 text-[14px] leading-[1.6] text-white">
+      <div className="flex items-start gap-2.5 max-w-[78%]">
+        <div className="rounded-[12px] bg-[#0C5847] px-4 py-2.5 text-[13px] leading-[1.55] text-white">
           {text}
         </div>
-        <div className="mt-1 w-8 h-8 rounded-full bg-[#E8EBF0] flex items-center justify-center shrink-0">
-          <User size={15} className="text-[#415268]" />
+        <div className="mt-0.5 w-7 h-7 rounded-full bg-[#E8EBF0] flex items-center justify-center shrink-0">
+          <User size={13} className="text-[#415268]" />
         </div>
       </div>
     </div>
   );
 }
 
-function AssistantMessage({ content, decisionType, loading, exportMenu, queryData }) {
+function AssistantMessage({ content, decisionType, loading, exportMenu, queryData, quickRefinements, onAsk }) {
   return (
     <div className="flex justify-start">
-      <div className="flex items-start gap-3 max-w-[90%]">
-        <div className="mt-1 w-8 h-8 rounded-full bg-[#0C5847]/10 flex items-center justify-center shrink-0">
-          <Bot size={15} className="text-[#0C5847]" />
+      <div className="flex items-start gap-2.5 w-full">
+        <div className="mt-0.5 w-7 h-7 rounded-full bg-[#0C5847]/10 flex items-center justify-center shrink-0">
+          <Bot size={13} className="text-[#0C5847]" />
         </div>
-        <div className="rounded-[14px] border border-[#E8EBF0] bg-white px-6 py-5 shadow-sm">
+        <div className="flex-1 min-w-0 rounded-[12px] border border-[#E8EBF0] bg-white px-5 py-4 shadow-sm">
           {loading ? (
-            <div className="flex items-center gap-2 text-[13px] text-[#667085]">
+            <div className="flex items-center gap-2 text-[12px] text-[#667085]">
               <span className="animate-pulse">Zevra is thinking…</span>
             </div>
           ) : (
             <>
-              <div className="mb-3 flex justify-end">
+              <div className="mb-2 flex justify-end">
                 {exportMenu}
               </div>
               <MarkdownBody content={content} />
+              {queryData?.length > 0 && <DataTable rows={queryData} />}
               {queryData?.length > 0 && <DataViz queryData={queryData} />}
+              <SuggestedQuestions quickRefinements={quickRefinements} queryData={queryData} onAsk={onAsk} />
               {decisionType && (
-                <div className="mt-3 pt-3 border-t border-[#F0EDE8] flex items-center gap-1.5">
-                  <span className="text-[11px] text-[#8A96A6]">via</span>
-                  <span className="text-[11px] font-medium text-[#0C5847]">{decisionType}</span>
+                <div className="mt-2.5 pt-2.5 border-t border-[#F0EDE8] flex items-center gap-1.5">
+                  <span className="text-[10px] text-[#8A96A6]">via</span>
+                  <span className="text-[10px] font-medium text-[#0C5847]">{decisionType}</span>
                 </div>
               )}
             </>
@@ -547,6 +661,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
           content: response.answer || response.error || 'No response received.',
           decisionType: response.decision?.type || response.decision_type,
           queryData: response.query_data || response.queryData || null,
+          quickRefinements: response.quick_refinements || response.quickRefinements || [],
           loading: false,
         };
         return next;
@@ -860,7 +975,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
 
             {/* Messages */}
             <div className="flex-1 min-h-0 overflow-y-auto">
-              <div className="max-w-[800px] mx-auto px-6 py-8 space-y-6">
+              <div className="max-w-[1100px] mx-auto px-5 py-5 space-y-4">
                 {messages.map((msg, i) =>
                   msg.role === 'user' ? (
                     <UserMessage key={i} text={msg.content} />
@@ -871,6 +986,8 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                       decisionType={msg.decisionType}
                       loading={msg.loading}
                       queryData={msg.queryData}
+                      quickRefinements={msg.quickRefinements}
+                      onAsk={q => sendQuestion(q)}
                       exportMenu={
                         <ExportMenu
                           open={openExportMenu === i}
@@ -893,7 +1010,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
             <div className="shrink-0 border-t border-[#E7E2DD] bg-white px-6 py-4">
               <form
                 onSubmit={handleChatSubmit}
-                className="max-w-[800px] mx-auto flex items-end gap-3 rounded-[12px] border border-[#DDD8D2] bg-[#FAFAF9] px-5 py-3.5 focus-within:border-[#0C5847] transition-colors"
+                className="max-w-[1100px] mx-auto flex items-end gap-3 rounded-[12px] border border-[#DDD8D2] bg-[#FAFAF9] px-5 py-3 focus-within:border-[#0C5847] transition-colors"
               >
                 <textarea
                   ref={chatInputRef}
