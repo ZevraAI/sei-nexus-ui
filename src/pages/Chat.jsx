@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { marked } from 'marked';
 import {
-  ArrowLeft, Bot, Database, FileText, Filter,
-  MoreHorizontal, Search, Send, Sparkles, User, Users, X,
+  ArrowLeft, Bot, Clipboard, Database, Download, FileDown, FileSpreadsheet,
+  FileText, MoreHorizontal, Printer, Search, Send, Sparkles, User, Users, X,
 } from 'lucide-react';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
@@ -65,6 +65,229 @@ function safeArray(value) {
 
 function newConversationId() {
   return 'conv-' + Math.random().toString(36).slice(2, 10);
+}
+
+function slugifyFileName(value, fallback = 'zevra-export') {
+  return String(value || fallback)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80) || fallback;
+}
+
+function exportStamp() {
+  return new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+}
+
+function downloadBlob(filename, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function splitMarkdownRow(row) {
+  const trimmed = row.trim().replace(/^\|/, '').replace(/\|$/, '');
+  const cells = [];
+  let current = '';
+  let escaped = false;
+  for (const char of trimmed) {
+    if (escaped) {
+      current += char;
+      escaped = false;
+    } else if (char === '\\') {
+      escaped = true;
+    } else if (char === '|') {
+      cells.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  cells.push(current.trim());
+  return cells;
+}
+
+function isMarkdownSeparator(line) {
+  return /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line || '');
+}
+
+function extractMarkdownTables(content) {
+  const lines = String(content || '').split(/\r?\n/);
+  const tables = [];
+
+  for (let i = 0; i < lines.length - 1; i += 1) {
+    const header = lines[i];
+    const separator = lines[i + 1];
+    if (!header.includes('|') || !isMarkdownSeparator(separator)) continue;
+
+    const rows = [splitMarkdownRow(header)];
+    i += 2;
+    while (i < lines.length && lines[i].includes('|') && lines[i].trim()) {
+      rows.push(splitMarkdownRow(lines[i]));
+      i += 1;
+    }
+    i -= 1;
+
+    if (rows.length > 1) tables.push(rows);
+  }
+
+  return tables;
+}
+
+function csvEscape(value) {
+  const text = String(value ?? '').replace(/\r?\n/g, ' ');
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function tablesToCsv(tables) {
+  return tables
+    .map((table, idx) => [
+      ...(tables.length > 1 ? [`Table ${idx + 1}`] : []),
+      ...table.map((row) => row.map(csvEscape).join(',')),
+    ].join('\n'))
+    .join('\n\n');
+}
+
+function tablesToExcelHtml(tables, title) {
+  const sheets = tables.map((table, idx) => `
+    <h2>${escapeHtml(tables.length > 1 ? `Table ${idx + 1}` : title)}</h2>
+    <table>
+      ${table.map((row, rowIdx) => `
+        <tr>${row.map((cell) => rowIdx === 0
+          ? `<th>${escapeHtml(cell)}</th>`
+          : `<td>${escapeHtml(cell)}</td>`).join('')}</tr>
+      `).join('')}
+    </table>
+  `).join('<br />');
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    table { border-collapse: collapse; }
+    th, td { border: 1px solid #b7c1cc; padding: 6px 10px; }
+    th { background: #0c5847; color: #ffffff; font-weight: 700; }
+  </style>
+</head>
+<body>${sheets}</body>
+</html>`;
+}
+
+function buildConversationMarkdown(messages, title) {
+  const body = messages
+    .filter((msg) => !msg.loading)
+    .map((msg) => {
+      const heading = msg.role === 'user' ? 'User' : 'Zevra';
+      return `## ${heading}\n\n${msg.content || ''}`;
+    })
+    .join('\n\n');
+  return `# ${title}\n\nExported: ${new Date().toLocaleString()}\n\n${body}\n`;
+}
+
+function buildReportHtml(title, markdown) {
+  const html = marked.parse(markdown || '');
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeHtml(title)}</title>
+  <style>
+    body { font-family: Inter, Arial, sans-serif; color: #1a2637; margin: 40px; line-height: 1.55; }
+    h1, h2, h3 { color: #0d2438; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+    th { background: #0c5847; color: white; text-align: left; padding: 8px 10px; }
+    td { border-bottom: 1px solid #e8ede8; padding: 7px 10px; }
+    tr:nth-child(even) { background: #f7faf8; }
+    pre { background: #1a2637; color: #e8edf5; padding: 12px; border-radius: 8px; overflow-x: auto; }
+    blockquote { border-left: 3px solid #0c5847; color: #415268; margin-left: 0; padding-left: 12px; }
+  </style>
+</head>
+<body>${html}</body>
+</html>`;
+}
+
+function printMarkdown(title, markdown) {
+  const win = window.open('', '_blank', 'noopener,noreferrer');
+  if (!win) return;
+  win.document.write(buildReportHtml(title, markdown));
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
+function buildPowerPointHtml(title, messages) {
+  const slides = messages
+    .filter((msg) => !msg.loading)
+    .map((msg, idx) => {
+      const role = msg.role === 'user' ? 'Question' : 'Answer';
+      return `<section class="slide"><h1>${idx + 1}. ${role}</h1>${marked.parse(msg.content || '')}</section>`;
+    })
+    .join('');
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    .slide { page-break-after: always; width: 960px; min-height: 540px; padding: 48px; font-family: Arial, sans-serif; }
+    h1 { color: #0c5847; font-size: 30px; }
+    body { color: #1a2637; font-size: 20px; }
+    table { border-collapse: collapse; width: 100%; font-size: 16px; }
+    th, td { border: 1px solid #d8dee6; padding: 8px; }
+    th { background: #0c5847; color: white; }
+  </style>
+</head>
+<body><section class="slide"><h1>${escapeHtml(title)}</h1><p>Exported ${new Date().toLocaleString()}</p></section>${slides}</body>
+</html>`;
+}
+
+function ExportMenu({ open, onToggle, disabled, actions, align = 'right' }) {
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={disabled}
+        className="h-8 px-3 rounded-[7px] border border-[#DDE4E1] bg-white text-[12px] font-medium text-[#344054] flex items-center gap-2 hover:bg-[#F7FAF8] disabled:opacity-40 disabled:cursor-not-allowed"
+        aria-label="Export"
+      >
+        <Download size={14} />
+        Export
+      </button>
+      {open && (
+        <div className={`absolute top-9 ${align === 'left' ? 'left-0' : 'right-0'} z-20 w-56 rounded-[8px] border border-[#E6E2DD] bg-white shadow-lg py-1`}>
+          {actions.map((action) => (
+            <button
+              key={action.label}
+              type="button"
+              onClick={action.onClick}
+              disabled={action.disabled}
+              className="w-full px-3 py-2 text-left text-[13px] text-[#253248] hover:bg-[#F7FAF8] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <action.icon size={14} className="text-[#53647C]" />
+              {action.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ── chat history sidebar ──────────────────────────────────────────────────────
@@ -167,7 +390,7 @@ function UserMessage({ text }) {
   );
 }
 
-function AssistantMessage({ content, decisionType, loading }) {
+function AssistantMessage({ content, decisionType, loading, exportMenu }) {
   return (
     <div className="flex justify-start">
       <div className="flex items-start gap-3 max-w-[90%]">
@@ -181,6 +404,9 @@ function AssistantMessage({ content, decisionType, loading }) {
             </div>
           ) : (
             <>
+              <div className="mb-3 flex justify-end">
+                {exportMenu}
+              </div>
               <MarkdownBody content={content} />
               {decisionType && (
                 <div className="mt-3 pt-3 border-t border-[#F0EDE8] flex items-center gap-1.5">
@@ -212,6 +438,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
   const [chatQuery, setChatQuery] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [openExportMenu, setOpenExportMenu] = useState(null);
 
   // history
   const [conversations, setConversations] = useState([]);
@@ -384,9 +611,120 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
     setLandingQuery('');
     setChatQuery('');
     setSubmitError('');
+    setOpenExportMenu(null);
   };
 
   const metricText = (val, noun) => val === null ? `Loading ${noun}` : `${val} ${noun}`;
+  const conversationTitle = messages.find((m) => m.role === 'user')?.content?.slice(0, 60) || 'Investigation';
+  const conversationFileBase = `${slugifyFileName(conversationTitle, 'zevra-investigation')}-${exportStamp()}`;
+
+  const exportAnswerActions = (message, index) => {
+    const tables = extractMarkdownTables(message.content);
+    const answerBase = `zevra-answer-${index + 1}-${exportStamp()}`;
+    return [
+      {
+        label: 'Copy answer',
+        icon: Clipboard,
+        onClick: async () => {
+          await navigator.clipboard?.writeText(message.content || '');
+          setOpenExportMenu(null);
+        },
+      },
+      {
+        label: 'Download answer (.md)',
+        icon: FileText,
+        onClick: () => {
+          downloadBlob(`${answerBase}.md`, message.content || '', 'text/markdown;charset=utf-8');
+          setOpenExportMenu(null);
+        },
+      },
+      {
+        label: 'Download table CSV',
+        icon: FileSpreadsheet,
+        disabled: tables.length === 0,
+        onClick: () => {
+          downloadBlob(`${answerBase}-tables.csv`, tablesToCsv(tables), 'text/csv;charset=utf-8');
+          setOpenExportMenu(null);
+        },
+      },
+      {
+        label: 'Download table Excel',
+        icon: FileSpreadsheet,
+        disabled: tables.length === 0,
+        onClick: () => {
+          downloadBlob(`${answerBase}-tables.xls`, tablesToExcelHtml(tables, 'Zevra answer tables'), 'application/vnd.ms-excel;charset=utf-8');
+          setOpenExportMenu(null);
+        },
+      },
+      {
+        label: 'Print / save PDF',
+        icon: Printer,
+        onClick: () => {
+          printMarkdown('Zevra answer', message.content || '');
+          setOpenExportMenu(null);
+        },
+      },
+    ];
+  };
+
+  const exportConversationActions = () => {
+    const markdown = buildConversationMarkdown(messages, conversationTitle);
+    const assistantTables = messages
+      .filter((msg) => msg.role === 'assistant' && !msg.loading)
+      .flatMap((msg) => extractMarkdownTables(msg.content));
+    return [
+      {
+        label: 'Download report (.md)',
+        icon: FileText,
+        onClick: () => {
+          downloadBlob(`${conversationFileBase}.md`, markdown, 'text/markdown;charset=utf-8');
+          setOpenExportMenu(null);
+        },
+      },
+      {
+        label: 'Download report HTML',
+        icon: FileDown,
+        onClick: () => {
+          downloadBlob(`${conversationFileBase}.html`, buildReportHtml(conversationTitle, markdown), 'text/html;charset=utf-8');
+          setOpenExportMenu(null);
+        },
+      },
+      {
+        label: 'Download all tables CSV',
+        icon: FileSpreadsheet,
+        disabled: assistantTables.length === 0,
+        onClick: () => {
+          downloadBlob(`${conversationFileBase}-tables.csv`, tablesToCsv(assistantTables), 'text/csv;charset=utf-8');
+          setOpenExportMenu(null);
+        },
+      },
+      {
+        label: 'Download all tables Excel',
+        icon: FileSpreadsheet,
+        disabled: assistantTables.length === 0,
+        onClick: () => {
+          downloadBlob(`${conversationFileBase}-tables.xls`, tablesToExcelHtml(assistantTables, conversationTitle), 'application/vnd.ms-excel;charset=utf-8');
+          setOpenExportMenu(null);
+        },
+      },
+      {
+        label: 'PowerPoint outline',
+        icon: FileDown,
+        onClick: () => {
+          downloadBlob(`${conversationFileBase}.ppt`, buildPowerPointHtml(conversationTitle, messages), 'application/vnd.ms-powerpoint;charset=utf-8');
+          setOpenExportMenu(null);
+        },
+      },
+      {
+        label: 'Print / save PDF',
+        icon: Printer,
+        onClick: () => {
+          printMarkdown(conversationTitle, markdown);
+          setOpenExportMenu(null);
+        },
+      },
+    ];
+  };
 
   // ── render ──────────────────────────────────────────────────────────────────
   return (
@@ -501,9 +839,17 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
               </button>
               <div className="h-5 w-px bg-[#E0DBD5]" />
               <span className="text-[13px] font-medium text-[#101828] truncate">
-                {messages.find((m) => m.role === 'user')?.content?.slice(0, 60) || 'Investigation'}
+                {conversationTitle}
               </span>
-              <span className="ml-auto h-7 rounded-full border border-[#DDE4E1] bg-white px-3 flex items-center gap-1.5 text-[11px] font-medium text-[#253248]">
+              <div className="ml-auto">
+                <ExportMenu
+                  open={openExportMenu === 'conversation'}
+                  onToggle={() => setOpenExportMenu((current) => current === 'conversation' ? null : 'conversation')}
+                  disabled={messages.filter((msg) => !msg.loading).length === 0}
+                  actions={exportConversationActions()}
+                />
+              </div>
+              <span className="h-7 rounded-full border border-[#DDE4E1] bg-white px-3 flex items-center gap-1.5 text-[11px] font-medium text-[#253248]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#1FB981]" />
                 {envLabel()}
               </span>
@@ -521,6 +867,14 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                       content={msg.content}
                       decisionType={msg.decisionType}
                       loading={msg.loading}
+                      exportMenu={
+                        <ExportMenu
+                          open={openExportMenu === i}
+                          onToggle={() => setOpenExportMenu((current) => current === i ? null : i)}
+                          disabled={msg.loading}
+                          actions={exportAnswerActions(msg, i)}
+                        />
+                      }
                     />
                   )
                 )}
