@@ -651,6 +651,14 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
       prefillFiredRef.current = true;
       onPrefillUsed?.();
       sendQuestion(prefillQuestion, true);
+      return;
+    }
+    // Pick up cross-page prefill stored by Knowledge Graph "Ask Zevra" button
+    const stored = localStorage.getItem('zevra_chat_prefill');
+    if (stored && !prefillFiredRef.current) {
+      prefillFiredRef.current = true;
+      localStorage.removeItem('zevra_chat_prefill');
+      sendQuestion(stored, true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

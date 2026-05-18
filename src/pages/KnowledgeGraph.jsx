@@ -1,35 +1,46 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { api } from '../api.js';
+import { navigate } from '../App.jsx';
 import {
-  Search, RefreshCw, Maximize2, X, Database,
-  ArrowRight, ChevronRight, Layers,
+  ArrowRight, Code, Database, ExternalLink, Layers,
+  Maximize2, MessageSquare, Network, RefreshCw, Search, X,
 } from 'lucide-react';
 
-// ── design tokens ─────────────────────────────────────────────────────────────
+// ── Design tokens ─────────────────────────────────────────────────────────────
 
-const CANVAS_BG = '#0E1117';
+const CANVAS_BG = '#0D1117';
 
 const NODE_STYLES = {
-  ENTITY:      { color: '#10B981', glow: '#10B98150', radius: 14, label: 'Entity' },
-  TRANSACTION: { color: '#3B82F6', glow: '#3B82F650', radius: 13, label: 'Transaction' },
-  REFERENCE:   { color: '#8B5CF6', glow: '#8B5CF650', radius: 12, label: 'Reference' },
-  METRIC:      { color: '#F59E0B', glow: '#F59E0B50', radius: 12, label: 'Metric' },
-  EVENT:       { color: '#EC4899', glow: '#EC489950', radius: 11, label: 'Event' },
-  DETAIL:      { color: '#06B6D4', glow: '#06B6D450', radius: 11, label: 'Detail' },
-  DEFAULT:     { color: '#6B7280', glow: '#6B728050', radius: 11, label: 'Node' },
+  ENTITY:      { color: '#10B981', radius: 15, abbr: 'E',  label: 'Entity'      },
+  TRANSACTION: { color: '#3B82F6', radius: 14, abbr: 'T',  label: 'Transaction' },
+  REFERENCE:   { color: '#8B5CF6', radius: 13, abbr: 'R',  label: 'Reference'   },
+  METRIC:      { color: '#F59E0B', radius: 13, abbr: 'M',  label: 'Metric'      },
+  EVENT:       { color: '#EC4899', radius: 12, abbr: 'EV', label: 'Event'       },
+  DETAIL:      { color: '#06B6D4', radius: 12, abbr: 'D',  label: 'Detail'      },
+  DEFAULT:     { color: '#6B7280', radius: 12, abbr: '?',  label: 'Node'        },
 };
 
-function nodeStyle(nodeType) {
-  return NODE_STYLES[nodeType] || NODE_STYLES.DEFAULT;
-}
+const REL_COLORS = {
+  HAS_MANY:    '#10B981',
+  BELONGS_TO:  '#3B82F6',
+  REFERENCES:  '#8B5CF6',
+  LINKED_VIA:  '#F59E0B',
+};
 
-// ── helpers ───────────────────────────────────────────────────────────────────
+function nodeStyle(t) { return NODE_STYLES[t] || NODE_STYLES.DEFAULT; }
+
+// ── Normalise API shapes ───────────────────────────────────────────────────────
 
 function safeArray(v) { return Array.isArray(v) ? v : []; }
 function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '…' : (s || ''); }
-function finiteNumber(value, fallback = 0) {
-  return Number.isFinite(value) ? value : fallback;
+function finiteNumber(v, fb = 0) { return Number.isFinite(v) ? v : fb; }
+function lighten(hex, a) {
+  const n = parseInt(hex.replace('#',''), 16);
+  const r = Math.min(255, ((n>>16)&0xff) + Math.round(255*a));
+  const g = Math.min(255, ((n>>8)&0xff)  + Math.round(255*a));
+  const b = Math.min(255, (n&0xff)        + Math.round(255*a));
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
 }
 
 function normaliseNode(n) {
@@ -50,221 +61,422 @@ function normaliseNode(n) {
 
 function normaliseEdge(e) {
   return {
-    id:               e.id               ?? e.relationship_key ?? `${e.source ?? e.source_entity_key}-${e.target ?? e.target_entity_key}`,
+    id:               e.id ?? e.relationship_key
+                      ?? `${e.source ?? e.source_entity_key}→${e.target ?? e.target_entity_key}`,
     source:           e.source           ?? e.source_entity_key,
     target:           e.target           ?? e.target_entity_key,
-    relationshipType: e.relationship_type?? e.relationshipType,
+    relationshipType: e.relationship_type ?? e.relationshipType,
     sourceColumn:     e.source_column    ?? e.sourceColumn,
     targetColumn:     e.target_column    ?? e.targetColumn,
     joinGuidance:     e.join_guidance    ?? e.joinGuidance,
     cardinality:      e.cardinality,
     bidirectional:    e.bidirectional    ?? false,
-    edgeColor:        e.edge_color       ?? e.edgeColor ?? '#374151',
+    edgeColor:        e.edge_color       ?? e.edgeColor
+                      ?? REL_COLORS[e.relationship_type] ?? '#4B5563',
   };
 }
 
-// ── detail panel ──────────────────────────────────────────────────────────────
+// ── EntityBadge ───────────────────────────────────────────────────────────────
 
-function DetailPanel({ node, edges, onClose, onExpand }) {
+function EntityBadge({ nodeType, style: s }) {
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold"
+          style={{ background: s.color + '25', color: s.color }}>
+      {nodeType || 'ENTITY'}
+    </span>
+  );
+}
+
+// ── Detail panel ──────────────────────────────────────────────────────────────
+
+function DetailPanel({ node, edges, nodeIndex, onClose, onExpand }) {
+  const [activeTab, setActiveTab] = useState('overview');
   if (!node) return null;
-  const style   = nodeStyle(node.nodeType);
+
+  const style    = nodeStyle(node.nodeType);
   const outbound = edges.filter(e => (typeof e.source === 'object' ? e.source.id : e.source) === node.id);
   const inbound  = edges.filter(e => (typeof e.target === 'object' ? e.target.id : e.target) === node.id);
   const tableName = node.primaryObjectKey
-    ? node.primaryObjectKey.split('-').slice(3).join('_') || node.primaryObjectKey
+    ? (node.primaryObjectKey.split('-').slice(3).join('_') || node.primaryObjectKey)
     : null;
 
+  const resolveLabel = (id) => nodeIndex[id]?.label || id;
+
+  const askZevra = () => {
+    const q = `Tell me about ${node.label}. What are the key metrics, current status, and any anomalies I should know about?`;
+    localStorage.setItem('zevra_chat_prefill', q);
+    navigate('/chat');
+  };
+
+  const TABS = [
+    ['overview',  'Overview'],
+    ['relations', `Relations (${outbound.length + inbound.length})`],
+    ['sql',       'JOIN Paths'],
+  ];
+
   return (
-    <div className="absolute top-0 right-0 h-full w-[340px] flex flex-col bg-[#13181F] border-l border-white/8 z-20 overflow-hidden">
-      {/* Header */}
-      <div className="shrink-0 px-5 py-4 border-b border-white/8" style={{ borderTopColor: style.color, borderTopWidth: 2 }}>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span
-                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold"
-                style={{ backgroundColor: style.color + '25', color: style.color }}
-              >
-                {node.nodeType}
-              </span>
-              {node.groupLabel && (
-                <span className="text-xs text-white/35">{node.groupLabel}</span>
-              )}
-            </div>
-            <h3 className="text-[17px] font-bold text-white leading-tight">{node.label}</h3>
+    <div className="absolute top-0 right-0 h-full w-[360px] flex flex-col z-20 overflow-hidden"
+         style={{ background: '#13181F', borderLeft: '1px solid rgba(255,255,255,0.07)' }}>
+
+      {/* Colour bar + header */}
+      <div className="shrink-0 px-5 pt-4 pb-3 border-b border-white/8"
+           style={{ borderTopColor: style.color, borderTopWidth: 3 }}>
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <EntityBadge nodeType={node.nodeType} style={style} />
+            {node.groupLabel && (
+              <span className="text-[11px] text-white/35 font-medium">{node.groupLabel}</span>
+            )}
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={() => onExpand(node.id)}
-              title="Expand 2-hop neighbours"
-              className="w-7 h-7 rounded-md flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              <Maximize2 size={14} />
+          <div className="flex gap-1 shrink-0">
+            <button onClick={() => onExpand(node.id)} title="Expand neighbours"
+              className="w-7 h-7 rounded-md flex items-center justify-center text-white/40
+                         hover:text-white hover:bg-white/10 transition-colors">
+              <Maximize2 size={13} />
             </button>
-            <button
-              onClick={onClose}
-              className="w-7 h-7 rounded-md flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              <X size={14} />
+            <button onClick={onClose}
+              className="w-7 h-7 rounded-md flex items-center justify-center text-white/40
+                         hover:text-white hover:bg-white/10 transition-colors">
+              <X size={13} />
             </button>
           </div>
         </div>
 
+        <h3 className="text-[18px] font-bold text-white leading-tight mb-1">{node.label}</h3>
+
         {tableName && (
-          <div className="mt-2.5 flex items-center gap-1.5 text-xs text-white/40 font-mono">
-            <Database size={11} />
-            {tableName}
+          <div className="flex items-center gap-1.5 text-[11px] text-white/35 font-mono">
+            <Database size={10} /> {tableName}
           </div>
         )}
+
+        {/* CTA — Ask Zevra */}
+        <button onClick={askZevra}
+          className="mt-3 w-full h-8 rounded-[8px] flex items-center justify-center gap-2
+                     text-[12.5px] font-semibold transition-all"
+          style={{ background: style.color + '22', color: style.color }}
+          onMouseEnter={e => e.currentTarget.style.background = style.color + '35'}
+          onMouseLeave={e => e.currentTarget.style.background = style.color + '22'}>
+          <MessageSquare size={13} />
+          Ask Zevra about {node.label}
+        </button>
       </div>
 
-      {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5 scrollbar-thin scrollbar-thumb-white/10">
+      {/* Tabs */}
+      <div className="flex border-b border-white/8 shrink-0">
+        {TABS.map(([k, l]) => (
+          <button key={k} onClick={() => setActiveTab(k)}
+            className={`flex-1 py-2.5 text-[11.5px] font-medium transition-colors border-b-2 -mb-px
+              ${activeTab === k
+                ? 'text-white border-current'
+                : 'text-white/35 border-transparent hover:text-white/60'}`}
+            style={activeTab === k ? { borderColor: style.color } : {}}>
+            {l}
+          </button>
+        ))}
+      </div>
 
-        {/* Description */}
-        {node.description && (
-          <p className="text-sm text-white/60 leading-relaxed">{node.description}</p>
-        )}
+      {/* Tab content */}
+      <div className="flex-1 overflow-y-auto">
 
-        {/* Operational meaning */}
-        {node.operationalMeaning && (
-          <div>
-            <p className="text-xs font-semibold text-white/35 uppercase tracking-wider mb-2">Operational meaning</p>
-            <p className="text-sm text-white/70 leading-relaxed">{node.operationalMeaning}</p>
-          </div>
-        )}
+        {/* Overview */}
+        {activeTab === 'overview' && (
+          <div className="px-5 py-4 space-y-4">
+            {node.description && (
+              <p className="text-[13px] text-white/65 leading-relaxed">{node.description}</p>
+            )}
 
-        {/* Investigation hint */}
-        {node.investigationHints && (
-          <div className="rounded-lg border border-amber-500/20 bg-amber-500/8 px-4 py-3">
-            <p className="text-xs font-semibold text-amber-400 mb-1.5">💡 Investigation hint</p>
-            <p className="text-xs text-amber-300/80 leading-relaxed font-mono break-words">
-              {node.investigationHints}
-            </p>
-          </div>
-        )}
+            {node.operationalMeaning && (
+              <div>
+                <p className="text-[10.5px] font-semibold text-white/30 uppercase tracking-widest mb-2">
+                  How it's used
+                </p>
+                <p className="text-[13px] text-white/70 leading-relaxed">{node.operationalMeaning}</p>
+              </div>
+            )}
 
-        {/* Relationships */}
-        {(outbound.length > 0 || inbound.length > 0) && (
-          <div>
-            <p className="text-xs font-semibold text-white/35 uppercase tracking-wider mb-3">Relationships</p>
-            <div className="space-y-2">
-              {outbound.map((e, i) => {
-                const tid = typeof e.target === 'object' ? e.target.id : e.target;
-                const tStyle = nodeStyle(null);
-                return (
-                  <div key={`out-${i}`} className="flex items-center gap-2.5 text-xs">
-                    <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: e.edgeColor || '#374151' }} />
-                    <span className="text-white/80 font-medium truncate">{tid}</span>
-                    <ArrowRight size={10} className="text-white/25 shrink-0" />
-                    <span className="text-white/40 shrink-0">{e.relationshipType}</span>
-                    {e.cardinality && <span className="ml-auto text-white/25 shrink-0">{e.cardinality}</span>}
-                  </div>
-                );
-              })}
-              {inbound.map((e, i) => {
-                const sid = typeof e.source === 'object' ? e.source.id : e.source;
-                return (
-                  <div key={`in-${i}`} className="flex items-center gap-2.5 text-xs opacity-50">
-                    <div className="w-1.5 h-1.5 rounded-full shrink-0 opacity-50" style={{ backgroundColor: e.edgeColor || '#374151' }} />
-                    <span className="text-white/60 truncate">← {sid}</span>
-                    <span className="text-white/30 shrink-0">{e.relationshipType}</span>
-                  </div>
-                );
-              })}
+            {node.investigationHints && (
+              <div className="rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3">
+                <p className="text-[10.5px] font-semibold text-amber-400/80 uppercase tracking-widest mb-2">
+                  💡 Investigation hint
+                </p>
+                <code className="text-[11.5px] text-amber-300/85 leading-relaxed break-words
+                                  whitespace-pre-wrap font-mono">
+                  {node.investigationHints}
+                </code>
+              </div>
+            )}
+
+            {/* Quick stats */}
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              {[
+                { label: 'Outbound', value: outbound.length },
+                { label: 'Inbound',  value: inbound.length  },
+                { label: 'JOIN paths', value: outbound.filter(e => e.joinGuidance).length },
+              ].map(({ label, value }) => (
+                <div key={label} className="bg-white/5 rounded-[8px] px-3 py-2.5 text-center">
+                  <div className="text-[18px] font-bold text-white">{value}</div>
+                  <div className="text-[10px] text-white/35 mt-0.5">{label}</div>
+                </div>
+              ))}
             </div>
+
+            {!node.description && !node.operationalMeaning && (
+              <p className="text-[13px] text-white/30 text-center py-4">
+                No description yet. Add one in the Semantic Layer.
+              </p>
+            )}
           </div>
         )}
 
-        {/* JOIN guidance */}
-        {outbound.some(e => e.joinGuidance) && (
-          <div>
-            <p className="text-xs font-semibold text-white/35 uppercase tracking-wider mb-2">JOIN guidance</p>
-            <div className="space-y-2">
-              {outbound.filter(e => e.joinGuidance).map((e, i) => {
-                const tid = typeof e.target === 'object' ? e.target.id : e.target;
+        {/* Relations */}
+        {activeTab === 'relations' && (
+          <div className="px-5 py-4 space-y-4">
+            {outbound.length > 0 && (
+              <div>
+                <p className="text-[10.5px] font-semibold text-white/30 uppercase tracking-widest mb-2.5">
+                  Connects to
+                </p>
+                <div className="space-y-2">
+                  {outbound.map((e, i) => {
+                    const tid  = typeof e.target === 'object' ? e.target.id : e.target;
+                    const tLbl = resolveLabel(tid);
+                    const rColor = REL_COLORS[e.relationshipType] ?? '#6B7280';
+                    return (
+                      <div key={i}
+                        className="flex items-center gap-2.5 p-2.5 rounded-[9px] bg-white/5
+                                   hover:bg-white/8 transition-colors">
+                        <div className="w-2 h-2 rounded-full shrink-0" style={{ background: rColor }} />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] font-medium text-white/85 truncate">{tLbl}</div>
+                          <div className="text-[11px] text-white/35 mt-0.5 flex items-center gap-1">
+                            <span style={{ color: rColor }}>{e.relationshipType}</span>
+                            {e.sourceColumn && e.targetColumn && (
+                              <span className="text-white/25">·  {e.sourceColumn} = {e.targetColumn}</span>
+                            )}
+                            {e.cardinality && (
+                              <span className="ml-auto text-white/25">{e.cardinality}</span>
+                            )}
+                          </div>
+                        </div>
+                        <ArrowRight size={12} className="text-white/20 shrink-0" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {inbound.length > 0 && (
+              <div>
+                <p className="text-[10.5px] font-semibold text-white/30 uppercase tracking-widest mb-2.5">
+                  Referenced by
+                </p>
+                <div className="space-y-2">
+                  {inbound.map((e, i) => {
+                    const sid  = typeof e.source === 'object' ? e.source.id : e.source;
+                    const sLbl = resolveLabel(sid);
+                    return (
+                      <div key={i}
+                        className="flex items-center gap-2.5 p-2.5 rounded-[9px] bg-white/5
+                                   hover:bg-white/8 transition-colors opacity-70">
+                        <div className="w-2 h-2 rounded-full shrink-0 opacity-50"
+                             style={{ background: e.edgeColor || '#6B7280' }} />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] font-medium text-white/70 truncate">{sLbl}</div>
+                          <div className="text-[11px] text-white/30 mt-0.5">
+                            {e.relationshipType}
+                          </div>
+                        </div>
+                        <ArrowRight size={12} className="text-white/20 shrink-0 rotate-180" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {outbound.length === 0 && inbound.length === 0 && (
+              <div className="py-8 text-center text-[13px] text-white/30">
+                No relationships defined yet.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* JOIN paths */}
+        {activeTab === 'sql' && (
+          <div className="px-5 py-4 space-y-3">
+            {outbound.filter(e => e.joinGuidance).length === 0 ? (
+              <div className="py-8 text-center text-[13px] text-white/30">
+                No JOIN paths defined yet.<br/>
+                <span className="text-[11.5px] text-white/20">
+                  Add join_guidance in the Semantic Layer to see SQL paths here.
+                </span>
+              </div>
+            ) : (
+              outbound.filter(e => e.joinGuidance).map((e, i) => {
+                const tid  = typeof e.target === 'object' ? e.target.id : e.target;
+                const tLbl = resolveLabel(tid);
                 return (
-                  <div key={i} className="rounded-lg bg-[#0E1117] border border-white/8 overflow-hidden">
-                    <div className="px-3 py-1.5 border-b border-white/8 text-2xs text-white/30 font-medium">
-                      → {tid}
+                  <div key={i} className="rounded-xl border border-white/8 overflow-hidden">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border-b border-white/8">
+                      <Code size={11} className="text-white/30" />
+                      <span className="text-[11.5px] font-medium text-white/50">
+                        {node.label} → {tLbl}
+                      </span>
+                      {e.cardinality && (
+                        <span className="ml-auto text-[10.5px] text-white/25">{e.cardinality}</span>
+                      )}
                     </div>
-                    <pre className="px-3 py-2 text-xs text-emerald-400 font-mono leading-relaxed overflow-x-auto">
+                    <pre className="px-3 py-3 text-[12px] text-emerald-400 font-mono
+                                    leading-relaxed overflow-x-auto whitespace-pre-wrap">
                       {e.joinGuidance}
                     </pre>
                   </div>
                 );
-              })}
-            </div>
+              })
+            )}
           </div>
         )}
       </div>
 
-      {/* Footer */}
-      <div className="shrink-0 px-5 py-3 border-t border-white/8">
-        <button
-          onClick={() => onExpand(node.id)}
-          className="w-full h-9 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all"
-          style={{ backgroundColor: style.color + '20', color: style.color }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = style.color + '30'}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = style.color + '20'}
-        >
-          <Maximize2 size={14} />
-          Expand neighbours
+      {/* Footer actions */}
+      <div className="shrink-0 px-4 py-3 border-t border-white/8 flex gap-2">
+        <button onClick={() => onExpand(node.id)}
+          className="flex-1 h-8 rounded-[8px] text-[12px] font-medium flex items-center
+                     justify-center gap-1.5 text-white/50 hover:text-white bg-white/6
+                     hover:bg-white/10 transition-all">
+          <Maximize2 size={12} /> Expand
+        </button>
+        <button onClick={() => navigate('/semantic')}
+          className="flex-1 h-8 rounded-[8px] text-[12px] font-medium flex items-center
+                     justify-center gap-1.5 text-white/50 hover:text-white bg-white/6
+                     hover:bg-white/10 transition-all">
+          <ExternalLink size={12} /> Edit entity
         </button>
       </div>
     </div>
   );
 }
 
-// ── main ──────────────────────────────────────────────────────────────────────
+// ── Stats bar ─────────────────────────────────────────────────────────────────
+
+function StatsBar({ stats, loading }) {
+  return (
+    <div className="flex items-center gap-5 px-5 py-2.5 border-b border-white/8 bg-[#0D1117]/80
+                    backdrop-blur flex-shrink-0">
+      <div className="flex items-center gap-2">
+        <Network size={13} className="text-white/30" />
+        <span className="text-[12px] text-white/50">
+          <strong className="text-white/80">{loading ? '…' : stats.nodes}</strong> entities
+        </span>
+      </div>
+      <div className="w-px h-4 bg-white/10" />
+      <span className="text-[12px] text-white/50">
+        <strong className="text-white/80">{loading ? '…' : stats.edges}</strong> relationships
+      </span>
+      {Object.entries(stats.types || {}).map(([type, count]) => {
+        const s = nodeStyle(type);
+        return (
+          <React.Fragment key={type}>
+            <div className="w-px h-4 bg-white/10" />
+            <span className="text-[12px] flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ background: s.color }} />
+              <span className="text-white/40">{s.label}</span>
+              <strong className="text-white/70">{count}</strong>
+            </span>
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Legend ────────────────────────────────────────────────────────────────────
+
+function Legend({ visible }) {
+  if (!visible) return null;
+  return (
+    <div className="absolute bottom-5 left-5 rounded-xl border border-white/10
+                    bg-[#13181F]/95 backdrop-blur px-4 py-3 z-10">
+      <p className="text-[10px] font-semibold text-white/25 uppercase tracking-widest mb-2.5">
+        Entity types
+      </p>
+      <div className="grid grid-cols-2 gap-x-5 gap-y-1.5">
+        {Object.entries(NODE_STYLES).filter(([k]) => k !== 'DEFAULT').map(([type, s]) => (
+          <div key={type} className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full shrink-0"
+                 style={{ background: s.color, boxShadow: `0 0 6px ${s.color}80` }} />
+            <span className="text-[11px] text-white/45">{s.label}</span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 pt-2.5 border-t border-white/8 space-y-1.5">
+        <p className="text-[10px] font-semibold text-white/25 uppercase tracking-widest mb-1.5">
+          Relationships
+        </p>
+        {Object.entries(REL_COLORS).map(([type, color]) => (
+          <div key={type} className="flex items-center gap-2">
+            <div className="w-6 h-px" style={{ background: color }} />
+            <span className="text-[11px] text-white/40">{type}</span>
+          </div>
+        ))}
+      </div>
+      <p className="text-[10px] text-white/20 mt-2.5">
+        Click · Scroll to zoom · Drag to pan
+      </p>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function KnowledgeGraph() {
-  const graphRef = useRef(null);
+  const graphRef     = useRef(null);
   const containerRef = useRef(null);
   const [dims, setDims] = useState({ w: 800, h: 600 });
 
-  const [domains, setDomains]               = useState([]);
-  const [selectedDomain, setSelectedDomain] = useState('');
-  const [graphData, setGraphData]           = useState({ nodes: [], links: [] });
-  const [rawEdges, setRawEdges]             = useState([]);
-  const [loading, setLoading]               = useState(false);
-  const [error, setError]                   = useState('');
-  const [selectedNode, setSelectedNode]     = useState(null);
-  const [search, setSearch]                 = useState('');
-  const [hoverNode, setHoverNode]           = useState(null);
+  const [domains,         setDomains]         = useState([]);
+  const [selectedDomain,  setSelectedDomain]  = useState('');
+  const [graphData,       setGraphData]       = useState({ nodes: [], links: [] });
+  const [rawEdges,        setRawEdges]        = useState([]);
+  const [loading,         setLoading]         = useState(false);
+  const [error,           setError]           = useState('');
+  const [selectedNode,    setSelectedNode]    = useState(null);
+  const [hoverNode,       setHoverNode]       = useState(null);
+  const [search,          setSearch]          = useState('');
 
-  // track container size
+  // Container size tracking
   useEffect(() => {
     if (!containerRef.current) return;
     const ro = new ResizeObserver(entries => {
-      for (const e of entries) {
-        setDims({ w: e.contentRect.width, h: e.contentRect.height });
-      }
+      for (const e of entries) setDims({ w: e.contentRect.width, h: e.contentRect.height });
     });
     ro.observe(containerRef.current);
     setDims({ w: containerRef.current.clientWidth, h: containerRef.current.clientHeight });
     return () => ro.disconnect();
   }, []);
 
-  // load domains
+  // Load domains on mount
   useEffect(() => {
     api.domains.list()
       .then(ds => {
         const arr = safeArray(ds);
         setDomains(arr);
-        if (arr.length) setSelectedDomain(arr[0].domain_key ?? arr[0].domainKey);
+        if (arr.length) setSelectedDomain(arr[0].domain_key ?? arr[0].domainKey ?? '');
       })
       .catch(() => {});
   }, []);
 
-  // load graph
+  // Load graph when domain changes
   const loadGraph = useCallback(async (domainKey) => {
     if (!domainKey) return;
     setLoading(true);
     setError('');
     setSelectedNode(null);
     try {
-      const data = await api.graph.full(domainKey);
+      const data  = await api.graph.full(domainKey);
       const nodes = safeArray(data.nodes).map(normaliseNode);
       const edges = safeArray(data.edges).map(normaliseEdge);
       setRawEdges(edges);
@@ -279,11 +491,11 @@ export default function KnowledgeGraph() {
 
   useEffect(() => { loadGraph(selectedDomain); }, [selectedDomain, loadGraph]);
 
-  // expand neighbours
+  // Expand neighbours (called from panel)
   const expandNeighbors = useCallback(async (entityKey) => {
     setLoading(true);
     try {
-      const data = await api.graph.neighbors(entityKey, 2);
+      const data     = await api.graph.neighbors(entityKey, 2);
       const newNodes = safeArray(data.nodes).map(normaliseNode);
       const newEdges = safeArray(data.edges).map(normaliseEdge);
       setGraphData(prev => {
@@ -298,11 +510,14 @@ export default function KnowledgeGraph() {
         const ids = new Set(prev.map(e => e.id));
         return [...prev, ...newEdges.filter(e => !ids.has(e.id))];
       });
-    } catch {}
-    finally { setLoading(false); }
+    } catch (err) {
+      setError(err.message || 'Failed to expand neighbours');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // search-filtered highlight sets
+  // Search highlight sets
   const { highlightNodes, highlightLinks } = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return { highlightNodes: null, highlightLinks: null };
@@ -321,124 +536,136 @@ export default function KnowledgeGraph() {
     return { highlightNodes: hNodes, highlightLinks: hLinks };
   }, [search, graphData]);
 
-  // canvas: draw node
+  // Fast node lookup map for resolving labels in the panel
+  const nodeIndex = useMemo(() => {
+    const idx = {};
+    graphData.nodes.forEach(n => { idx[n.id] = n; });
+    return idx;
+  }, [graphData.nodes]);
+
+  // Canvas draw: node
   const drawNode = useCallback((node, ctx, globalScale) => {
-    const style    = nodeStyle(node.nodeType);
-    const color    = node.color || style.color;
-    const x        = finiteNumber(node.x);
-    const y        = finiteNumber(node.y);
-    const r        = Math.max(1, finiteNumber(style.radius, 11));
-    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(r)) return;
+    const s          = nodeStyle(node.nodeType);
+    const color      = node.color || s.color;
+    const x          = finiteNumber(node.x);
+    const y          = finiteNumber(node.y);
+    const r          = Math.max(1, finiteNumber(s.radius, 12));
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+
     const isSelected = selectedNode?.id === node.id;
-    const isHover    = hoverNode?.id === node.id;
-    const isDimmed   = highlightNodes && !highlightNodes.has(node.id) && !isSelected;
-    const alpha      = isDimmed ? 0.15 : 1;
+    const isHover    = hoverNode?.id    === node.id;
+    const isDimmed   = (highlightNodes && !highlightNodes.has(node.id) && !isSelected);
+    const alpha      = isDimmed ? 0.12 : 1;
 
     ctx.save();
     ctx.globalAlpha = alpha;
 
-    // glow for selected / hover
+    // Glow
     if (isSelected || isHover) {
       ctx.shadowColor = color;
-      ctx.shadowBlur  = isSelected ? 22 : 12;
+      ctx.shadowBlur  = isSelected ? 28 : 14;
     }
 
-    // outer ring for selected
+    // Selection ring
     if (isSelected) {
       ctx.beginPath();
-      ctx.arc(x, y, r + 5, 0, 2 * Math.PI);
-      ctx.strokeStyle = color + '60';
-      ctx.lineWidth   = 2;
+      ctx.arc(x, y, r + 6, 0, 2 * Math.PI);
+      ctx.strokeStyle = color + '55';
+      ctx.lineWidth   = 2.5;
       ctx.stroke();
     }
 
-    // node fill with radial gradient
-    const grad = ctx.createRadialGradient(
-      x - r * 0.3, y - r * 0.3, 0,
-      x, y, r
-    );
-    grad.addColorStop(0, lighten(color, 0.35));
-    grad.addColorStop(1, color);
+    // Node fill with radial gradient
+    const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
+    g.addColorStop(0, lighten(color, 0.4));
+    g.addColorStop(1, color);
     ctx.beginPath();
     ctx.arc(x, y, r, 0, 2 * Math.PI);
-    ctx.fillStyle = grad;
+    ctx.fillStyle = g;
     ctx.fill();
 
-    // border
-    ctx.strokeStyle = isSelected ? '#fff' : color + 'AA';
-    ctx.lineWidth   = isSelected ? 2 : 1;
+    // Border
+    ctx.strokeStyle = isSelected ? '#ffffff' : color + 'AA';
+    ctx.lineWidth   = isSelected ? 2 : 1.5;
     ctx.stroke();
 
     ctx.shadowBlur = 0;
 
-    // label — always visible, sized by zoom
-    const label    = truncate(node.label, 18);
-    const fontSize = Math.max(isSelected ? 11 : 9, Math.min(13, 11 / Math.max(0.6, globalScale)));
-    ctx.font       = `${isSelected ? '700' : '500'} ${fontSize}px Inter, system-ui, sans-serif`;
-    ctx.fillStyle  = isSelected ? '#fff' : 'rgba(255,255,255,0.85)';
+    // Abbreviation inside node
+    const abbr     = s.abbr ?? node.nodeType?.charAt(0) ?? '?';
+    const abbrSize = Math.max(8, r * 0.7);
+    ctx.font       = `700 ${abbrSize}px Inter, system-ui, sans-serif`;
+    ctx.fillStyle  = 'rgba(255,255,255,0.9)';
     ctx.textAlign  = 'center';
-    ctx.textBaseline = 'top';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(abbr, x, y);
 
-    // label background pill
+    // Label pill below node
+    const label    = truncate(node.label, 20);
+    const fontSize = Math.max(isSelected ? 11 : 9, Math.min(13, 11 / Math.max(0.5, globalScale)));
+    ctx.font       = `${isSelected ? '700' : '500'} ${fontSize}px Inter, system-ui, sans-serif`;
     const tw = ctx.measureText(label).width;
-    const lx = x - tw / 2 - 4;
+    const lx = x - tw / 2 - 5;
     const ly = y + r + 4;
-    ctx.fillStyle = 'rgba(14,17,23,0.75)';
+
+    ctx.fillStyle = 'rgba(13,17,23,0.80)';
     ctx.beginPath();
-    ctx.roundRect(lx, ly, tw + 8, fontSize + 5, 3);
+    ctx.roundRect(lx, ly, tw + 10, fontSize + 6, 4);
     ctx.fill();
 
-    ctx.fillStyle  = isSelected ? '#fff' : 'rgba(255,255,255,0.80)';
-    ctx.fillText(label, x, ly + 2.5);
+    ctx.fillStyle   = isSelected ? '#ffffff' : 'rgba(255,255,255,0.82)';
+    ctx.textAlign   = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(label, x, ly + 3);
 
     ctx.restore();
   }, [selectedNode, hoverNode, highlightNodes]);
 
-  // canvas: link
   const linkColor = useCallback((link) => {
-    const isDimmed = highlightLinks && !highlightLinks.has(link);
-    const base = link.edgeColor || '#374151';
-    return isDimmed ? base + '18' : base + 'BB';
+    const dimmed = highlightLinks && !highlightLinks.has(link);
+    const base   = link.edgeColor || '#4B5563';
+    return dimmed ? base + '15' : base + 'CC';
   }, [highlightLinks]);
 
   const linkWidth = useCallback((link) => {
-    return highlightLinks?.has(link) ? 2.5 : 1.2;
+    return highlightLinks?.has(link) ? 2.5 : 1;
   }, [highlightLinks]);
 
-  // stats
+  // Stats
   const stats = useMemo(() => {
-    const groups = {};
+    const types = {};
     graphData.nodes.forEach(n => {
-      const g = n.groupLabel || 'General';
-      groups[g] = (groups[g] || 0) + 1;
+      const t = n.nodeType || 'DEFAULT';
+      types[t] = (types[t] || 0) + 1;
     });
-    return { nodes: graphData.nodes.length, edges: graphData.links.length, groups };
+    return { nodes: graphData.nodes.length, edges: graphData.links.length, types };
   }, [graphData]);
 
   const panelOpen = !!selectedNode;
-  const canvasW   = panelOpen ? Math.max(200, dims.w - 340) : dims.w;
-  const canvasH   = Math.max(200, dims.h - 56);
+  const canvasW   = panelOpen ? Math.max(300, dims.w - 360) : dims.w;
+  const canvasH   = Math.max(300, dims.h - 92); // subtract toolbar + stats
 
   return (
-    <div className="flex-1 flex overflow-hidden" style={{ background: CANVAS_BG, borderRadius: '0' }}>
+    <div className="flex-1 flex overflow-hidden" style={{ background: CANVAS_BG }}>
 
-      {/* ── left: graph canvas ── */}
+      {/* ── Canvas column ── */}
       <div ref={containerRef} className="flex-1 flex flex-col relative overflow-hidden">
 
         {/* Toolbar */}
-        <div className="shrink-0 h-14 flex items-center gap-3 px-5 border-b border-white/8 bg-[#13181F]/80 backdrop-blur z-10">
+        <div className="shrink-0 h-[52px] flex items-center gap-3 px-5 border-b border-white/8
+                        bg-[#13181F]/80 backdrop-blur z-10">
 
-          {/* Domain */}
+          {/* Domain selector */}
           <div className="flex items-center gap-2">
-            <Layers size={15} className="text-white/30" />
-            <select
-              value={selectedDomain}
+            <Layers size={14} className="text-white/30" />
+            <select value={selectedDomain}
               onChange={e => setSelectedDomain(e.target.value)}
-              className="h-8 bg-white/8 border border-white/10 rounded-lg text-sm text-white/80 px-2.5 focus:outline-none focus:border-emerald-500/50 appearance-none cursor-pointer"
-            >
+              className="h-8 bg-white/8 border border-white/12 rounded-lg text-[13px]
+                         text-white/80 px-2.5 focus:outline-none focus:border-emerald-500/50
+                         appearance-none cursor-pointer min-w-[120px]">
               {domains.map(d => {
                 const k = d.domain_key ?? d.domainKey;
-                return <option key={k} value={k} className="bg-gray-900">{d.name}</option>;
+                return <option key={k} value={k} style={{ background: '#1a1f2e' }}>{d.name}</option>;
               })}
             </select>
           </div>
@@ -447,69 +674,74 @@ export default function KnowledgeGraph() {
 
           {/* Search */}
           <div className="relative">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search nodes…"
-              className="h-8 w-44 bg-white/8 border border-white/10 rounded-lg pl-8 pr-3 text-sm text-white/80 placeholder:text-white/25 focus:outline-none focus:border-emerald-500/50"
-            />
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30" />
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search entities…"
+              className="h-8 w-48 bg-white/8 border border-white/12 rounded-lg pl-8 pr-3
+                         text-[13px] text-white/80 placeholder:text-white/25
+                         focus:outline-none focus:border-emerald-500/50 transition-colors" />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
-                <X size={12} />
+              <button onClick={() => setSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
+                <X size={11} />
               </button>
             )}
           </div>
 
-          {/* Stats */}
-          <div className="ml-auto flex items-center gap-3 text-xs text-white/30">
-            <span>{stats.nodes} nodes</span>
+          {/* Stats summary (compact) */}
+          <div className="flex items-center gap-3 ml-auto text-[12px] text-white/35">
+            <span><strong className="text-white/70">{stats.nodes}</strong> entities</span>
             <span className="w-px h-3 bg-white/10" />
-            <span>{stats.edges} edges</span>
+            <span><strong className="text-white/70">{stats.edges}</strong> relationships</span>
           </div>
 
           <div className="h-5 w-px bg-white/10" />
 
-          {/* Zoom fit */}
-          <button
-            onClick={() => graphRef.current?.zoomToFit(400, 60)}
-            className="h-8 px-3 rounded-lg bg-white/8 border border-white/10 text-sm text-white/60 hover:text-white hover:bg-white/12 transition-colors flex items-center gap-1.5"
-          >
-            <Maximize2 size={13} /> Fit
+          {/* Fit */}
+          <button onClick={() => graphRef.current?.zoomToFit(400, 60)}
+            className="h-8 px-3 rounded-lg bg-white/8 border border-white/12 text-[12.5px]
+                       text-white/60 hover:text-white hover:bg-white/12 flex items-center gap-1.5
+                       transition-colors">
+            <Maximize2 size={12} /> Fit
           </button>
 
           {/* Reload */}
-          <button
-            onClick={() => loadGraph(selectedDomain)}
-            disabled={loading}
-            className="h-8 w-8 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/12 transition-colors disabled:opacity-30"
-          >
+          <button onClick={() => loadGraph(selectedDomain)} disabled={loading}
+            className="w-8 h-8 rounded-lg bg-white/8 border border-white/12 flex items-center
+                       justify-center text-white/60 hover:text-white hover:bg-white/12
+                       disabled:opacity-30 transition-colors">
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
 
+        {/* Stats bar */}
+        <StatsBar stats={stats} loading={loading} />
+
         {/* Canvas */}
         <div className="flex-1 relative">
           {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-[#0E1117]/80 z-10">
+            <div className="absolute inset-0 flex items-center justify-center bg-[#0D1117]/70 z-10">
               <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-[3px] border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
-                <p className="text-sm text-white/40">Loading graph…</p>
+                <div className="w-12 h-12 border-[3px] border-emerald-500/30 border-t-emerald-500
+                                rounded-full animate-spin" />
+                <p className="text-[13px] text-white/40">Loading graph…</p>
               </div>
             </div>
           )}
 
           {error && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-2 rounded-lg z-10">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 px-4 py-2.5
+                            bg-red-500/15 border border-red-500/30 text-red-400
+                            text-[13px] rounded-xl">
               {error}
             </div>
           )}
 
-          {!loading && graphData.nodes.length === 0 && (
+          {!loading && graphData.nodes.length === 0 && !error && (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white/20">
-              <div className="text-8xl mb-4 opacity-30">⬡</div>
-              <p className="text-lg font-medium">No entities in this domain</p>
-              <p className="text-sm mt-1">Add entities via the Semantic Layer page.</p>
+              <Network size={48} className="mb-4 opacity-30" />
+              <p className="text-[16px] font-semibold mb-2">No entities in this domain</p>
+              <p className="text-[13px]">Complete onboarding or add entities via the Semantic Layer</p>
             </div>
           )}
 
@@ -524,17 +756,21 @@ export default function KnowledgeGraph() {
             linkTarget="target"
             linkColor={linkColor}
             linkWidth={linkWidth}
-            linkDirectionalArrowLength={6}
+            linkDirectionalArrowLength={7}
             linkDirectionalArrowRelPos={1}
             linkDirectionalArrowColor={linkColor}
-            linkCurvature={0.15}
+            linkCurvature={0.2}
             linkDirectionalParticles={2}
-            linkDirectionalParticleWidth={link => highlightLinks?.has(link) ? 3 : 1.5}
+            linkDirectionalParticleWidth={l => highlightLinks?.has(l) ? 3 : 1.5}
             linkDirectionalParticleSpeed={0.003}
             linkDirectionalParticleColor={linkColor}
             nodeCanvasObject={drawNode}
             nodeCanvasObjectMode={() => 'replace'}
-            onNodeClick={node => setSelectedNode(prev => prev?.id === node.id ? null : node)}
+            onNodeClick={node => {
+              setSelectedNode(prev => prev?.id === node.id ? null : node);
+              // Centre graph on clicked node
+              graphRef.current?.centerAt(finiteNumber(node.x), finiteNumber(node.y), 400);
+            }}
             onNodeHover={setHoverNode}
             onBackgroundClick={() => { setSelectedNode(null); setSearch(''); }}
             cooldownTicks={150}
@@ -542,10 +778,9 @@ export default function KnowledgeGraph() {
             d3VelocityDecay={0.35}
             backgroundColor={CANVAS_BG}
             nodePointerAreaPaint={(node, color, ctx) => {
-              const x = finiteNumber(node.x);
-              const y = finiteNumber(node.y);
-              const r = Math.max(1, finiteNumber(nodeStyle(node.nodeType).radius, 11) + 6);
-              if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(r)) return;
+              const x = finiteNumber(node.x), y = finiteNumber(node.y);
+              const r = Math.max(1, finiteNumber(nodeStyle(node.nodeType).radius, 12) + 8);
+              if (!Number.isFinite(x) || !Number.isFinite(y)) return;
               ctx.fillStyle = color;
               ctx.beginPath();
               ctx.arc(x, y, r, 0, 2 * Math.PI);
@@ -553,56 +788,20 @@ export default function KnowledgeGraph() {
             }}
           />
 
-          {/* Legend */}
-          <div className="absolute bottom-5 left-5 rounded-xl bg-[#13181F]/90 backdrop-blur border border-white/8 px-4 py-3 z-10">
-            <p className="text-2xs font-semibold text-white/30 uppercase tracking-widest mb-2.5">Node types</p>
-            <div className="grid grid-cols-2 gap-x-5 gap-y-1.5">
-              {Object.entries(NODE_STYLES).filter(([k]) => k !== 'DEFAULT').map(([type, s]) => (
-                <div key={type} className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color, boxShadow: `0 0 6px ${s.color}80` }} />
-                  <span className="text-xs text-white/45">{s.label}</span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-2xs text-white/20">Click node · Scroll to zoom · Drag to pan</p>
-          </div>
-
-          {/* Group summary */}
-          {Object.keys(stats.groups).length > 0 && !panelOpen && (
-            <div className="absolute bottom-5 right-5 rounded-xl bg-[#13181F]/90 backdrop-blur border border-white/8 px-4 py-3 z-10">
-              <p className="text-2xs font-semibold text-white/30 uppercase tracking-widest mb-2.5">Groups</p>
-              <div className="space-y-1.5">
-                {Object.entries(stats.groups).map(([g, c]) => (
-                  <div key={g} className="flex items-center justify-between gap-6">
-                    <span className="text-xs text-white/50">{g}</span>
-                    <span className="text-xs font-semibold text-white/70">{c}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <Legend visible={graphData.nodes.length > 0 && !loading} />
         </div>
       </div>
 
-      {/* ── right: detail panel ── */}
+      {/* ── Detail panel ── */}
       {panelOpen && (
         <DetailPanel
           node={selectedNode}
           edges={rawEdges}
+          nodeIndex={nodeIndex}
           onClose={() => setSelectedNode(null)}
           onExpand={expandNeighbors}
         />
       )}
     </div>
   );
-}
-
-// ── colour util ───────────────────────────────────────────────────────────────
-
-function lighten(hex, amount) {
-  const num = parseInt(hex.replace('#', ''), 16);
-  const r = Math.min(255, (num >> 16) + Math.round(255 * amount));
-  const g = Math.min(255, ((num >> 8) & 0xff) + Math.round(255 * amount));
-  const b = Math.min(255, (num & 0xff) + Math.round(255 * amount));
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
