@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth, navigate } from '../App.jsx';
+import { AlertBell } from './NotificationPanel.jsx';
 import {
   Building2, ChevronDown, LogOut, Sparkles,
 } from 'lucide-react';
@@ -84,6 +85,9 @@ export default function Layout({ children, currentPath }) {
 
         {/* Right side */}
         <div className="flex items-center gap-2 shrink-0">
+
+          {/* Alert bell */}
+          <AlertBell />
 
           {/* Agent pill */}
           <div className="flex items-center gap-[5px] px-[10px] py-[4px]

@@ -214,4 +214,19 @@ export const api = {
   query: {
     get: (key) => get(`/query-executions/${key}`),
   },
+
+  // ── Proactive Alerts ───────────────────────────────────────────────────────
+  alerts: {
+    list:        (limit = 50)  => get(`/alerts?limit=${limit}`),
+    unreadCount: ()            => get('/alerts/unread-count'),
+    markRead:    (key)         => post(`/alerts/${key}/read`),
+    markAllRead: ()            => post('/alerts/read-all'),
+    rules: {
+      list:   ()           => get('/alert-rules'),
+      create: (body)       => post('/alert-rules', body),
+      update: (key, body)  => put(`/alert-rules/${key}`, body),
+      delete: (key)        => del(`/alert-rules/${key}`),
+      test:   (key)        => post(`/alert-rules/${key}/test`),
+    },
+  },
 };
