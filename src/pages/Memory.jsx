@@ -75,7 +75,7 @@ export default function Memory() {
   };
 
   return (
-    <div className="flex-1 overflow-auto p-6">
+    <div className="flex-1 overflow-auto p-7 bg-transparent">
       <PageHeader
         title="Knowledge Memory"
         subtitle="Upload and manage documents for RAG retrieval"

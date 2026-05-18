@@ -56,7 +56,7 @@ export default function Temporal() {
   };
 
   return (
-    <div className="flex-1 overflow-auto p-6">
+    <div className="flex-1 overflow-auto p-7 bg-transparent">
       <PageHeader
         title="Temporal Intelligence"
         subtitle="Baselines, anomaly detection, and trend monitoring"

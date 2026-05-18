@@ -39,7 +39,7 @@ export default function Domains() {
   };
 
   return (
-    <div className="flex-1 overflow-auto p-6">
+    <div className="flex-1 overflow-auto p-7 bg-transparent">
       <PageHeader
         title="Domains"
         subtitle="Business domains partition knowledge, connections, and agent scope"

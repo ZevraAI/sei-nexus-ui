@@ -100,7 +100,7 @@ export default function Connections() {
   };
 
   return (
-    <div className="flex-1 overflow-auto p-6">
+    <div className="flex-1 overflow-auto p-7 bg-transparent">
       <PageHeader
         title="Data Connections"
         subtitle="Manage approved enterprise data source connections"
@@ -117,8 +117,8 @@ export default function Connections() {
             <div key={conn.connection_key}>
             <Card className="p-4">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-                  <Database size={18} className="text-indigo-700" />
+                <div className="w-10 h-10 rounded-lg bg-sky-50 flex items-center justify-center shrink-0">
+                  <Database size={18} className="text-sky-600" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">

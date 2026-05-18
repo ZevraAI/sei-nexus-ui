@@ -1,42 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth, navigate } from '../App.jsx';
 import {
-  Archive, Bot, Building2, ChevronDown, Command,
-  GitBranch, Landmark, LogOut, ListChecks, LockKeyhole,
-  Network, Settings, ShieldCheck, Sparkles,
+  Building2, ChevronDown, LogOut, Sparkles,
 } from 'lucide-react';
 
-function buildGroups(isPlatformAdmin) {
-  const groups = [
-    {
-      label: 'Workspace',
-      items: [
-        { path: '/chat',      label: 'Investigations', icon: Archive },
-        { path: '/agents',    label: 'Agents',         icon: Bot },
-        { path: '/reasoning', label: 'Tasks',           icon: ListChecks },
-      ],
-    },
-    {
-      label: 'Knowledge',
-      items: [
-        { path: '/memory',   label: 'AI Memory',       icon: LockKeyhole },
-        { path: '/graph',    label: 'Knowledge Graph', icon: Network },
-        { path: '/semantic', label: 'Semantic Layer',  icon: Landmark },
-      ],
-    },
-    {
-      label: 'Platform',
-      items: [
-        { path: '/connections', label: 'Connections', icon: GitBranch },
-        { path: '/domains',     label: 'Admin',       icon: Settings },
-        // Tenant management is only visible to ADMIN role
-        ...(isPlatformAdmin ? [{ path: '/tenants', label: 'Tenants', icon: Building2 }] : []),
-      ],
-    },
-  ];
-  return groups;
-}
-
+// ── helpers ───────────────────────────────────────────────────────────────
 function initials(user) {
   const label = user?.display_name || user?.name || user?.email;
   if (label) return label.split(/[ @._-]+/).filter(Boolean).map(p => p[0]).join('').slice(0, 2).toUpperCase();
@@ -46,31 +14,30 @@ function initials(user) {
 function tenantLabel(user) {
   const schema = user?.tenant_schema;
   if (!schema || schema === 'public') return 'Default workspace';
-  // Convert "tenant_acme_corp" → "acme-corp"
   return schema.replace(/^tenant_/, '').replace(/_/g, '-');
 }
 
-function Mark() {
-  return (
-    <svg viewBox="0 0 32 32" className="h-8 w-8 text-[#2BD19B]" aria-hidden="true">
-      <path d="M16 1.8l2.7 9.5 9.5 2.7-9.5 2.7-2.7 9.5-2.7-9.5-9.5-2.7 9.5-2.7L16 1.8Z"
-        fill="none" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M25.5 3.5l.9 3.2 3.1.8-3.1.9-.9 3.1-.9-3.1-3.1-.9 3.1-.8.9-3.2Z" fill="currentColor" />
-    </svg>
-  );
+// ── nav items ─────────────────────────────────────────────────────────────
+function buildNavItems(isPlatformAdmin) {
+  return [
+    { path: '/chat',       label: 'Investigations' },
+    { path: '/agents',     label: 'Agents' },
+    { path: '/graph',      label: 'Knowledge Graph' },
+    { path: '/semantic',   label: 'Semantic Layer' },
+    { path: '/connections',label: 'Connections' },
+    { path: '/memory',     label: 'AI Memory' },
+    ...(isPlatformAdmin ? [{ path: '/tenants', label: 'Tenants' }] : []),
+  ];
 }
 
+// ── component ─────────────────────────────────────────────────────────────
 export default function Layout({ children, currentPath }) {
   const { user, logout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
 
   const isAdmin = user?.role === 'ADMIN';
-  // Tenant management is only for the platform super-admin (default workspace).
-  // A tenant admin (acme-corp) has ADMIN role in their own schema but must not
-  // see or access the Tenants page — that would expose cross-tenant controls.
-  const isPlatformAdmin = isAdmin &&
-    (user?.tenant_schema === 'public' || !user?.tenant_schema);
-  const groups = buildGroups(isPlatformAdmin);
+  const isPlatformAdmin = isAdmin && (user?.tenant_schema === 'public' || !user?.tenant_schema);
+  const navItems = buildNavItems(isPlatformAdmin);
 
   const active = (path) => {
     if (path === '/chat' && (currentPath === '/' || currentPath === '/chat')) return true;
@@ -78,148 +45,116 @@ export default function Layout({ children, currentPath }) {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#FBFAF8] text-[#111827]">
-      <aside className="w-[254px] shrink-0 bg-[radial-gradient(circle_at_15%_0%,#17634E_0%,#07372E_38%,#03231E_100%)] text-white flex flex-col shadow-[18px_0_60px_rgba(3,35,30,0.18)]">
+    <div className="flex flex-col h-screen">
+
+      {/* ── Top navigation bar ─────────────────────────────────────────── */}
+      <header className="h-[52px] shrink-0 flex items-center px-5 gap-0 z-50
+                         bg-white/75 backdrop-blur-md border-b border-gray-200/70">
 
         {/* Logo */}
-        <div className="px-6 pt-8 pb-5">
-          <div className="flex items-center gap-3">
-            <Mark />
-            <div>
-              <div className="text-[15px] font-semibold leading-tight">Zevra</div>
-              <div className="mt-0.5 text-[11px] text-white/78">Enterprise AI</div>
-            </div>
+        <button
+          onClick={() => navigate('/chat')}
+          className="flex items-center gap-2 mr-7 group"
+        >
+          <div className="w-[26px] h-[26px] bg-gradient-to-br from-emerald-500 to-emerald-700
+                          rounded-[7px] flex items-center justify-center shadow-sm
+                          group-hover:shadow-emerald-200 group-hover:shadow-md transition-all">
+            <Sparkles size={12} className="text-white" />
           </div>
-        </div>
+          <span className="text-[14.5px] font-bold text-[#111827] tracking-tight">Zevra</span>
+        </button>
 
-        {/* Ask Zevra button */}
-        <div className="px-5">
-          <button
-            onClick={() => navigate('/chat')}
-            className="h-10 w-full rounded-[10px] bg-white/10 hover:bg-white/14 border border-white/8 px-3 flex items-center gap-2.5 text-[13px] font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_16px_34px_rgba(0,0,0,0.12)]"
-          >
-            <span className="h-8 w-8 rounded-[10px] bg-[#2BD19B]/15 text-[#45E0A8] flex items-center justify-center">
-              <Sparkles size={17} />
-            </span>
-            Ask Zevra
-            <span className="ml-auto flex items-center gap-1 text-[12px] text-white/55">
-              <Command size={12} /> K
-            </span>
-          </button>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 px-4 pt-5 space-y-5">
-          {groups.map(group => (
-            <div key={group.label}>
-              <div className="px-2 mb-2 text-[10px] uppercase tracking-wide text-white/48">
-                {group.label}
-              </div>
-              <div className="space-y-0.5">
-                {group.items.map(({ path, label, icon: Icon }) => (
-                  <button
-                    key={path}
-                    onClick={() => navigate(path)}
-                    className={`group relative w-full h-9 rounded-[10px] px-2.5 flex items-center gap-2.5 text-[13px] font-medium transition-all ${
-                      active(path)
-                        ? 'bg-white/12 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
-                        : 'text-white/78 hover:bg-white/8 hover:text-white'
-                    }`}
-                  >
-                    {active(path) && (
-                      <span className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-r-full bg-[#31D399]" />
-                    )}
-                    <span className={`h-6 w-6 rounded-[7px] flex items-center justify-center transition-colors ${
-                      active(path)
-                        ? 'bg-[#31D399]/15 text-[#54E3B0]'
-                        : 'bg-white/6 text-white/70 group-hover:text-white'
-                    }`}>
-                      <Icon size={14} strokeWidth={1.7} />
-                    </span>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* Nav items */}
+        <nav className="flex items-center gap-0.5 flex-1">
+          {navItems.map(({ path, label }) => (
+            <button
+              key={path}
+              onClick={() => navigate(path)}
+              className={`px-[11px] py-[6px] rounded-[7px] text-[13px] font-medium
+                          transition-all whitespace-nowrap ${
+                active(path)
+                  ? 'bg-[#F3F4F6] text-[#111827] font-semibold'
+                  : 'text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827]'
+              }`}
+            >
+              {label}
+            </button>
           ))}
         </nav>
 
-        {/* Bottom: tenant badge + user profile */}
-        <div className="px-5 pb-6 space-y-3">
+        {/* Right side */}
+        <div className="flex items-center gap-2 shrink-0">
 
-          {/* Tenant indicator */}
-          <div className="flex items-center gap-2 px-2 py-2 rounded-[10px] bg-white/5 border border-white/8">
-            <div className="w-5 h-5 rounded-[5px] bg-[#2BD19B]/15 flex items-center justify-center shrink-0">
-              <Building2 size={11} className="text-[#45E0A8]" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-white/35 uppercase tracking-wide leading-none mb-0.5">Workspace</p>
-              <p className="text-[12px] font-medium text-white/80 truncate font-mono">
-                {tenantLabel(user)}
-              </p>
-            </div>
-            {isPlatformAdmin && (
-              <button
-                onClick={() => navigate('/tenants')}
-                title="Manage tenants"
-                className="ml-auto text-white/30 hover:text-white/70 transition-colors"
-              >
-                <Settings size={13} />
-              </button>
-            )}
+          {/* Agent pill */}
+          <div className="flex items-center gap-[5px] px-[10px] py-[4px]
+                          bg-emerald-50 border border-emerald-200 rounded-[7px]">
+            <div className="w-[6px] h-[6px] bg-emerald-500 rounded-full" />
+            <span className="text-[11.5px] font-medium text-emerald-700">Data Analyst</span>
           </div>
 
-          {/* User profile */}
-          <div className="relative border-t border-white/12 pt-3">
+          {/* Workspace badge */}
+          <button className="flex items-center gap-[6px] px-[10px] py-[5px] bg-white
+                             border border-gray-200 rounded-[7px] text-[12px] font-medium
+                             text-gray-600 hover:bg-gray-50 transition-colors">
+            <div className="w-[18px] h-[18px] rounded-[4px] bg-gradient-to-br from-blue-500
+                            to-purple-600 flex items-center justify-center
+                            text-[8px] font-bold text-white flex-shrink-0">
+              {tenantLabel(user).slice(0, 2).toUpperCase()}
+            </div>
+            <span className="truncate max-w-[100px]">{tenantLabel(user)}</span>
+            <ChevronDown size={10} className="text-gray-400 flex-shrink-0" />
+          </button>
+
+          {/* User avatar + dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setProfileOpen(o => !o)}
+              className="w-[30px] h-[30px] rounded-full bg-gradient-to-br from-emerald-500
+                         to-blue-500 flex items-center justify-center
+                         text-[11px] font-bold text-white cursor-pointer
+                         hover:shadow-md transition-all"
+            >
+              {initials(user)}
+            </button>
+
             {profileOpen && (
-              <div className="absolute bottom-[68px] left-0 right-0 rounded-[14px] border border-white/10 bg-[#092D26] p-2 shadow-2xl z-10">
+              <div className="absolute right-0 top-[38px] w-[180px] bg-white border border-gray-200
+                              rounded-[12px] shadow-xl py-1.5 z-50">
+                <div className="px-3 py-2 border-b border-gray-100 mb-1">
+                  <p className="text-[12px] font-semibold text-gray-900 truncate">
+                    {user?.display_name || user?.email}
+                  </p>
+                  <p className="text-[11px] text-gray-400">{user?.role}</p>
+                </div>
                 {isPlatformAdmin && (
                   <button
-                    type="button"
                     onClick={() => { navigate('/tenants'); setProfileOpen(false); }}
-                    className="w-full h-9 rounded-[10px] px-3 flex items-center gap-2 text-[13px] text-white/82 hover:bg-white/8 hover:text-white mb-0.5"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[13px]
+                               text-gray-600 hover:bg-gray-50 transition-colors"
                   >
-                    <Building2 size={14} />
+                    <Building2 size={13} />
                     Tenant management
                   </button>
                 )}
                 <button
-                  type="button"
                   onClick={logout}
-                  className="w-full h-9 rounded-[10px] px-3 flex items-center gap-2 text-[13px] text-white/82 hover:bg-white/8 hover:text-white"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[13px]
+                             text-red-500 hover:bg-red-50 transition-colors"
                 >
-                  <LogOut size={14} />
+                  <LogOut size={13} />
                   Sign out
                 </button>
               </div>
             )}
-            <button
-              type="button"
-              onClick={() => setProfileOpen(open => !open)}
-              aria-expanded={profileOpen}
-              className="w-full flex items-center gap-3 text-left rounded-[14px] p-2 hover:bg-white/7 transition-colors"
-            >
-              <span className="h-8 w-8 rounded-full bg-[#0F6B52] flex items-center justify-center text-[12px] font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]">
-                {initials(user)}
-              </span>
-              <span className="min-w-0">
-                <span className="block text-[12px] font-semibold truncate">
-                  {user?.display_name || user?.email}
-                </span>
-                <span className="block text-[11px] text-white/58 truncate">
-                  {user?.role} · {user?.email}
-                </span>
-              </span>
-              <ChevronDown
-                size={16}
-                className={`ml-auto text-white/60 transition-transform ${profileOpen ? 'rotate-180' : ''}`}
-              />
-            </button>
           </div>
         </div>
-      </aside>
+      </header>
 
-      <main className="flex-1 min-w-0 overflow-hidden">{children}</main>
+      {/* ── Page content ─────────────────────────────────────────────────── */}
+      <main className="flex-1 min-h-0 overflow-hidden bg-transparent">
+        {children}
+      </main>
+
     </div>
   );
 }

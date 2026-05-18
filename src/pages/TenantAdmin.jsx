@@ -371,7 +371,7 @@ export default function TenantAdmin() {
   const deprovisioned = tenants.filter(t => t.status === 'DEPROVISIONED');
 
   return (
-    <div className="flex-1 overflow-auto p-6">
+    <div className="flex-1 overflow-auto p-7 bg-transparent">
       <PageHeader
         title="Tenant Management"
         subtitle="Provision, configure, and manage isolated customer workspaces"

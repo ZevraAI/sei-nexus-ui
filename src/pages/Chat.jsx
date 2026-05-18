@@ -1,11 +1,22 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { marked } from 'marked';
 import {
-  ArrowLeft, Bot, Clipboard, Database, Download, FileDown, FileSpreadsheet,
-  FileText, MoreHorizontal, Printer, Search, Send, Sparkles, User, Users, X,
+  ArrowLeft, Bot, Clipboard, Clock, Database, Download, FileDown, FileSpreadsheet,
+  FileText, Layers, MoreHorizontal, Network, Printer, Search, Send, Sparkles,
+  User, Users, X,
 } from 'lucide-react';
 import { api } from '../api.js';
-import { useAuth } from '../App.jsx';
+import { useAuth, navigate } from '../App.jsx';
+
+// ── Quick access tiles shown on the home landing ──────────────────────────
+const QUICK_TILES = [
+  { label: 'Investigations', path: '/chat',        gradient: 'bg-gradient-to-br from-emerald-100 to-emerald-200', iconColor: '#059669', Icon: Sparkles   },
+  { label: 'Agents',         path: '/agents',      gradient: 'bg-gradient-to-br from-blue-100 to-blue-200',       iconColor: '#3B82F6', Icon: Users      },
+  { label: 'Knowledge Graph',path: '/graph',       gradient: 'bg-gradient-to-br from-violet-100 to-violet-200',   iconColor: '#7C3AED', Icon: Network    },
+  { label: 'Semantic Layer', path: '/semantic',    gradient: 'bg-gradient-to-br from-orange-100 to-orange-200',   iconColor: '#EA580C', Icon: Layers     },
+  { label: 'Connections',    path: '/connections', gradient: 'bg-gradient-to-br from-sky-100 to-sky-200',         iconColor: '#0284C7', Icon: Database   },
+  { label: 'AI Memory',      path: '/memory',      gradient: 'bg-gradient-to-br from-pink-100 to-pink-200',       iconColor: '#9333EA', Icon: FileText   },
+];
 import DataViz from '../components/DataViz.jsx';
 
 // ── markdown ──────────────────────────────────────────────────────────────────
@@ -291,35 +302,21 @@ function ExportMenu({ open, onToggle, disabled, actions, align = 'right' }) {
   );
 }
 
-// ── chat history sidebar ──────────────────────────────────────────────────────
-function HistoryCard({ item, onOpen }) {
-  const title = item.first_question || item.title || item.conversation_id;
-  return (
-    <button
-      type="button"
-      onClick={() => onOpen(item.conversation_id)}
-      className="w-full text-left rounded-[8px] border border-[#E6E2DD] bg-white p-4 hover:bg-[#FBFAF8]"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="text-[13px] font-semibold text-[#111827] leading-snug line-clamp-2">{title}</h3>
-        <span className="text-[11px] text-[#667085] shrink-0">{timeAgo(item.last_activity)}</span>
-      </div>
-      <div className="mt-4 flex items-center gap-2">
-        {item.pinned && (
-          <span className="rounded-[6px] border border-[#DDE4E1] bg-[#F7FAF8] px-2 py-1 text-[11px] text-[#385047]">
-            Pinned
-          </span>
-        )}
-        <span className="text-[11px] text-[#667085]">{item.run_count || 0} runs</span>
-        <MoreHorizontal size={16} className="ml-auto text-[#667085]" />
-      </div>
-    </button>
-  );
-}
-
-function ChatHistory({ conversations, loading, error, onRefresh, onOpen }) {
+// ── Floating history panel ────────────────────────────────────────────────────
+function FloatingHistory({ conversations, loading, onOpen, onClose }) {
   const [search, setSearch] = useState('');
-  const filtered = conversations.filter((c) => {
+  const ref = useRef(null);
+
+  // Close on click outside
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  const filtered = safeArray(conversations).filter((c) => {
     const q = search.trim().toLowerCase();
     return !q || String(c.first_question || c.conversation_id || '').toLowerCase().includes(q);
   });
@@ -332,46 +329,92 @@ function ChatHistory({ conversations, loading, error, onRefresh, onOpen }) {
   }, {});
 
   return (
-    <aside className="hidden xl:flex w-[320px] shrink-0 flex-col bg-[#FCFBFA] border-l border-[#E7E2DD]">
-      <div className="h-[72px] px-5 flex items-center justify-between border-b border-[#E7E2DD]">
-        <h2 className="text-[15px] font-semibold text-[#111827]">History</h2>
-        <button type="button" className="text-[#667085] hover:text-[#111827]" aria-label="Close history">
-          <X size={17} />
+    <div
+      ref={ref}
+      className="fixed top-[58px] right-4 z-50 w-[310px] max-h-[72vh] flex flex-col
+                 bg-white/88 backdrop-blur-xl rounded-[18px]
+                 border border-gray-200/60
+                 shadow-[0_24px_64px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.8)]
+                 overflow-hidden"
+    >
+      {/* Header */}
+      <div className="px-4 py-3 border-b border-gray-100/80 flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <Clock size={13} className="text-emerald-500" />
+          <span className="text-[13px] font-semibold text-[#111827]">History</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400
+                     hover:text-gray-600 hover:bg-gray-100 transition-colors"
+        >
+          <X size={13} />
         </button>
       </div>
 
-      <div className="p-4 border-b border-[#EEEAE5]">
+      {/* Search */}
+      <div className="px-3 py-2.5 border-b border-gray-100/60 flex-shrink-0">
         <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#667085]" />
+          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-9 w-full rounded-[7px] border border-[#DDD8D2] bg-white pl-9 pr-3 text-[13px] outline-none focus:border-[#0B624F]"
-            placeholder="Search conversations..."
+            placeholder="Search conversations…"
+            className="w-full h-[30px] rounded-[8px] bg-gray-100/80 pl-7 pr-3
+                       text-[12.5px] text-[#111827] outline-none border border-transparent
+                       focus:border-emerald-400 focus:bg-white/80 transition-all
+                       placeholder:text-gray-300"
           />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
-        {loading && <p className="text-[13px] text-[#667085]">Loading…</p>}
-        {!loading && error && <p className="text-[13px] text-red-700">{error}</p>}
-        {!loading && !error && filtered.length === 0 && (
-          <p className="text-[13px] text-[#667085]">No conversations yet.</p>
+      {/* List */}
+      <div className="overflow-y-auto flex-1 px-2 py-2">
+        {loading && (
+          <div className="py-8 text-center text-[12px] text-gray-400">Loading…</div>
+        )}
+        {!loading && filtered.length === 0 && (
+          <div className="py-8 text-center">
+            <div className="text-[12px] text-gray-400">No conversations yet</div>
+            <div className="text-[11px] text-gray-300 mt-1">Ask your first question to start</div>
+          </div>
         )}
         {['Today', 'Yesterday', 'Earlier'].map((label) =>
           grouped[label]?.length ? (
-            <section key={label}>
-              <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#8A96A6]">{label}</div>
-              <div className="space-y-2">
+            <div key={label} className="mb-3">
+              <div className="px-2 mb-1 text-[10px] font-semibold uppercase tracking-[0.07em] text-gray-300">
+                {label}
+              </div>
+              <div className="space-y-px">
                 {grouped[label].map((item) => (
-                  <HistoryCard key={item.conversation_id} item={item} onOpen={onOpen} />
+                  <button
+                    key={item.conversation_id}
+                    type="button"
+                    onClick={() => { onOpen(item.conversation_id); onClose(); }}
+                    className="w-full text-left rounded-[10px] px-3 py-2.5
+                               hover:bg-gray-100/70 active:bg-gray-200/60 transition-colors group"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-[12.5px] font-medium text-[#111827] line-clamp-1 leading-snug">
+                        {item.first_question || item.title || 'Investigation'}
+                      </span>
+                      <span className="text-[10.5px] text-gray-400 shrink-0 mt-px">
+                        {timeAgo(item.last_activity)}
+                      </span>
+                    </div>
+                    {item.run_count > 0 && (
+                      <span className="text-[11px] text-gray-400 mt-0.5 block">
+                        {item.run_count} {item.run_count === 1 ? 'run' : 'runs'}
+                      </span>
+                    )}
+                  </button>
                 ))}
               </div>
-            </section>
+            </div>
           ) : null
         )}
       </div>
-    </aside>
+    </div>
   );
 }
 
@@ -546,6 +589,9 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
   const [landingQuery, setLandingQuery] = useState('');
   const [metrics, setMetrics] = useState({ connections: null, documents: null, agents: null });
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
+
+  // history floating panel
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // chat state
   const [chatMode, setChatMode] = useState(false);
@@ -846,107 +892,118 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
 
   // ── render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="h-full flex overflow-hidden bg-[#FBFAF8]">
+    <div className="h-full flex overflow-hidden bg-transparent">
       <section className="flex-1 min-w-0 flex flex-col overflow-hidden">
 
         {/* ── LANDING VIEW ── */}
         {!chatMode && (
-          <>
-            <header className="h-[72px] shrink-0 border-b border-[#E7E2DD] bg-white/80 backdrop-blur px-8 flex items-center justify-end gap-4">
-              <span className="h-8 rounded-full border border-[#DDE4E1] bg-white px-3.5 flex items-center gap-2 text-[12px] font-medium text-[#253248]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#1FB981]" />
-                {envLabel()}
-              </span>
-            </header>
+          <div className="flex-1 flex flex-col items-center justify-center px-6 overflow-y-auto">
+            {/* Greeting */}
+            <h1 className="text-[32px] font-bold text-[#111827] tracking-[-0.03em] text-center mb-2">
+              Good morning, {firstName(user)}.
+            </h1>
+            <p className="text-[15px] text-[#9CA3AF] text-center mb-8">
+              What would you like to investigate today?
+            </p>
 
-            <main className="flex-1 flex items-center justify-center px-8 overflow-y-auto">
-              <div className="w-full max-w-[700px] -mt-8">
-                <div className="text-center mb-10">
-                  <h1 className="font-serif text-[40px] leading-tight tracking-[-0.02em] text-[#101828]">
-                    Good morning, {firstName(user)}.
-                  </h1>
-                  <p className="mt-2.5 text-[15px] text-[#46566D]">
-                    Ask across your enterprise systems and approved memory.
-                  </p>
-                </div>
-
-                <form
-                  onSubmit={handleLandingSubmit}
-                  className="rounded-[14px] border border-[#DDD8D2] bg-white shadow-[0_18px_60px_rgba(16,24,40,0.09)]"
+            {/* Search box */}
+            <form onSubmit={handleLandingSubmit} className="w-full max-w-[640px] mb-4">
+              <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-[16px]
+                              border border-gray-200/80 px-4 py-3.5
+                              shadow-[0_4px_24px_rgba(0,0,0,0.07)]
+                              focus-within:border-emerald-400
+                              focus-within:shadow-[0_4px_24px_rgba(0,0,0,0.07),0_0_0_3px_rgba(5,150,105,0.10)]
+                              transition-all">
+                <Sparkles size={18} className="text-emerald-500 flex-shrink-0" />
+                <input
+                  value={landingQuery}
+                  onChange={(e) => setLandingQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleLandingSubmit(e);
+                    }
+                  }}
+                  placeholder="Ask anything — orders, suppliers, shipments, inventory…"
+                  className="flex-1 bg-transparent text-[15px] text-[#111827] outline-none placeholder:text-[#C4C9D4]"
+                />
+                <button
+                  type="submit"
+                  disabled={submitting || !landingQuery.trim()}
+                  className="w-[34px] h-[34px] bg-[#111827] rounded-[9px] flex items-center justify-center
+                             flex-shrink-0 hover:bg-[#1F2937] disabled:opacity-40
+                             disabled:cursor-not-allowed transition-colors"
                 >
-                  <textarea
-                    value={landingQuery}
-                    onChange={(e) => setLandingQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleLandingSubmit(e);
-                      }
-                    }}
-                    placeholder="What would you like to investigate?"
-                    rows={4}
-                    className="w-full resize-none rounded-t-[14px] bg-transparent px-7 pt-6 pb-2 text-[15px] text-[#101828] outline-none placeholder:text-[#9AA6B5]"
-                  />
-                  <div className="px-6 pb-5 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-[12px] text-[#667085]">
-                      <Sparkles size={14} className="text-[#53647C]" />
-                      Press Enter to send
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={submitting || !landingQuery.trim()}
-                      className="h-9 px-4 rounded-full bg-[#0C5847] text-white text-[13px] font-medium flex items-center gap-2 hover:bg-[#084B3D] disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <Send size={14} />
-                      Investigate
-                    </button>
-                  </div>
-                </form>
-
-                {/* Suggested first questions from onboarding */}
-                {suggestedQuestions.length > 0 && (
-                  <div className="mt-7">
-                    <p className="text-[11px] font-semibold text-[#9AA6B5] uppercase tracking-wider text-center mb-3">
-                      Try asking
-                    </p>
-                    <div className="space-y-2">
-                      {suggestedQuestions.map((q, i) => (
-                        <button key={i} onClick={() => { setLandingQuery(q); }}
-                          className="w-full text-left px-4 py-3 rounded-[10px] border border-[#E8EBF0] hover:border-[#0C5847]/40 hover:bg-[#f0faf5] text-[13px] text-[#344054] transition-all group flex items-center gap-2.5">
-                          <span className="text-[#0C5847] opacity-60 shrink-0 group-hover:opacity-100">→</span>
-                          {q}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-9 flex items-center justify-center gap-8 text-[13px] font-medium text-[#415268]">
-                  <div className="flex items-center gap-2.5">
-                    <Database size={17} strokeWidth={1.7} />
-                    {metricText(metrics.connections, 'systems')}
-                  </div>
-                  <div className="h-5 w-px bg-[#DDD8D2]" />
-                  <div className="flex items-center gap-2.5">
-                    <FileText size={17} strokeWidth={1.7} />
-                    {metricText(metrics.documents, 'documents')}
-                  </div>
-                  <div className="h-5 w-px bg-[#DDD8D2]" />
-                  <div className="flex items-center gap-2.5">
-                    <Users size={17} strokeWidth={1.7} />
-                    {metricText(metrics.agents, 'agents')}
-                  </div>
-                </div>
+                  <Send size={13} className="text-white" />
+                </button>
               </div>
-            </main>
-          </>
+            </form>
+
+            {/* Suggestion chips — from onboarding */}
+            {suggestedQuestions.length > 0 && (
+              <div className="flex flex-wrap gap-2 justify-center max-w-[640px] mb-10">
+                {suggestedQuestions.map((q, i) => (
+                  <button key={i} onClick={() => setLandingQuery(q)}
+                    className="px-3.5 py-1.5 bg-white/70 backdrop-blur-sm border border-gray-200
+                               rounded-full text-[12.5px] text-gray-600
+                               hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700
+                               transition-all">
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Quick access tiles */}
+            <p className="text-[10.5px] font-semibold text-gray-300 uppercase tracking-[0.09em] mb-4">
+              Quick access
+            </p>
+            <div className="grid grid-cols-6 gap-2.5 w-full max-w-[640px]">
+              {QUICK_TILES.map(({ label, path, gradient, iconColor, Icon }) => (
+                <button
+                  key={path}
+                  onClick={() => navigate(path)}
+                  className="flex flex-col items-center gap-2 py-[18px] px-2
+                             bg-white/70 backdrop-blur-sm border border-gray-100/80
+                             rounded-[14px] hover:border-gray-200/80
+                             hover:shadow-[0_6px_20px_rgba(0,0,0,0.09)]
+                             hover:-translate-y-[2px] transition-all group"
+                >
+                  <div className={`w-[44px] h-[44px] rounded-[12px] flex items-center justify-center
+                                  group-hover:scale-[1.06] transition-transform ${gradient}`}>
+                    <Icon size={22} style={{ color: iconColor }} strokeWidth={1.6} />
+                  </div>
+                  <span className="text-[11.5px] font-medium text-gray-600 text-center leading-tight">
+                    {label}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Status + history shortcut */}
+            <div className="flex items-center gap-4 mt-10 text-[11.5px] text-gray-300">
+              <span className="flex items-center gap-1.5">
+                <span className="w-[5px] h-[5px] bg-emerald-500 rounded-full" />
+                {metricText(metrics.connections, 'connections')}
+              </span>
+              <span>·</span>
+              <span>{metricText(metrics.agents, 'agents active')}</span>
+              <span>·</span>
+              <button
+                onClick={() => setHistoryOpen(o => !o)}
+                className="flex items-center gap-1 text-gray-400 hover:text-emerald-600 transition-colors"
+              >
+                <Clock size={12} /> Recent conversations
+              </button>
+            </div>
+          </div>
         )}
 
         {/* ── CHAT VIEW ── */}
         {chatMode && (
           <>
             {/* Chat header */}
-            <header className="h-[60px] shrink-0 border-b border-[#E7E2DD] bg-white px-6 flex items-center gap-4">
+            <header className="h-[48px] shrink-0 border-b border-gray-200/70 bg-white/80 backdrop-blur-sm px-5 flex items-center gap-3">
               <button
                 type="button"
                 onClick={startNewChat}
@@ -959,7 +1016,22 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
               <span className="text-[13px] font-medium text-[#101828] truncate">
                 {conversationTitle}
               </span>
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center gap-2">
+                {/* History button */}
+                <button
+                  type="button"
+                  onClick={() => setHistoryOpen(o => !o)}
+                  title="Conversation history"
+                  className={`h-7 px-2.5 rounded-[7px] flex items-center gap-1.5 text-[12px] font-medium
+                              border transition-all
+                              ${historyOpen
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                : 'bg-white/80 border-gray-200 text-gray-500 hover:text-gray-800 hover:border-gray-300'}`}
+                >
+                  <Clock size={13} />
+                  History
+                </button>
+
                 <ExportMenu
                   open={openExportMenu === 'conversation'}
                   onToggle={() => setOpenExportMenu((current) => current === 'conversation' ? null : 'conversation')}
@@ -967,10 +1039,6 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                   actions={exportConversationActions()}
                 />
               </div>
-              <span className="h-7 rounded-full border border-[#DDE4E1] bg-white px-3 flex items-center gap-1.5 text-[11px] font-medium text-[#253248]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#1FB981]" />
-                {envLabel()}
-              </span>
             </header>
 
             {/* Messages */}
@@ -1044,13 +1112,15 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
         )}
       </section>
 
-      <ChatHistory
-        conversations={conversations}
-        loading={conversationsLoading}
-        error={conversationsError}
-        onRefresh={loadConversations}
-        onOpen={openConversation}
-      />
+      {/* Floating history panel */}
+      {historyOpen && (
+        <FloatingHistory
+          conversations={conversations}
+          loading={conversationsLoading}
+          onOpen={openConversation}
+          onClose={() => setHistoryOpen(false)}
+        />
+      )}
     </div>
   );
 }

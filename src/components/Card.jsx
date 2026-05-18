@@ -1,71 +1,88 @@
 import React from 'react';
 
+// ── Card ──────────────────────────────────────────────────────────────────────
 export function Card({ children, className = '' }) {
   return (
-    <div className={`bg-white rounded-xl border border-gray-100 shadow-md ${className}`}>
+    <div className={`bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/70 shadow-sm ${className}`}>
       {children}
     </div>
   );
 }
 
+// ── Page Header ───────────────────────────────────────────────────────────────
 export function PageHeader({ title, subtitle, actions }) {
   return (
     <div className="flex items-start justify-between mb-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-800">{title}</h1>
-        {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+        <h1 className="text-[20px] font-bold text-[#111827] tracking-[-0.025em]">{title}</h1>
+        {subtitle && <p className="text-[13px] text-[#9CA3AF] mt-1">{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>
   );
 }
 
+// ── Spinner ───────────────────────────────────────────────────────────────────
 export function Spinner({ size = 5 }) {
   const px = typeof size === 'number' ? `${size * 4}px` : size;
   return (
     <div
       style={{ width: px, height: px }}
-      className="border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"
+      className="border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"
     />
   );
 }
 
+// ── Badge — brighter, more readable ──────────────────────────────────────────
 export function Badge({ label, color = 'blue' }) {
   const colors = {
-    blue:   'bg-blue-50 text-blue-700 border-blue-200',
-    green:  'bg-emerald-50 text-emerald-700 border-emerald-200',
-    red:    'bg-red-50 text-red-700 border-red-200',
-    yellow: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-    gray:   'bg-gray-100 text-gray-600 border-gray-200',
-    teal:   'bg-teal-50 text-teal-700 border-teal-200',
-    navy:   'bg-slate-100 text-slate-700 border-slate-200',
+    blue:   'bg-[#DBEAFE] text-[#1D4ED8]',
+    green:  'bg-[#DCFCE7] text-[#15803D]',
+    red:    'bg-[#FEE2E2] text-[#DC2626]',
+    yellow: 'bg-[#FEF9C3] text-[#A16207]',
+    gray:   'bg-[#F3F4F6] text-[#374151]',
+    teal:   'bg-[#CCFBF1] text-[#0F766E]',
+    navy:   'bg-[#EEF2FF] text-[#4338CA]',
+    purple: 'bg-[#EDE9FE] text-[#6D28D9]',
+    orange: 'bg-[#FFEDD5] text-[#C2410C]',
   };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${colors[color] ?? colors.gray}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-600 ${colors[color] ?? colors.gray}`}
+          style={{ fontWeight: 600 }}>
       {label}
     </span>
   );
 }
 
+// ── Empty State ───────────────────────────────────────────────────────────────
 export function EmptyState({ icon: Icon, title, body }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      {Icon && <Icon size={40} className="text-gray-300 mb-3" />}
-      <p className="text-sm font-medium text-gray-500">{title}</p>
-      {body && <p className="text-xs text-gray-400 mt-1 max-w-xs">{body}</p>}
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      {Icon && (
+        <div className="w-14 h-14 rounded-2xl bg-gray-100/80 flex items-center justify-center mb-4">
+          <Icon size={26} className="text-gray-300" />
+        </div>
+      )}
+      <p className="text-[14px] font-semibold text-[#374151]">{title}</p>
+      {body && <p className="text-[13px] text-[#9CA3AF] mt-1.5 max-w-xs leading-relaxed">{body}</p>}
     </div>
   );
 }
 
+// ── Button ────────────────────────────────────────────────────────────────────
 export function Btn({ children, onClick, variant = 'primary', size = 'md', disabled, type = 'button', className = '' }) {
-  const base = 'inline-flex items-center gap-1.5 font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed';
-  const sizes = { sm: 'text-xs px-2.5 py-1.5', md: 'text-sm px-3.5 py-2', lg: 'text-sm px-5 py-2.5' };
+  const base = 'inline-flex items-center gap-1.5 font-medium rounded-[8px] transition-all focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed';
+  const sizes = {
+    sm: 'text-[12px] px-[10px] py-[6px]',
+    md: 'text-[13px] px-[14px] py-[7px]',
+    lg: 'text-[13px] px-[18px] py-[9px]',
+  };
   const variants = {
-    primary:   'bg-emerald-600 hover:bg-emerald-700 text-white focus:ring-emerald-400',
-    secondary: 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-300',
-    danger:    'bg-red-600 hover:bg-red-700 text-white focus:ring-red-400',
-    ghost:     'text-gray-600 hover:bg-gray-100 focus:ring-gray-300',
-    teal:      'bg-teal-600 hover:bg-teal-700 text-white focus:ring-teal-400',
+    primary:   'bg-[#111827] hover:bg-[#1F2937] text-white shadow-sm',
+    secondary: 'bg-white/80 backdrop-blur-sm border border-gray-200 text-[#374151] hover:bg-gray-50',
+    danger:    'bg-[#FEE2E2] hover:bg-[#FECACA] text-[#DC2626] border border-[#FECACA]',
+    ghost:     'text-[#6B7280] hover:bg-gray-100/80 hover:text-[#111827]',
+    teal:      'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm',
   };
   return (
     <button
@@ -79,15 +96,16 @@ export function Btn({ children, onClick, variant = 'primary', size = 'md', disab
   );
 }
 
+// ── Modal ─────────────────────────────────────────────────────────────────────
 export function Modal({ open, onClose, title, children, width = 'max-w-lg' }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative bg-white rounded-2xl shadow-xl w-full ${width} max-h-[90vh] flex flex-col`}>
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+      <div className={`relative bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl w-full ${width} max-h-[90vh] flex flex-col border border-gray-200/70`}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-800">{title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+          <h2 className="text-[15px] font-semibold text-[#111827]">{title}</h2>
+          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors text-lg leading-none">&times;</button>
         </div>
         <div className="overflow-y-auto flex-1 px-5 py-4">
           {children}
@@ -97,25 +115,30 @@ export function Modal({ open, onClose, title, children, width = 'max-w-lg' }) {
   );
 }
 
+// ── Input ─────────────────────────────────────────────────────────────────────
 export function Input({ label, error, ...props }) {
   return (
-    <div className="space-y-1">
-      {label && <label className="block text-xs font-medium text-gray-700">{label}</label>}
+    <div className="space-y-1.5">
+      {label && <label className="block text-[12px] font-semibold text-[#374151] uppercase tracking-wide">{label}</label>}
       <input
-        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder:text-gray-400"
+        className="w-full border border-gray-200 rounded-[8px] px-3 py-2 text-[13px] text-[#111827] bg-white/80
+                   focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20
+                   placeholder:text-gray-300 disabled:bg-gray-50 disabled:text-gray-400 transition-all"
         {...props}
       />
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-[12px] text-red-500">{error}</p>}
     </div>
   );
 }
 
+// ── Select ────────────────────────────────────────────────────────────────────
 export function Select({ label, children, ...props }) {
   return (
-    <div className="space-y-1">
-      {label && <label className="block text-xs font-medium text-gray-700">{label}</label>}
+    <div className="space-y-1.5">
+      {label && <label className="block text-[12px] font-semibold text-[#374151] uppercase tracking-wide">{label}</label>}
       <select
-        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+        className="w-full border border-gray-200 rounded-[8px] px-3 py-2 text-[13px] text-[#111827] bg-white/80
+                   focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
         {...props}
       >
         {children}
@@ -124,18 +147,22 @@ export function Select({ label, children, ...props }) {
   );
 }
 
+// ── Textarea ──────────────────────────────────────────────────────────────────
 export function Textarea({ label, ...props }) {
   return (
-    <div className="space-y-1">
-      {label && <label className="block text-xs font-medium text-gray-700">{label}</label>}
+    <div className="space-y-1.5">
+      {label && <label className="block text-[12px] font-semibold text-[#374151] uppercase tracking-wide">{label}</label>}
       <textarea
-        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none placeholder:text-gray-400"
+        className="w-full border border-gray-200 rounded-[8px] px-3 py-2 text-[13px] text-[#111827] bg-white/80
+                   focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20
+                   resize-none placeholder:text-gray-300 transition-all"
         {...props}
       />
     </div>
   );
 }
 
+// ── useAsync ──────────────────────────────────────────────────────────────────
 export function useAsync(fn, deps = []) {
   const [state, setState] = React.useState({ data: null, loading: false, error: null });
 

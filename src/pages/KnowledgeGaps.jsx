@@ -57,7 +57,7 @@ export default function KnowledgeGaps() {
   };
 
   return (
-    <div className="flex-1 overflow-auto p-6">
+    <div className="flex-1 overflow-auto p-7 bg-transparent">
       <PageHeader
         title="Knowledge Gaps"
         subtitle="Track and resolve unanswered questions, proposals, and source requests"

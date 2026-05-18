@@ -1,265 +1,268 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api.js';
-import { Card, PageHeader, Badge, Btn, EmptyState, Modal, Input, Select, Textarea, Spinner } from '../components/Card.jsx';
-import { Bot, Plus, ChevronDown, ChevronRight, BarChart2, Trash2, Pencil } from 'lucide-react';
+import { Btn, EmptyState, Input, Select, Textarea, Spinner } from '../components/Card.jsx';
+import { Bot, Plus, Pencil, Trash2, Sparkles, CheckCircle, BarChart2 } from 'lucide-react';
 
-const STATUS_COLOR = { ACTIVE: 'green', INACTIVE: 'gray', DRAFT: 'yellow' };
+// ── Gradient palettes for agent icon tiles ────────────────────────────────
+const TILE_GRADIENTS = [
+  { bg: 'linear-gradient(135deg,#D1FAE5,#6EE7B7)', stroke: '#059669', fill: '#ECFDF5' },
+  { bg: 'linear-gradient(135deg,#FFEDD5,#FDB986)', stroke: '#EA580C', fill: '#FFF7ED' },
+  { bg: 'linear-gradient(135deg,#DBEAFE,#93C5FD)', stroke: '#3B82F6', fill: '#EFF6FF' },
+  { bg: 'linear-gradient(135deg,#EDE9FE,#C4B5FD)', stroke: '#7C3AED', fill: '#F5F3FF' },
+  { bg: 'linear-gradient(135deg,#FCE7F3,#F9A8D4)', stroke: '#DB2777', fill: '#FDF4FF' },
+  { bg: 'linear-gradient(135deg,#CFFAFE,#67E8F9)', stroke: '#0891B2', fill: '#F0F9FF' },
+];
 
-function agentKeyOf(agent) { return agent.agentKey ?? agent.agent_key; }
-function agentTypeOf(agent) { return agent.agentType ?? agent.agent_type; }
-function domainKeysOf(agent) { return agent.domainKeys ?? agent.domain_keys ?? ''; }
-function connectionKeysOf(agent) { return agent.connectionKeys ?? agent.connection_keys ?? ''; }
-function restApiEnabledOf(agent) { return agent.restApiEnabled ?? agent.rest_api_enabled ?? false; }
-function actionScopeOf(agent) { return agent.actionScope ?? agent.action_scope ?? 'READ_ONLY'; }
+// ── helpers ───────────────────────────────────────────────────────────────
+function agentKeyOf(a)       { return a.agentKey ?? a.agent_key; }
+function domainKeysOf(a)     { return a.domainKeys ?? a.domain_keys ?? ''; }
+function connectionKeysOf(a) { return a.connectionKeys ?? a.connection_keys ?? ''; }
+function actionScopeOf(a)    { return a.actionScope ?? a.action_scope ?? 'READ_ONLY'; }
+function versionOf(a)        { return a.versionNo ?? a.version_no ?? 1; }
 
-function emptyAgentForm() {
-  return {
-    agentKey: '', name: '', agentType: 'OPERATIONAL_INVESTIGATOR',
-    purpose: '', domainKeys: '', connectionKeys: '',
-    systemPromptOverride: '', status: 'ACTIVE',
-  };
+function emptyForm() {
+  return { agentKey: '', name: '', purpose: '', domainKeys: '', connectionKeys: '',
+           systemPromptOverride: '', actionScope: 'READ_ONLY', status: 'ACTIVE' };
 }
 
-function AgentCard({ agent, onEdit, onDelete }) {
-  const [expanded, setExpanded] = useState(false);
-  const [tab, setTab] = useState('playbooks');
-  const [playbooks, setPlaybooks] = useState(null);
-  const [kpis, setKpis] = useState(null);
-  const [loading, setLoading] = useState(false);
+// ── Agent Card ────────────────────────────────────────────────────────────
+function AgentCard({ agent, idx, onEdit, onDelete }) {
+  const tile   = TILE_GRADIENTS[idx % TILE_GRADIENTS.length];
+  const scope  = actionScopeOf(agent);
+  const ver    = versionOf(agent);
+  const status = agent.status ?? 'ACTIVE';
 
-  const toggle = async () => {
-    if (!expanded) {
-      setLoading(true);
-      try {
-        const key = agentKeyOf(agent);
-        const [pb, kp] = await Promise.all([
-          api.agents.playbooks(key).catch(() => []),
-          api.agents.kpis(key).catch(() => []),
-        ]);
-        setPlaybooks(pb ?? []);
-        setKpis(kp ?? []);
-        setExpanded(true);
-      } finally { setLoading(false); }
-    } else {
-      setExpanded(false);
-    }
-  };
+  const statusBadge = {
+    ACTIVE:   'bg-[#DCFCE7] text-[#15803D]',
+    INACTIVE: 'bg-[#F3F4F6] text-[#374151]',
+    DRAFT:    'bg-[#FEF9C3] text-[#A16207]',
+  }[status] ?? 'bg-[#F3F4F6] text-[#374151]';
 
   return (
-    <Card className="p-4">
-      <div className="flex items-start gap-3">
-        <button onClick={toggle} className="mt-0.5 text-gray-400 hover:text-gray-600 shrink-0">
-          {loading ? <Spinner size={3} /> : expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-        </button>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-indigo-700">{agent.name}</span>
-            <Badge label={agent.status ?? 'ACTIVE'} color={STATUS_COLOR[agent.status] ?? 'gray'} />
-            {agentTypeOf(agent) && <Badge label={agentTypeOf(agent)} color="navy" />}
+    <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/70
+                    p-5 cursor-pointer transition-all hover:shadow-[0_6px_20px_rgba(0,0,0,0.10)]
+                    hover:-translate-y-[1px] flex flex-col gap-4">
+
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-[38px] h-[38px] rounded-[10px] flex items-center justify-center flex-shrink-0"
+               style={{ background: tile.bg }}>
+            <Sparkles size={18} style={{ color: tile.stroke }} strokeWidth={1.6} />
           </div>
-          <p className="text-xs text-gray-500 mt-0.5">{agent.purpose}</p>
-          {domainKeysOf(agent) && (
-            <p className="text-xs text-gray-400 mt-0.5">Domains: {domainKeysOf(agent)}</p>
-          )}
-          {connectionKeysOf(agent) && (
-            <p className="text-xs text-gray-400 mt-0.5">Connections: {connectionKeysOf(agent)}</p>
-          )}
-
-          {expanded && (
-            <div className="mt-3">
-              <div className="flex gap-1 mb-2 border-b border-gray-100">
-                {[['playbooks', 'Playbooks'], ['kpis', 'KPIs']].map(([k, l]) => (
-                  <button key={k} onClick={() => setTab(k)}
-                    className={`px-3 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors
-                      ${tab === k ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-                    {l}
-                  </button>
-                ))}
-              </div>
-
-              {tab === 'playbooks' && (
-                <div className="space-y-2">
-                  {(playbooks ?? []).length === 0
-                    ? <p className="text-xs text-gray-400">No playbooks</p>
-                    : playbooks.map(pb => (
-                      <div key={pb.playbookKey} className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs font-semibold text-gray-700">{pb.name}</p>
-                        <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-line">{pb.investigationSteps}</p>
-                      </div>
-                    ))}
-                </div>
-              )}
-
-              {tab === 'kpis' && (
-                <div className="space-y-2">
-                  {(kpis ?? []).length === 0
-                    ? <p className="text-xs text-gray-400">No KPIs</p>
-                    : kpis.map(kpi => (
-                      <div key={kpi.kpiKey} className="bg-gray-50 rounded-lg p-3 flex items-start gap-3">
-                        <BarChart2 size={14} className="text-blue-500 mt-0.5 shrink-0" />
-                        <div>
-                          <p className="text-xs font-semibold text-gray-700">{kpi.name}</p>
-                          <p className="text-xs text-gray-500">{kpi.description}</p>
-                          {kpi.targetValue && (
-                            <p className="text-xs text-gray-400 mt-0.5">Target: {kpi.targetValue} {kpi.unit}</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
+          <div>
+            <div className="text-[14px] font-semibold text-[#111827]">{agent.name}</div>
+            <div className="text-[11.5px] text-[#9CA3AF] mt-[1px]">
+              {domainKeysOf(agent) || 'No domain'}
             </div>
-          )}
+          </div>
         </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <Btn variant="ghost" size="sm" onClick={() => onEdit(agent)} title="Edit agent">
-            <Pencil size={13} />
-          </Btn>
-          <Btn variant="ghost" size="sm" onClick={() => onDelete(agentKeyOf(agent))} title="Archive agent">
-            <Trash2 size={13} />
-          </Btn>
-        </div>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${statusBadge}`}>
+          {status}
+        </span>
       </div>
-    </Card>
+
+      {/* Purpose */}
+      <p className="text-[12.5px] text-[#6B7280] leading-[1.55]">{agent.purpose || '—'}</p>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-2.5">
+        {[
+          { label: 'Connections', value: connectionKeysOf(agent) ? connectionKeysOf(agent).split(',').length : 0 },
+          { label: 'Scope',  value: scope === 'READ_ONLY' ? 'RO' : 'RW' },
+          { label: 'Version', value: `v${ver}` },
+        ].map(({ label, value }) => (
+          <div key={label} className="text-center py-2.5 px-2 bg-[#F9FAFB] rounded-[8px]">
+            <div className="text-[18px] font-bold text-[#111827]">{value}</div>
+            <div className="text-[10.5px] text-[#9CA3AF] mt-[2px]">{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#F3F4F6] text-[#374151]">
+          {scope}
+        </span>
+        <div className="flex-1" />
+        <button onClick={e => { e.stopPropagation(); onEdit(agent); }}
+          className="text-[12px] font-medium text-[#6B7280] hover:text-[#111827] px-2.5 py-1
+                     rounded-[6px] hover:bg-gray-100 transition-colors flex items-center gap-1">
+          <Pencil size={12} /> Edit
+        </button>
+        <button onClick={e => { e.stopPropagation(); onDelete(agentKeyOf(agent)); }}
+          className="text-[12px] font-medium text-red-400 hover:text-red-600 px-2.5 py-1
+                     rounded-[6px] hover:bg-red-50 transition-colors">
+          <Trash2 size={12} />
+        </button>
+      </div>
+    </div>
   );
 }
 
+// ── Add placeholder card ──────────────────────────────────────────────────
+function AddCard({ onClick }) {
+  return (
+    <div onClick={onClick}
+      className="bg-white/60 backdrop-blur-sm rounded-xl border border-dashed border-gray-300
+                 flex flex-col items-center justify-center gap-3 min-h-[220px] cursor-pointer
+                 hover:border-gray-400 hover:bg-white/80 transition-all">
+      <div className="w-[44px] h-[44px] rounded-[12px] border border-dashed border-gray-300
+                      flex items-center justify-center">
+        <Plus size={18} className="text-gray-400" strokeWidth={1.6} />
+      </div>
+      <div className="text-center">
+        <div className="text-[13.5px] font-medium text-[#374151] mb-1">Create new agent</div>
+        <div className="text-[12px] text-[#9CA3AF]">Scope it to a domain and connection</div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────
 const AGENT_TYPES = ['OPERATIONAL_INVESTIGATOR', 'ANALYTICAL', 'COMPLIANCE', 'EXECUTIVE', 'DOMAIN_EXPERT'];
 
 export default function Agents() {
-  const [agents, setAgents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showAdd, setShowAdd] = useState(false);
+  const [agents, setAgents]         = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [showModal, setShowModal]   = useState(false);
   const [editingAgent, setEditingAgent] = useState(null);
-  const [form, setForm] = useState(emptyAgentForm());
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [form, setForm]             = useState(emptyForm());
+  const [saving, setSaving]         = useState(false);
+  const [error, setError]           = useState('');
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const loadAgents = async () => {
-    const rows = await api.agents.list().catch(() => []);
-    setAgents((rows ?? []).filter(a => a.status !== 'ARCHIVED'));
-  };
+  const load = () => api.agents.list()
+    .then(r => setAgents((r ?? []).filter(a => a.status !== 'ARCHIVED')))
+    .catch(() => setAgents([]));
 
-  useEffect(() => {
-    loadAgents().finally(() => setLoading(false));
-  }, []);
+  useEffect(() => { load().finally(() => setLoading(false)); }, []);
 
-  const openAdd = () => {
-    setEditingAgent(null);
-    setForm(emptyAgentForm());
-    setError('');
-    setShowAdd(true);
-  };
+  const openAdd = () => { setEditingAgent(null); setForm(emptyForm()); setError(''); setShowModal(true); };
 
   const openEdit = (agent) => {
     setEditingAgent(agent);
     setForm({
-      agentKey: agentKeyOf(agent),
-      name: agent.name || '',
-      agentType: agentTypeOf(agent) || 'OPERATIONAL_INVESTIGATOR',
-      purpose: agent.purpose || '',
-      domainKeys: domainKeysOf(agent),
-      connectionKeys: connectionKeysOf(agent),
+      agentKey:             agentKeyOf(agent),
+      name:                 agent.name || '',
+      purpose:              agent.purpose || '',
+      domainKeys:           domainKeysOf(agent),
+      connectionKeys:       connectionKeysOf(agent),
       systemPromptOverride: '',
-      status: agent.status || 'ACTIVE',
-      restApiEnabled: restApiEnabledOf(agent),
-      actionScope: actionScopeOf(agent),
+      actionScope:          actionScopeOf(agent),
+      status:               agent.status || 'ACTIVE',
     });
     setError('');
-    setShowAdd(true);
+    setShowModal(true);
   };
 
   const save = async () => {
     setSaving(true); setError('');
     try {
       await api.agents.create(form);
-      await loadAgents();
-      setShowAdd(false);
-      setEditingAgent(null);
-    } catch (e) { setError(e.message); } finally { setSaving(false); }
+      await load();
+      setShowModal(false);
+    } catch (e) { setError(e.message); }
+    finally { setSaving(false); }
   };
 
   const deleteAgent = async (key) => {
-    if (!key) {
-      setError('Agent key is missing. Refresh and try again.');
-      return;
-    }
-    if (!confirm('Archive this agent?')) return;
-    try {
-      await api.agents.delete(key);
-      await loadAgents();
-    } catch (e) {
-      setError(e.message || 'Unable to archive agent');
-    }
+    if (!key || !confirm('Archive this agent?')) return;
+    try { await api.agents.delete(key); await load(); }
+    catch (e) { setError(e.message || 'Failed to archive agent'); }
   };
 
   return (
-    <div className="flex-1 overflow-auto p-6">
-      <PageHeader
-        title="Agents"
-        subtitle="Configure operational reasoning agents and their domain scope"
-        actions={<Btn size="sm" onClick={openAdd}><Plus size={13} /> Add Agent</Btn>}
-      />
+    <div className="flex-1 overflow-auto p-7 bg-transparent">
 
-      {error && !showAdd && <p className="mb-3 text-sm text-red-600">{error}</p>}
+      {/* Header */}
+      <div className="flex items-start justify-between mb-7">
+        <div>
+          <h1 className="text-[20px] font-bold text-[#111827] tracking-[-0.025em]">Agents</h1>
+          <p className="text-[13px] text-[#9CA3AF] mt-1">Configured AI investigators scoped to your data domains</p>
+        </div>
+        <button onClick={openAdd}
+          className="flex items-center gap-1.5 px-[14px] py-[7px] bg-[#111827] text-white
+                     text-[13px] font-medium rounded-[8px] hover:bg-[#1F2937] transition-colors shadow-sm">
+          <Plus size={13} /> New Agent
+        </button>
+      </div>
 
-      {loading ? (
-        <div className="flex justify-center py-16"><Spinner /></div>
-      ) : agents.length === 0 ? (
-        <EmptyState icon={Bot} title="No agents" body="Create an agent to start operational reasoning." />
-      ) : (
-        <div className="space-y-2">
-          {agents.map(a => (
-            <AgentCard
-              key={agentKeyOf(a)}
-              agent={a}
-              onEdit={openEdit}
-              onDelete={deleteAgent}
-            />
-          ))}
+      {error && !showModal && (
+        <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-[13px] text-red-600">
+          {error}
         </div>
       )}
 
-      <Modal
-        open={showAdd}
-        onClose={() => { setShowAdd(false); setEditingAgent(null); setError(''); }}
-        title={editingAgent ? `Edit Agent - ${editingAgent.name}` : 'Add Agent'}
-        width="max-w-xl"
-      >
+      {loading ? (
+        <div className="flex justify-center py-20"><Spinner /></div>
+      ) : agents.length === 0 ? (
+        <div className="grid grid-cols-3 gap-4">
+          <AddCard onClick={openAdd} />
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-4">
+          {agents.map((a, i) => (
+            <AgentCard key={agentKeyOf(a)} agent={a} idx={i} onEdit={openEdit} onDelete={deleteAgent} />
+          ))}
+          <AddCard onClick={openAdd} />
+        </div>
+      )}
+
+      {/* Modal */}
+      <Modal open={showModal} onClose={() => { setShowModal(false); setEditingAgent(null); setError(''); }}
+             title={editingAgent ? `Edit — ${editingAgent.name}` : 'New Agent'}>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <Input label="Agent Key" placeholder="invoicing-agent" value={form.agentKey}
-              disabled={!!editingAgent}
-              onChange={e => set('agentKey', e.target.value)} />
-            <Input label="Display Name" placeholder="Invoicing Investigator" value={form.name}
+            <Input label="Agent Key" placeholder="data-analyst" value={form.agentKey}
+              disabled={!!editingAgent} onChange={e => set('agentKey', e.target.value)} />
+            <Input label="Display Name" placeholder="Data Analyst" value={form.name}
               onChange={e => set('name', e.target.value)} />
           </div>
-          <Select label="Agent Type" value={form.agentType} onChange={e => set('agentType', e.target.value)}>
-            {AGENT_TYPES.map(t => <option key={t}>{t}</option>)}
-          </Select>
-          <Textarea label="Purpose" rows={2} placeholder="Investigates invoice discrepancies and payment status…"
+          <Textarea label="Purpose" rows={2} placeholder="Investigates operational data…"
             value={form.purpose} onChange={e => set('purpose', e.target.value)} />
-          <Input label="Domain Keys (comma-separated)" placeholder="invoicing,procurement"
+          <Input label="Domain Keys (comma-separated)" placeholder="PLATFORM,logistics"
             value={form.domainKeys} onChange={e => set('domainKeys', e.target.value)} />
-          <Input label="Connection Keys (comma-separated)" placeholder="ods-oracle,dw-snowflake"
+          <Input label="Connection Keys (comma-separated)" placeholder="conn-abc123"
             value={form.connectionKeys} onChange={e => set('connectionKeys', e.target.value)} />
           <Textarea label="System Prompt Override (optional)" rows={3}
-            placeholder="You are a specialist in AP/AR reconciliation…"
+            placeholder="You are a specialist in…"
             value={form.systemPromptOverride} onChange={e => set('systemPromptOverride', e.target.value)} />
-          <Select label="Status" value={form.status} onChange={e => set('status', e.target.value)}>
-            {['ACTIVE', 'INACTIVE', 'DRAFT'].map(s => <option key={s}>{s}</option>)}
-          </Select>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <div className="flex justify-end gap-2">
-            <Btn variant="secondary" onClick={() => { setShowAdd(false); setEditingAgent(null); }}>Cancel</Btn>
+          <div className="grid grid-cols-2 gap-3">
+            <Select label="Action Scope" value={form.actionScope} onChange={e => set('actionScope', e.target.value)}>
+              {['READ_ONLY', 'READ_WRITE', 'FULL'].map(s => <option key={s}>{s}</option>)}
+            </Select>
+            <Select label="Status" value={form.status} onChange={e => set('status', e.target.value)}>
+              {['ACTIVE', 'INACTIVE', 'DRAFT'].map(s => <option key={s}>{s}</option>)}
+            </Select>
+          </div>
+          {error && <p className="text-[12px] text-red-500">{error}</p>}
+          <div className="flex justify-end gap-2 pt-1">
+            <Btn variant="secondary" onClick={() => { setShowModal(false); setEditingAgent(null); }}>Cancel</Btn>
             <Btn onClick={save} disabled={saving || !form.agentKey || !form.name}>
-              {saving ? <Spinner size={4} /> : editingAgent ? <Pencil size={13} /> : <Plus size={13} />}
+              {saving ? <Spinner size={4} /> : <Plus size={13} />}
               {editingAgent ? 'Save Changes' : 'Create Agent'}
             </Btn>
           </div>
         </div>
       </Modal>
+    </div>
+  );
+}
+
+// Modal component inline since it's not in Card.jsx scope here
+function Modal({ open, onClose, title, children }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col border border-gray-200/70">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h2 className="text-[15px] font-semibold text-[#111827]">{title}</h2>
+          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors text-xl leading-none">&times;</button>
+        </div>
+        <div className="overflow-y-auto flex-1 px-5 py-4">{children}</div>
+      </div>
     </div>
   );
 }

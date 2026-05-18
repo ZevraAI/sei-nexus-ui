@@ -420,7 +420,7 @@ export default function KnowledgeGraph() {
   const canvasH   = Math.max(200, dims.h - 56);
 
   return (
-    <div className="flex-1 flex overflow-hidden" style={{ background: CANVAS_BG }}>
+    <div className="flex-1 flex overflow-hidden" style={{ background: CANVAS_BG, borderRadius: '0' }}>
 
       {/* ── left: graph canvas ── */}
       <div ref={containerRef} className="flex-1 flex flex-col relative overflow-hidden">

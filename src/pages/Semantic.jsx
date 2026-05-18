@@ -688,6 +688,220 @@ function slugify(str) {
     .slice(0, 80);
 }
 
+// ── Entity Detail Panel (right side, matches mockup) ──────────────────────────
+
+function EntityDetailPanel({ entity, vocab, onEdit, onDelete }) {
+  const [activeTab, setActiveTab] = useState('overview');
+  const [rels,    setRels]    = useState([]);
+  const [columns, setColumns] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!entity) return;
+    setActiveTab('overview');
+    setLoading(true);
+    const key    = entity.entity_key;
+    const objKey = entity.primary_object_key;
+    Promise.all([
+      api.semantic.relationships(key).catch(() => []),
+      objKey ? api.enterprise.columns(objKey).catch(() => []) : Promise.resolve([]),
+    ]).then(([r, c]) => {
+      setRels(safeArray(r));
+      setColumns(safeArray(c));
+    }).finally(() => setLoading(false));
+  }, [entity?.entity_key]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!entity) return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-14 h-14 rounded-2xl bg-gray-100/80 flex items-center justify-center mx-auto mb-3">
+          <Layers size={26} className="text-gray-300" />
+        </div>
+        <p className="text-[14px] font-semibold text-[#374151]">Select an entity</p>
+        <p className="text-[13px] text-[#9CA3AF] mt-1">Click an entity in the list to view its details</p>
+      </div>
+    </div>
+  );
+
+  const entityVocab = safeArray(vocab).filter(v =>
+    (v.entity_key ?? v.entityKey) === entity.entity_key
+  );
+  const status   = entity.status ?? 'ACTIVE';
+  const nodeType = entity.node_type ?? 'ENTITY';
+
+  const statusCls = status === 'ACTIVE'
+    ? 'bg-[#DCFCE7] text-[#15803D]'
+    : 'bg-[#F3F4F6] text-[#374151]';
+
+  return (
+    <div className="flex-1 overflow-y-auto p-7">
+
+      {/* Header */}
+      <div className="flex items-start justify-between mb-5">
+        <div>
+          <div className="flex items-center gap-2.5 mb-2">
+            <h2 className="text-[20px] font-bold text-[#111827]">{entity.entity_name}</h2>
+            <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${statusCls}`}>{status}</span>
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#F3F4F6] text-[#374151]">{nodeType}</span>
+          </div>
+          <p className="text-[13px] text-[#6B7280]">
+            Source:{' '}
+            <code className="bg-gray-100 text-emerald-700 px-1.5 py-0.5 rounded text-[12px] font-mono">
+              {entity.primary_object_key || entity.entity_key}
+            </code>
+            {' '}· {entity.domain_key}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => onEdit(entity)}
+            className="px-3.5 py-1.5 text-[13px] font-medium text-[#374151] bg-white/80 border
+                       border-gray-200 rounded-[8px] hover:bg-gray-50 transition-colors">
+            Edit
+          </button>
+          <button onClick={() => onDelete(entity)}
+            className="px-3.5 py-1.5 text-[13px] font-medium text-red-500 bg-red-50/80 border
+                       border-red-100 rounded-[8px] hover:bg-red-100 transition-colors">
+            Archive
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-gray-100/80 p-1 rounded-[10px] w-fit mb-6">
+        {['Overview', 'Vocabulary', 'Relationships'].map(t => (
+          <button key={t} onClick={() => setActiveTab(t.toLowerCase())}
+            className={`px-3.5 py-1.5 rounded-[7px] text-[12.5px] font-medium capitalize transition-all
+              ${activeTab === t.toLowerCase()
+                ? 'bg-white text-[#111827] shadow-sm'
+                : 'text-[#9CA3AF] hover:text-[#374151]'}`}>
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {loading && (
+        <div className="flex justify-center py-10"><Spinner /></div>
+      )}
+
+      {/* ── Overview ── */}
+      {!loading && activeTab === 'overview' && (
+        <>
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-white/80 backdrop-blur-sm border border-gray-200/70 rounded-xl p-4">
+              <div className="text-[10.5px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-2">Purpose</div>
+              <p className="text-[13px] text-[#374151] leading-relaxed">
+                {entity.description || entity.operational_meaning || '—'}
+              </p>
+            </div>
+            <div className="bg-white/80 backdrop-blur-sm border border-gray-200/70 rounded-xl p-4">
+              <div className="text-[10.5px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-2">Investigation Hint</div>
+              {entity.investigation_hints ? (
+                <code className="text-[12px] text-emerald-700 leading-relaxed font-mono block">
+                  {entity.investigation_hints}
+                </code>
+              ) : <p className="text-[13px] text-[#9CA3AF]">No hint defined</p>}
+            </div>
+          </div>
+
+          {columns.length > 0 && (
+            <>
+              <div className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3">Columns</div>
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/70 overflow-hidden">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50/80 border-b border-gray-200/70">
+                      {['Column', 'Type', 'Flags'].map(h => (
+                        <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-[#374151] uppercase tracking-wide">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {columns.map(col => (
+                      <tr key={col.column_key ?? col.column_name} className="border-b border-gray-100/80 hover:bg-gray-50/50">
+                        <td className="px-4 py-2.5 font-mono text-[12.5px] text-[#374151]">{col.column_name}</td>
+                        <td className="px-4 py-2.5">
+                          <span className="bg-[#F3F4F6] text-[#374151] px-2 py-0.5 rounded-full text-[11px] font-semibold">
+                            {col.data_type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex gap-1 flex-wrap">
+                            {col.is_identifier && <span className="bg-[#DBEAFE] text-[#1D4ED8] px-2 py-0.5 rounded-full text-[11px] font-semibold">identifier</span>}
+                            {col.is_filterable && <span className="bg-[#DCFCE7] text-[#15803D] px-2 py-0.5 rounded-full text-[11px] font-semibold">filterable</span>}
+                            {col.is_status    && <span className="bg-[#FEF9C3] text-[#A16207] px-2 py-0.5 rounded-full text-[11px] font-semibold">status</span>}
+                            {col.is_sensitive && <span className="bg-[#FEE2E2] text-[#DC2626] px-2 py-0.5 rounded-full text-[11px] font-semibold">sensitive</span>}
+                            {col.is_error     && <span className="bg-[#FEE2E2] text-[#DC2626] px-2 py-0.5 rounded-full text-[11px] font-semibold">error</span>}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {/* ── Vocabulary ── */}
+      {!loading && activeTab === 'vocabulary' && (
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/70 overflow-hidden">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-50/80 border-b border-gray-200/70">
+                {['Term', 'Definition', 'SQL Equivalent'].map(h => (
+                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-[#374151] uppercase tracking-wide">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {entityVocab.length === 0 ? (
+                <tr><td colSpan={3} className="px-4 py-8 text-center text-[13px] text-[#9CA3AF]">No vocabulary terms for this entity</td></tr>
+              ) : entityVocab.map(v => (
+                <tr key={v.term_key} className="border-b border-gray-100/80 hover:bg-gray-50/50">
+                  <td className="px-4 py-2.5 font-semibold text-[#111827] text-[13px]">{v.term}</td>
+                  <td className="px-4 py-2.5 text-[#6B7280] text-[13px]">{v.definition}</td>
+                  <td className="px-4 py-2.5 font-mono text-[12px] text-emerald-600">{v.sql_equivalent || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ── Relationships ── */}
+      {!loading && activeTab === 'relationships' && (
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/70 overflow-hidden">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-50/80 border-b border-gray-200/70">
+                {['Type', 'Target', 'Join Guidance'].map(h => (
+                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-[#374151] uppercase tracking-wide">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rels.length === 0 ? (
+                <tr><td colSpan={3} className="px-4 py-8 text-center text-[13px] text-[#9CA3AF]">No relationships defined</td></tr>
+              ) : rels.map((r, i) => (
+                <tr key={i} className="border-b border-gray-100/80 hover:bg-gray-50/50">
+                  <td className="px-4 py-2.5">
+                    <span className="bg-[#EDE9FE] text-[#7C3AED] px-2 py-0.5 rounded-full text-[11px] font-semibold">
+                      {r.relationship_type}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 font-medium text-[#111827] text-[13px]">{r.target_entity_key}</td>
+                  <td className="px-4 py-2.5 font-mono text-[12px] text-[#6B7280]">{r.join_guidance || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function Semantic() {
@@ -697,6 +911,7 @@ export default function Semantic() {
   const [vocab, setVocab]             = useState([]);
   const [loading, setLoading]         = useState(false);
   const [tab, setTab]                 = useState('entities');
+  const [selectedEntityKey, setSelectedEntityKey] = useState(null);
 
   // discovery wizard
   const [showWizard, setShowWizard] = useState(false);
@@ -758,9 +973,12 @@ export default function Semantic() {
       api.semantic.entities(key).catch(() => []),
       api.semantic.vocabulary(key).catch(() => []),
     ]);
-    setEntities(safeArray(e));
+    const ents = safeArray(e);
+    setEntities(ents);
     setVocab(safeArray(v));
     setLoading(false);
+    // Auto-select first entity so right panel isn't empty
+    if (ents.length > 0) setSelectedEntityKey(prev => prev ?? ents[0].entity_key);
   };
 
   // ── entity CRUD ───────────────────────────────────────────────────────────
@@ -872,73 +1090,115 @@ export default function Semantic() {
   // ── render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-full min-h-0 overflow-y-auto p-6">
-      <PageHeader
-        title="Semantic Layer"
-        subtitle="Business entity definitions, operational vocabulary, and investigation context for the AI"
-        actions={
-          <div className="flex items-center gap-2">
-            <Select value={selectedDomain} onChange={e => setSelectedDomain(e.target.value)}>
-              {domains.map(d => {
-                const key = d.domain_key ?? d.domainKey;
-                return <option key={key} value={key}>{d.name}</option>;
-              })}
-            </Select>
-            <Btn variant="secondary" size="sm" onClick={() => setShowWizard(true)}>
-              <Sparkles size={13} /> Discover from DB
-            </Btn>
-            {tab === 'entities'
-              ? <Btn size="sm" onClick={openAddEntity}><Plus size={13} /> Add Entity</Btn>
-              : <Btn size="sm" onClick={openAddVocab}><Plus size={13} /> Add Term</Btn>
-            }
-          </div>
-        }
-      />
+    <div className="h-full min-h-0 flex overflow-hidden bg-transparent">
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-4 border-b border-gray-200">
-        {[
-          ['entities', `Entities (${entities.length})`],
-          ['vocab', `Vocabulary (${vocab.length})`],
-        ].map(([k, l]) => (
-          <button key={k} onClick={() => setTab(k)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors
-              ${tab === k ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-            {l}
+      {/* ── Left sidebar: entity / vocab list ─────────────────────────────── */}
+      <aside className="w-[260px] flex-shrink-0 flex flex-col bg-white/80 backdrop-blur-sm
+                         border-r border-gray-200/70 overflow-hidden">
+
+        {/* Sidebar header */}
+        <div className="px-4 py-3.5 border-b border-gray-200/70 flex items-center justify-between flex-shrink-0">
+          <span className="text-[13px] font-semibold text-[#111827]">
+            {tab === 'entities' ? `Entities (${entities.length})` : `Vocabulary (${vocab.length})`}
+          </span>
+          <button
+            onClick={tab === 'entities' ? openAddEntity : openAddVocab}
+            className="flex items-center gap-1 px-[8px] py-[4px] bg-[#111827] text-white
+                       text-[11.5px] font-medium rounded-[6px] hover:bg-[#1F2937] transition-colors">
+            <Plus size={10} /> Add
           </button>
-        ))}
-      </div>
+        </div>
 
-      {loading ? (
-        <div className="flex justify-center py-16"><Spinner /></div>
-      ) : tab === 'entities' ? (
-        entities.length === 0
-          ? <EmptyState icon={Layers} title="No entities"
-              body="Define canonical business entities to build the semantic layer and knowledge graph." />
-          : <div className="space-y-2">
-              {entities.map(e => (
-                <EntityCard
-                  key={e.entity_key}
-                  entity={e}
-                  onEdit={openEditEntity}
-                  onDelete={deleteEntity}
-                />
-              ))}
-            </div>
+        {/* Tab toggle */}
+        <div className="flex border-b border-gray-200/70 flex-shrink-0">
+          {[['entities', 'Entities'], ['vocab', 'Vocabulary']].map(([k, l]) => (
+            <button key={k} onClick={() => setTab(k)}
+              className={`flex-1 py-2 text-[12px] font-medium transition-colors
+                ${tab === k ? 'text-emerald-600 border-b-2 border-emerald-500' : 'text-[#9CA3AF] hover:text-[#374151]'}`}>
+              {l}
+            </button>
+          ))}
+        </div>
+
+        {/* Domain filter */}
+        <div className="px-3 py-2.5 border-b border-gray-100 flex-shrink-0">
+          <select value={selectedDomain} onChange={e => setSelectedDomain(e.target.value)}
+            className="w-full border border-gray-200 rounded-[7px] px-2.5 py-1.5 text-[12px]
+                       text-[#374151] bg-white focus:outline-none focus:border-emerald-400">
+            {domains.map(d => {
+              const key = d.domain_key ?? d.domainKey;
+              return <option key={key} value={key}>{d.name}</option>;
+            })}
+          </select>
+        </div>
+
+        {/* List */}
+        <div className="overflow-y-auto flex-1">
+          {loading ? (
+            <div className="flex justify-center py-10"><Spinner /></div>
+          ) : tab === 'entities' ? (
+            entities.length === 0 ? (
+              <div className="px-4 py-8 text-center text-[12px] text-[#9CA3AF]">No entities yet</div>
+            ) : entities.map(e => {
+              const isSelected = selectedEntityKey === e.entity_key;
+              return (
+                <div key={e.entity_key}
+                  onClick={() => setSelectedEntityKey(e.entity_key)}
+                  className={`px-4 py-3 cursor-pointer border-b border-gray-100/80 transition-colors
+                    ${isSelected
+                      ? 'bg-emerald-50/80 border-l-2 border-l-emerald-500'
+                      : 'hover:bg-gray-50/60'}`}>
+                  <div className={`text-[13px] font-medium ${isSelected ? 'text-emerald-700' : 'text-[#111827]'}`}>
+                    {e.entity_name}
+                  </div>
+                  <div className="text-[11px] text-[#9CA3AF] mt-0.5 font-mono">{e.entity_key}</div>
+                </div>
+              );
+            })
+          ) : (
+            vocab.length === 0 ? (
+              <div className="px-4 py-8 text-center text-[12px] text-[#9CA3AF]">No vocabulary yet</div>
+            ) : vocab.map(v => (
+              <div key={v.term_key}
+                className="px-4 py-3 cursor-pointer border-b border-gray-100/80 hover:bg-gray-50/60 transition-colors">
+                <div className="text-[13px] font-medium text-[#111827]">{v.term}</div>
+                <div className="text-[11px] text-[#9CA3AF] mt-0.5 truncate">{v.definition}</div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Discover from DB */}
+        <div className="px-3 py-3 border-t border-gray-200/70 flex-shrink-0">
+          <button onClick={() => setShowWizard(true)}
+            className="w-full flex items-center justify-center gap-1.5 py-2 text-[12px] font-medium
+                       text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-[8px] transition-colors">
+            <Sparkles size={12} /> Discover from DB
+          </button>
+        </div>
+      </aside>
+
+      {/* ── Right content: entity detail or vocab list ────────────────────── */}
+      {tab === 'entities' ? (
+        <EntityDetailPanel
+          entity={entities.find(e => e.entity_key === selectedEntityKey) ?? null}
+          vocab={vocab}
+          onEdit={openEditEntity}
+          onDelete={deleteEntity}
+        />
       ) : (
-        vocab.length === 0
-          ? <EmptyState icon={BookOpen} title="No vocabulary"
+        <div className="flex-1 min-w-0 overflow-y-auto p-7">
+          {vocab.length === 0 ? (
+            <EmptyState icon={BookOpen} title="No vocabulary"
               body="Add business terms so the AI understands domain-specific language." />
-          : <div className="grid gap-2 sm:grid-cols-2">
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
               {vocab.map(v => (
-                <VocabCard
-                  key={v.term_key}
-                  term={v}
-                  onEdit={openEditVocab}
-                  onDelete={deleteTerm}
-                />
+                <VocabCard key={v.term_key} term={v} onEdit={openEditVocab} onDelete={deleteTerm} />
               ))}
             </div>
+          )}
+        </div>
       )}
 
       {/* ── Discovery wizard ── */}
