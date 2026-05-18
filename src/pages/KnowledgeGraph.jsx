@@ -538,18 +538,18 @@ function JoinPathFinder({ entities, allEdges, entityIndex }) {
     try {
       const data = await api.graph.paths(fromKey, toKey);
       const nodes = safeArr(data.nodes).map(n => ({
-        id:    n.id ?? n.entity_key,
+        id:    n.id    ?? n.entity_key,
         name:  n.label ?? n.entity_name ?? n.id ?? n.entity_key,
         type:  n.node_type ?? n.nodeType ?? 'ENTITY',
         objKey:n.primary_object_key ?? n.primaryObjectKey,
       }));
       const edges = safeArr(data.edges).map(e => ({
-        source: typeof e.source === 'object' ? e.source?.id : e.source,
-        target: typeof e.target === 'object' ? e.target?.id : e.target,
+        source: typeof e.source === 'object' ? e.source?.id : (e.source ?? e.source_entity_key),
+        target: typeof e.target === 'object' ? e.target?.id : (e.target ?? e.target_entity_key),
         type:   e.relationship_type ?? e.relationshipType,
         srcCol: e.source_column ?? e.sourceColumn,
         tgtCol: e.target_column ?? e.targetColumn,
-        join:   e.join_guidance ?? e.joinGuidance,
+        join:   e.join_guidance  ?? e.joinGuidance,
         card:   e.cardinality,
       }));
       if (nodes.length === 0) {
@@ -855,8 +855,29 @@ export default function KnowledgeGraph() {
     setSelectedEntity(null);
     api.graph.full(selectedDomain)
       .then(data => {
-        setEntities(safeArr(data.nodes));
-        setAllEdges(safeArr(data.edges));
+        // GraphNode record serialises as { id, label, node_type, ... }
+        // Normalise to consistent shape so all child components use entity_key / entity_name
+        const nodes = safeArr(data.nodes).map(n => ({
+          ...n,
+          entity_key:          n.entity_key          ?? n.id,
+          entity_name:         n.entity_name         ?? n.label,
+          node_type:           n.node_type           ?? n.nodeType,
+          primary_object_key:  n.primary_object_key  ?? n.primaryObjectKey,
+          domain_key:          n.domain_key          ?? n.domainKey,
+          operational_meaning: n.operational_meaning ?? n.operationalMeaning,
+          investigation_hints: n.investigation_hints ?? n.investigationHints,
+        }));
+        const edges = safeArr(data.edges).map(e => ({
+          ...e,
+          source:            e.source            ?? e.source_entity_key,
+          target:            e.target            ?? e.target_entity_key,
+          relationshipType:  e.relationship_type ?? e.relationshipType,
+          joinGuidance:      e.join_guidance     ?? e.joinGuidance,
+          sourceColumn:      e.source_column     ?? e.sourceColumn,
+          targetColumn:      e.target_column     ?? e.targetColumn,
+        }));
+        setEntities(nodes);
+        setAllEdges(edges);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
