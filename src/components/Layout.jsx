@@ -27,6 +27,7 @@ function buildNavItems(isPlatformAdmin) {
     { path: '/semantic',   label: 'Semantic Layer' },
     { path: '/connections',label: 'Connections' },
     { path: '/memory',     label: 'AI Memory' },
+    { path: '/reports',    label: 'Reports' },
     ...(isPlatformAdmin ? [{ path: '/tenants', label: 'Tenants' }] : []),
   ];
 }

@@ -10,6 +10,7 @@ import Domains from './pages/Domains.jsx';
 import EnterpriseMap from './pages/EnterpriseMap.jsx';
 import KnowledgeGraph from './pages/KnowledgeGraph.jsx';
 import TenantAdmin from './pages/TenantAdmin.jsx';
+import Reports from './pages/Reports.jsx';
 import Semantic from './pages/Semantic.jsx';
 import Agents from './pages/Agents.jsx';
 import Reasoning from './pages/Reasoning.jsx';
@@ -49,6 +50,7 @@ const ROUTES = {
   '/agents':       <Agents />,
   '/reasoning':    <Reasoning />,
   '/temporal':     <Temporal />,
+  '/reports':      <Reports />,
   '/gaps':         <KnowledgeGaps />,
 };
 

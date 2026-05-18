@@ -16,6 +16,7 @@ const QUICK_TILES = [
   { label: 'Semantic Layer', path: '/semantic',    gradient: 'bg-gradient-to-br from-orange-100 to-orange-200',   iconColor: '#EA580C', Icon: Layers     },
   { label: 'Connections',    path: '/connections', gradient: 'bg-gradient-to-br from-sky-100 to-sky-200',         iconColor: '#0284C7', Icon: Database   },
   { label: 'AI Memory',      path: '/memory',      gradient: 'bg-gradient-to-br from-pink-100 to-pink-200',       iconColor: '#9333EA', Icon: FileText   },
+  { label: 'Reports',        path: '/reports',     gradient: 'bg-gradient-to-br from-indigo-100 to-indigo-200',   iconColor: '#4338CA', Icon: Users      },
 ];
 import DataViz from '../components/DataViz.jsx';
 

@@ -215,6 +215,15 @@ export const api = {
     get: (key) => get(`/query-executions/${key}`),
   },
 
+  // ── Scheduled Reports ──────────────────────────────────────────────────────
+  reports: {
+    list:   ()           => get('/reports'),
+    create: (body)       => post('/reports', body),
+    update: (key, body)  => put(`/reports/${key}`, body),
+    delete: (key)        => del(`/reports/${key}`),
+    run:    (key)        => post(`/reports/${key}/run`),
+  },
+
   // ── Proactive Alerts ───────────────────────────────────────────────────────
   alerts: {
     list:        (limit = 50)  => get(`/alerts?limit=${limit}`),
