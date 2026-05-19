@@ -146,7 +146,8 @@ export const api = {
     createLifecycle: (key, body)    => post(`/semantic/entities/${key}/lifecycle`, body),
     vocabulary:      (domainKey)    => get(`/semantic/vocabulary?domainKey=${encodeURIComponent(domainKey)}`),
     createVocab:     (body)         => post('/semantic/vocabulary', body),
-    discover:        (body)         => post('/semantic/discover', body),
+    discover:             (body)          => post('/semantic/discover', body),
+    discoverRelationships:(body)          => post('/semantic/discover-relationships', body),
   },
 
   // ── Agents ─────────────────────────────────────────────────────────────────

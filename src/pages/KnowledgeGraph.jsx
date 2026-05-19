@@ -4,7 +4,7 @@ import { navigate } from '../App.jsx';
 import { Spinner } from '../components/Card.jsx';
 import {
   ArrowRight, ChevronRight, Clipboard, ClipboardCheck,
-  MessageSquare, Search, Shuffle, X, Zap,
+  MessageSquare, RefreshCw, Search, Shuffle, X, Zap,
 } from 'lucide-react';
 
 // ── Entity type config ────────────────────────────────────────────────────────
@@ -833,6 +833,8 @@ export default function KnowledgeGraph() {
   const [view,           setView]           = useState('explore'); // 'explore' | 'path'
   const [selectedEntity, setSelectedEntity] = useState(null);
   const [search,         setSearch]         = useState('');
+  const [discovering,    setDiscovering]    = useState(false);
+  const [discoverMsg,    setDiscoverMsg]    = useState('');
 
   // Fast entity lookup by key
   const entityIndex = useMemo(() => {
@@ -911,10 +913,55 @@ export default function KnowledgeGraph() {
             <p className="text-[13px] text-gray-400 mt-1">
               {stats.total} entities · {stats.edges} relationships
               {domains.length > 1 && ` in domain ${selectedDomain}`}
+              {discoverMsg && (
+                <span className="ml-2 text-emerald-600 font-medium">{discoverMsg}</span>
+              )}
             </p>
           </div>
 
           <div className="flex items-center gap-2.5">
+            {/* Auto-discover relationships from FK + heuristics */}
+            <button
+              onClick={async () => {
+                setDiscovering(true); setDiscoverMsg('');
+                try {
+                  const conns = await api.connections.list();
+                  if (!conns?.length) {
+                    setDiscoverMsg('No connections configured.');
+                    return;
+                  }
+                  const conn = conns[0];
+                  const res  = await api.semantic.discoverRelationships({
+                    connectionKey: conn.connection_key,
+                    schemaName:    conn.allowed_schemas?.split(',')[0]?.trim() || 'public',
+                    domainKey:     selectedDomain,
+                  });
+                  const n = res.relationships_created ?? 0;
+                  setDiscoverMsg(n > 0 ? `✓ ${n} relationships discovered` : 'No new relationships found');
+                  if (n > 0) {
+                    // Reload graph to show newly discovered edges
+                    const data = await api.graph.full(selectedDomain);
+                    setEntities(safeArr(data.nodes).map(n => ({ ...n, entity_key: n.entity_key ?? n.id, entity_name: n.entity_name ?? n.label })));
+                    setAllEdges(safeArr(data.edges).map(e => ({ ...e, source: e.source ?? e.source_entity_key, target: e.target ?? e.target_entity_key })));
+                  }
+                  setTimeout(() => setDiscoverMsg(''), 5000);
+                } catch (e) {
+                  setDiscoverMsg('Discovery failed: ' + (e.message || 'Unknown error'));
+                  setTimeout(() => setDiscoverMsg(''), 6000);
+                } finally {
+                  setDiscovering(false);
+                }
+              }}
+              disabled={discovering || !selectedDomain}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-[8px] text-[13px]
+                         font-medium border border-emerald-200 bg-emerald-50 text-emerald-700
+                         hover:bg-emerald-100 disabled:opacity-50 transition-colors"
+            >
+              {discovering
+                ? <><Spinner size={3} /> Discovering…</>
+                : <><RefreshCw size={13} /> Auto-discover relationships</>}
+            </button>
+
             {/* Domain selector */}
             {domains.length > 1 && (
               <select value={selectedDomain}
