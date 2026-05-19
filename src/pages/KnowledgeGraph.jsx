@@ -553,7 +553,11 @@ function JoinPathFinder({ entities, allEdges, entityIndex }) {
         card:   e.cardinality,
       }));
       if (nodes.length === 0) {
-        setError('No path found between these two entities. They may not be connected in the knowledge graph.');
+        // Distinguish: no relationships at all vs genuinely disconnected entities
+        const hasAnyRelationships = allEdges.length > 0;
+        setError(hasAnyRelationships
+          ? `No connection found between these two entities. They are not linked in the semantic model — add a relationship between them in the Semantic Layer to enable path finding.`
+          : `No relationships are defined yet. Go to the Semantic Layer, select an entity, open the Relationships tab, and add connections between entities. Path finding requires at least one relationship.`);
       } else {
         setPathNodes(nodes);
         setPathEdges(edges);
