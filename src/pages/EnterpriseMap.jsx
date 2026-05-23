@@ -1,18 +1,119 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../api.js';
 import { Card, PageHeader, Badge, Btn, EmptyState, Modal, Input, Select, Textarea, Spinner } from '../components/Card.jsx';
-import { Network, Plus, ChevronDown, ChevronRight, ScanLine, FileText, Trash2 } from 'lucide-react';
+import { Network, Plus, ChevronDown, ChevronRight, ScanLine, FileText, Trash2, Shield, EyeOff, Filter } from 'lucide-react';
 
 function scanStatusColor(s) {
   return { SCANNED: 'green', SCANNING: 'blue', PENDING: 'yellow', FAILED: 'red' }[s] ?? 'gray';
 }
 
+function DataPoliciesPanel({ objectKey }) {
+  const [colPolicies, setColPolicies] = useState([]);
+  const [rlsPolicies, setRlsPolicies] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      api.governance.columnPolicies.list().catch(() => []),
+      api.governance.rlsPolicies.list().catch(() => []),
+    ]).then(([cols, rls]) => {
+      setColPolicies(safeArray(cols).filter(p => p.objectKey === objectKey));
+      setRlsPolicies(safeArray(rls).filter(p => p.objectKey === objectKey));
+    }).finally(() => setLoading(false));
+  }, [objectKey]);
+
+  const maskColor = t => t === 'EXCLUDE' ? 'bg-red-50 text-red-700' : t === 'HASH' ? 'bg-blue-50 text-blue-700' : t === 'PARTIAL' ? 'bg-amber-50 text-amber-700' : 'bg-gray-100 text-gray-600';
+
+  if (loading) return <div className="py-4 text-center text-xs text-gray-400">Loading policies…</div>;
+
+  const noPolicies = colPolicies.length === 0 && rlsPolicies.length === 0;
+  if (noPolicies) {
+    return (
+      <div className="py-4 text-center text-xs text-gray-400">
+        No governance policies on this object.{' '}
+        <a href="#/governance" className="text-indigo-600 hover:underline">Add one in the Governance Hub →</a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Column masking policies */}
+      {colPolicies.length > 0 && (
+        <div>
+          <div className="flex items-center gap-1.5 mb-2 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+            <EyeOff size={11} /> Column Masking ({colPolicies.length})
+          </div>
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-gray-400 border-b border-gray-100">
+                <th className="text-left pb-1 font-medium">Column</th>
+                <th className="text-left pb-1 font-medium">Mask type</th>
+                <th className="text-left pb-1 font-medium">Exempt roles</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {colPolicies.map(p => (
+                <tr key={p.policyKey} className="hover:bg-gray-50">
+                  <td className="py-1 font-mono font-semibold text-gray-800">{p.columnName}</td>
+                  <td className="py-1">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${maskColor(p.maskType)}`}>
+                      {p.maskType === 'EXCLUDE' && <EyeOff size={9} />}
+                      {p.maskType}
+                    </span>
+                  </td>
+                  <td className="py-1 text-gray-500">{p.exemptRoles?.length > 0 ? p.exemptRoles.join(', ') : 'None'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* RLS policies */}
+      {rlsPolicies.length > 0 && (
+        <div>
+          <div className="flex items-center gap-1.5 mb-2 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+            <Filter size={11} /> Row Filters ({rlsPolicies.length})
+          </div>
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-gray-400 border-b border-gray-100">
+                <th className="text-left pb-1 font-medium">Policy</th>
+                <th className="text-left pb-1 font-medium">Filter</th>
+                <th className="text-left pb-1 font-medium">Applies to</th>
+                <th className="text-left pb-1 font-medium">Active</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {rlsPolicies.map(p => (
+                <tr key={p.policyKey} className="hover:bg-gray-50">
+                  <td className="py-1 font-semibold text-gray-800">{p.policyName}</td>
+                  <td className="py-1 font-mono text-violet-700 max-w-[200px] truncate">{p.filterTemplate}</td>
+                  <td className="py-1 text-gray-500">{p.appliesToRoles?.length > 0 ? p.appliesToRoles.join(', ') : 'All roles'}</td>
+                  <td className="py-1">
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${p.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                      {p.isActive ? 'Active' : 'Off'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ObjectRow({ obj, onScan, onDelete }) {
-  const [expanded, setExpanded] = useState(false);
-  const [columns, setColumns] = useState(null);
+  const [expanded,    setExpanded]    = useState(false);
+  const [innerTab,    setInnerTab]    = useState('columns'); // 'columns' | 'policies'
+  const [columns,     setColumns]     = useState(null);
   const [loadingCols, setLoadingCols] = useState(false);
 
-  const loadCols = async () => {
+  const loadCols = useCallback(async () => {
     if (columns !== null) { setExpanded(e => !e); return; }
     setLoadingCols(true);
     try {
@@ -21,42 +122,57 @@ function ObjectRow({ obj, onScan, onDelete }) {
       setExpanded(true);
     } catch { setColumns([]); setExpanded(true); }
     finally { setLoadingCols(false); }
-  };
+  }, [columns, obj.object_key]);
 
   const qualifiedName = [obj.schema_name, obj.table_name].filter(Boolean).join('.');
 
   return (
-    <>
-      <Card className="p-3">
-        <div className="flex items-center gap-3">
-          <button onClick={loadCols} className="text-gray-400 hover:text-gray-600">
-            {loadingCols ? <Spinner size={3} /> : expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-          </button>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-medium text-gray-800 font-mono">{qualifiedName}</span>
-              {obj.business_name && obj.business_name !== obj.table_name && (
-                <span className="text-xs text-gray-500">({obj.business_name})</span>
-              )}
-              <Badge label={obj.scan_status ?? 'PENDING'} color={scanStatusColor(obj.scan_status)} />
-              <Badge label={obj.connection_key ?? '—'} color="navy" />
-            </div>
-            {obj.purpose && (
-              <p className="text-xs text-gray-500 mt-0.5 truncate">{obj.purpose}</p>
+    <Card className="p-3">
+      <div className="flex items-center gap-3">
+        <button onClick={loadCols} className="text-gray-400 hover:text-gray-600">
+          {loadingCols ? <Spinner size={3} /> : expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium text-gray-800 font-mono">{qualifiedName}</span>
+            {obj.business_name && obj.business_name !== obj.table_name && (
+              <span className="text-xs text-gray-500">({obj.business_name})</span>
             )}
+            <Badge label={obj.scan_status ?? 'PENDING'} color={scanStatusColor(obj.scan_status)} />
+            <Badge label={obj.connection_key ?? '—'} color="navy" />
           </div>
-          <div className="flex gap-2 shrink-0">
-            <Btn variant="secondary" size="sm" onClick={() => onScan(obj.object_key)}>
-              <ScanLine size={12} /> Scan
-            </Btn>
-            <Btn variant="ghost" size="sm" onClick={() => onDelete(obj.object_key)}>
-              <Trash2 size={12} />
-            </Btn>
-          </div>
+          {obj.purpose && (
+            <p className="text-xs text-gray-500 mt-0.5 truncate">{obj.purpose}</p>
+          )}
         </div>
+        <div className="flex gap-2 shrink-0">
+          <Btn variant="secondary" size="sm" onClick={() => onScan(obj.object_key)}>
+            <ScanLine size={12} /> Scan
+          </Btn>
+          <Btn variant="ghost" size="sm" onClick={() => onDelete(obj.object_key)}>
+            <Trash2 size={12} />
+          </Btn>
+        </div>
+      </div>
 
-        {expanded && columns !== null && (
-          <div className="mt-3 ml-6 border-t border-gray-100 pt-3">
+      {expanded && (
+        <div className="mt-3 ml-6 border-t border-gray-100 pt-3">
+          {/* Inner tab bar */}
+          <div className="flex gap-3 mb-3">
+            {[['columns', 'Columns'], ['policies', 'Data Policies']].map(([k, label]) => (
+              <button key={k} onClick={() => setInnerTab(k)}
+                className={`flex items-center gap-1.5 text-xs font-semibold pb-1.5 border-b-2 transition-colors ${
+                  innerTab === k
+                    ? 'border-indigo-500 text-indigo-700'
+                    : 'border-transparent text-gray-400 hover:text-gray-600'
+                }`}>
+                {k === 'policies' && <Shield size={11} />}
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {innerTab === 'columns' && columns !== null && (
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-gray-400 border-b border-gray-100">
@@ -89,10 +205,14 @@ function ObjectRow({ obj, onScan, onDelete }) {
                 )}
               </tbody>
             </table>
-          </div>
-        )}
-      </Card>
-    </>
+          )}
+
+          {innerTab === 'policies' && (
+            <DataPoliciesPanel objectKey={obj.object_key} />
+          )}
+        </div>
+      )}
+    </Card>
   );
 }
 

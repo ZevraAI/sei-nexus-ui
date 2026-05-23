@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { marked } from 'marked';
 import {
-  ArrowLeft, Bot, Clipboard, Clock, Database, Download, FileDown, FileSpreadsheet,
-  FileText, Layers, MoreHorizontal, Network, Printer, Search, Send, Sparkles,
-  User, Users, X,
+  ArrowLeft, Bot, CalendarClock, Clipboard, Clock, Database, Download, FileDown,
+  FileSpreadsheet, FileText, Layers, MoreHorizontal, Network, Paperclip, Printer,
+  Search, Send, Sparkles, User, Users, X,
 } from 'lucide-react';
 import { api } from '../api.js';
 import { useAuth, navigate } from '../App.jsx';
@@ -19,6 +19,7 @@ const QUICK_TILES = [
   { label: 'Reports',        path: '/reports',     gradient: 'bg-gradient-to-br from-indigo-100 to-indigo-200',   iconColor: '#4338CA', Icon: Users      },
 ];
 import DataViz from '../components/DataViz.jsx';
+import ReasoningTrace from '../components/ReasoningTrace.jsx';
 
 // ── markdown ──────────────────────────────────────────────────────────────────
 marked.setOptions({ breaks: true, gfm: true });
@@ -532,22 +533,56 @@ function SuggestedQuestions({ quickRefinements, queryData, onAsk }) {
 }
 
 // ── message bubbles ────────────────────────────────────────────────────────────
-function UserMessage({ text }) {
+// ── Attachment type icon + colour ─────────────────────────────────────────────
+const ATTACHMENT_STYLE = {
+  IMAGE:    { icon: '🖼️',  label: 'Image',    bg: 'bg-purple-50  border-purple-200',  text: 'text-purple-700' },
+  TABULAR:  { icon: '📊',  label: 'Spreadsheet', bg: 'bg-green-50  border-green-200',  text: 'text-green-700'  },
+  DOCUMENT: { icon: '📄',  label: 'Document', bg: 'bg-blue-50    border-blue-200',    text: 'text-blue-700'   },
+  TEXT:     { icon: '📝',  label: 'Text file',bg: 'bg-gray-50    border-gray-200',    text: 'text-gray-600'   },
+};
+
+function AttachmentChip({ attachment, onRemove }) {
+  if (!attachment) return null;
+  const s = ATTACHMENT_STYLE[attachment.type] ?? ATTACHMENT_STYLE.TEXT;
+  return (
+    <div className={`flex items-center gap-2 px-3 py-2 rounded-[10px] border text-[12.5px]
+                     font-medium ${s.bg} ${s.text} max-w-[360px]`}>
+      {attachment.thumbnail ? (
+        <img src={`data:image/jpeg;base64,${attachment.thumbnail}`}
+             alt="preview" className="w-8 h-8 rounded-[6px] object-cover flex-shrink-0" />
+      ) : (
+        <span className="text-[16px] flex-shrink-0">{s.icon}</span>
+      )}
+      <span className="truncate flex-1">{attachment.fileName}</span>
+      {onRemove && (
+        <button onClick={onRemove}
+          className="flex-shrink-0 ml-1 text-current opacity-50 hover:opacity-100 transition-opacity">
+          <X size={12} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function UserMessage({ text, attachment }) {
   return (
     <div className="flex justify-end">
-      <div className="flex items-start gap-2.5 max-w-[78%]">
-        <div className="rounded-[12px] bg-[#0C5847] px-4 py-2.5 text-[13px] leading-[1.55] text-white">
-          {text}
-        </div>
-        <div className="mt-0.5 w-7 h-7 rounded-full bg-[#E8EBF0] flex items-center justify-center shrink-0">
-          <User size={13} className="text-[#415268]" />
+      <div className="flex flex-col items-end gap-1.5 max-w-[78%]">
+        {attachment && <AttachmentChip attachment={attachment} />}
+        <div className="flex items-start gap-2.5">
+          <div className="rounded-[12px] bg-[#0C5847] px-4 py-2.5 text-[13px] leading-[1.55] text-white">
+            {text}
+          </div>
+          <div className="mt-0.5 w-7 h-7 rounded-full bg-[#E8EBF0] flex items-center justify-center shrink-0">
+            <User size={13} className="text-[#415268]" />
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function AssistantMessage({ content, decisionType, loading, exportMenu, queryData, quickRefinements, onAsk }) {
+function AssistantMessage({ content, decisionType, loading, exportMenu, queryData, quickRefinements, onAsk, reasoningSteps, learningsApplied, streamingSteps }) {
   return (
     <div className="flex justify-start">
       <div className="flex items-start gap-2.5 w-full">
@@ -556,8 +591,23 @@ function AssistantMessage({ content, decisionType, loading, exportMenu, queryDat
         </div>
         <div className="flex-1 min-w-0 rounded-[12px] border border-[#E8EBF0] bg-white px-5 py-4 shadow-sm">
           {loading ? (
-            <div className="flex items-center gap-2 text-[12px] text-[#667085]">
-              <span className="animate-pulse">Zevra is thinking…</span>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-[12px] text-[#667085]">
+                <span className="flex gap-1">
+                  {[0,1,2].map(i => (
+                    <span key={i} className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce"
+                      style={{ animationDelay: `${i * 0.15}s` }} />
+                  ))}
+                </span>
+                <span className="text-[#667085]">
+                  {safeArray(streamingSteps).length > 0
+                    ? `Investigating… step ${safeArray(streamingSteps).length}`
+                    : 'Zevra is thinking…'}
+                </span>
+              </div>
+              {safeArray(streamingSteps).length > 0 && (
+                <ReasoningTrace steps={safeArray(streamingSteps)} loading={true} />
+              )}
             </div>
           ) : (
             <>
@@ -568,15 +618,255 @@ function AssistantMessage({ content, decisionType, loading, exportMenu, queryDat
               {queryData?.length > 0 && <DataTable rows={queryData} />}
               {queryData?.length > 0 && <DataViz queryData={queryData} />}
               <SuggestedQuestions quickRefinements={quickRefinements} queryData={queryData} onAsk={onAsk} />
-              {decisionType && (
-                <div className="mt-2.5 pt-2.5 border-t border-[#F0EDE8] flex items-center gap-1.5">
-                  <span className="text-[10px] text-[#8A96A6]">via</span>
-                  <span className="text-[10px] font-medium text-[#0C5847]">{decisionType}</span>
+              <ReasoningTrace steps={reasoningSteps} loading={false} />
+              {(decisionType || reasoningSteps?.length > 0) && (
+                <div className="mt-2.5 pt-2.5 border-t border-[#F0EDE8] flex items-center gap-2 flex-wrap">
+                  {decisionType && (
+                    <>
+                      <span className="text-[10px] text-[#8A96A6]">via</span>
+                      <span className="text-[10px] font-medium text-[#0C5847]">{decisionType}</span>
+                    </>
+                  )}
+                  {reasoningSteps?.length > 0 && (
+                    <span className="text-[10px] text-[#8A96A6]">· {reasoningSteps.length} step{reasoningSteps.length !== 1 ? 's' : ''}</span>
+                  )}
+                  {reasoningSteps?.length > 0 && <span className="text-[#8A96A6] text-[10px]">·</span>}
+                  {learningsApplied?.length > 0 && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full"
+                      title={`Learned terms applied: ${learningsApplied.join(', ')}`}>
+                      🧠 {learningsApplied.length} learned term{learningsApplied.length !== 1 ? 's' : ''} applied
+                    </span>
+                  )}
                 </div>
               )}
             </>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Pin as Report modal ───────────────────────────────────────────────────────
+function PinReportModal({ conversationTitle, messages, user, onClose }) {
+  const questions = messages
+    .filter((m) => m.role === 'user' && m.content?.trim())
+    .map((m) => m.content.trim());
+
+  const [name,         setName]         = useState(conversationTitle.slice(0, 80));
+  const [scheduleType, setScheduleType] = useState('DAILY');
+  const [scheduleTime, setScheduleTime] = useState('09:00');
+  const [channel,      setChannel]      = useState('EMAIL');
+  const [emailTo,      setEmailTo]      = useState(user?.email || '');
+  const [slackWebhook, setSlackWebhook] = useState('');
+  const [saving,       setSaving]       = useState(false);
+  const [error,        setError]        = useState('');
+  const [done,         setDone]         = useState(false);
+
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!name.trim() || questions.length === 0) return;
+    setSaving(true);
+    setError('');
+    try {
+      await api.reports.create({
+        name:         name.trim(),
+        questions,
+        scheduleType,
+        scheduleTime,
+        timezone:     tz,
+        channel,
+        emailTo:      (channel === 'EMAIL' || channel === 'BOTH') ? emailTo.trim() : null,
+        slackWebhook: (channel === 'SLACK' || channel === 'BOTH') ? slackWebhook.trim() : null,
+      });
+      setDone(true);
+      setTimeout(onClose, 1800);
+    } catch (err) {
+      setError(err.message || 'Failed to schedule report');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const needsEmail = channel === 'EMAIL' || channel === 'BOTH';
+  const needsSlack = channel === 'SLACK' || channel === 'BOTH';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="w-full max-w-[420px] mx-4 bg-white rounded-[20px] border border-gray-200/80
+                      shadow-[0_24px_64px_rgba(0,0,0,0.18)] overflow-hidden">
+
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-[10px] bg-emerald-50 flex items-center justify-center">
+              <CalendarClock size={15} className="text-emerald-600" />
+            </div>
+            <div>
+              <h2 className="text-[14px] font-semibold text-[#111827] leading-tight">Schedule as Report</h2>
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                {questions.length} question{questions.length !== 1 ? 's' : ''} from this conversation
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400
+                       hover:text-gray-600 hover:bg-gray-100 transition-colors">
+            <X size={14} />
+          </button>
+        </div>
+
+        {done ? (
+          <div className="px-6 py-14 text-center">
+            <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-3">
+              <CalendarClock size={22} className="text-emerald-600" />
+            </div>
+            <p className="text-[14px] font-semibold text-[#111827]">Report scheduled!</p>
+            <p className="text-[12px] text-gray-400 mt-1">Manage it anytime from the Reports page.</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+
+            {/* Name */}
+            <div>
+              <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                Report name
+              </label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full h-9 rounded-[8px] border border-gray-200 px-3 text-[13px] text-[#111827]
+                           focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
+              />
+            </div>
+
+            {/* Frequency */}
+            <div>
+              <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                Run
+              </label>
+              <div className="flex gap-1.5">
+                {['DAILY', 'WEEKLY', 'MONTHLY'].map((t) => (
+                  <button key={t} type="button" onClick={() => setScheduleType(t)}
+                    className={`flex-1 h-8 rounded-[8px] text-[12px] font-medium border transition-all
+                      ${scheduleType === t
+                        ? 'bg-[#0C5847] text-white border-[#0C5847]'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}>
+                    {t.charAt(0) + t.slice(1).toLowerCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Time */}
+            <div className="flex items-center gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                  At
+                </label>
+                <input
+                  type="time"
+                  value={scheduleTime}
+                  onChange={(e) => setScheduleTime(e.target.value)}
+                  className="h-9 rounded-[8px] border border-gray-200 px-3 text-[13px] text-[#111827]
+                             focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
+                />
+              </div>
+              <div className="mt-5 text-[12px] text-gray-400">{tz}</div>
+            </div>
+
+            {/* Channel */}
+            <div>
+              <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                Deliver via
+              </label>
+              <div className="flex gap-1.5">
+                {[['EMAIL', 'Email'], ['SLACK', 'Slack'], ['BOTH', 'Both']].map(([val, label]) => (
+                  <button key={val} type="button" onClick={() => setChannel(val)}
+                    className={`flex-1 h-8 rounded-[8px] text-[12px] font-medium border transition-all
+                      ${channel === val
+                        ? 'bg-[#0C5847] text-white border-[#0C5847]'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Email recipients */}
+            {needsEmail && (
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={emailTo}
+                  onChange={(e) => setEmailTo(e.target.value)}
+                  placeholder="recipient@company.com"
+                  required={needsEmail}
+                  className="w-full h-9 rounded-[8px] border border-gray-200 px-3 text-[13px] text-[#111827]
+                             focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
+                />
+              </div>
+            )}
+
+            {/* Slack webhook */}
+            {needsSlack && (
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                  Slack webhook URL
+                </label>
+                <input
+                  value={slackWebhook}
+                  onChange={(e) => setSlackWebhook(e.target.value)}
+                  placeholder="https://hooks.slack.com/services/…"
+                  required={needsSlack}
+                  className="w-full h-9 rounded-[8px] border border-gray-200 px-3 text-[13px] text-[#111827]
+                             focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
+                />
+              </div>
+            )}
+
+            {/* Questions preview */}
+            <div className="rounded-[8px] bg-gray-50 border border-gray-100 px-3 py-2.5">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                Questions to run
+              </p>
+              <div className="space-y-1 max-h-[72px] overflow-y-auto">
+                {questions.map((q, i) => (
+                  <p key={i} className="text-[12px] text-gray-600 line-clamp-1">
+                    <span className="text-gray-300 mr-1.5">{i + 1}.</span>{q}
+                  </p>
+                ))}
+              </div>
+            </div>
+
+            {error && <p className="text-[12px] text-red-500">{error}</p>}
+
+            {/* Actions */}
+            <div className="flex gap-2.5 pt-0.5">
+              <button type="button" onClick={onClose}
+                className="flex-1 h-9 rounded-[8px] border border-gray-200 text-[13px] font-medium
+                           text-gray-600 hover:bg-gray-50 transition-colors">
+                Cancel
+              </button>
+              <button type="submit" disabled={saving || !name.trim() || questions.length === 0}
+                className="flex-1 h-9 rounded-[8px] bg-[#0C5847] text-white text-[13px] font-medium
+                           hover:bg-[#084B3D] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+                {saving ? (
+                  <><span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full" />Scheduling…</>
+                ) : (
+                  <><CalendarClock size={13} />Schedule Report</>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
@@ -592,7 +882,14 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
 
   // history floating panel
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyOpen,    setHistoryOpen]    = useState(false);
+  const [pinReportOpen,  setPinReportOpen]  = useState(false);
+
+  // attachment (file upload / image paste)
+  const [attachment,        setAttachment]        = useState(null);   // { key, fileName, type, thumbnail, summary }
+  const [attachmentLoading, setAttachmentLoading] = useState(false);
+  const [attachmentError,   setAttachmentError]   = useState('');
+  const fileInputRef = useRef(null);
 
   // chat state
   const [chatMode, setChatMode] = useState(false);
@@ -642,6 +939,48 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
       .catch(() => {});
   }, []);
 
+  // ── Attachment helpers ─────────────────────────────────────────────────────
+  const uploadFile = useCallback(async (file) => {
+    if (!file) return;
+    setAttachmentError('');
+    setAttachmentLoading(true);
+    try {
+      const res = await api.attachments.upload(file, conversationIdRef.current);
+      setAttachment({
+        key:       res.attachment_key,
+        fileName:  res.file_name,
+        type:      res.attachment_type,
+        thumbnail: res.thumbnail_base64,   // base64 JPEG thumbnail (images only)
+        summary:   res.summary,
+        mimeType:  res.mime_type,
+      });
+    } catch (e) {
+      setAttachmentError(e.message || 'Upload failed');
+    } finally {
+      setAttachmentLoading(false);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const clearAttachment = useCallback(() => {
+    setAttachment(null);
+    setAttachmentError('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, []);
+
+  // Capture Ctrl+V / Command+V image paste anywhere in the chat input area
+  const handlePaste = useCallback((e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) uploadFile(file);
+        return;
+      }
+    }
+  }, [uploadFile]);
+
   const prefillFiredRef = useRef(false);
 
   // Auto-fire prefilled question from onboarding wizard completion.
@@ -681,9 +1020,46 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
     })();
   }, [loadConversations]);
 
+  // ── SSE reasoning stream ────────────────────────────────────────────────────
+  // Opens a fetch-based SSE connection to /chat/runs/{runKey}/stream.
+  // Uses fetch (not EventSource) so the X-Nexus-Token header can be included.
+  // Calls onEvent for each parsed SSE data line; returns a cancel function.
+  const openReasoningStream = (runKey, onEvent) => {
+    const BASE  = import.meta.env.VITE_API_BASE ?? '';
+    const token = localStorage.getItem('nexus_token') ||
+                  (() => { try { return JSON.parse(localStorage.getItem('nexus_user'))?.token ?? ''; } catch { return ''; } })();
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(`${BASE}/api/v1/chat/runs/${runKey}/stream`, {
+          headers: { 'X-Nexus-Token': token },
+        });
+        if (!res.ok || !res.body) return;
+        const reader  = res.body.getReader();
+        const decoder = new TextDecoder();
+        let   buffer  = '';
+        while (!cancelled) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+          for (const line of lines) {
+            if (!line.startsWith('data:')) continue;
+            try { onEvent(JSON.parse(line.slice(5).trim())); } catch {}
+          }
+        }
+        reader.cancel().catch(() => {});
+      } catch {}
+    })();
+
+    return () => { cancelled = true; };
+  };
+
   // ── submit question ─────────────────────────────────────────────────────────
   const sendQuestion = async (question, isNewConv = false) => {
-    if (!question?.trim() || submitting) return;
+    if ((!question?.trim() && !attachment) || submitting) return;
 
     // Always reuse the existing conversationId unless explicitly starting a new chat
     if (isNewConv || !conversationIdRef.current) {
@@ -691,22 +1067,85 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
     }
     const activeConvId = conversationIdRef.current;
 
-    // Enter chat mode and add user message
-    if (!chatMode) setChatMode(true);
-    setMessages((prev) => [...prev, { role: 'user', content: question }]);
+    // Generate a run key here so the SSE stream can be opened before the POST returns
+    const clientRunKey = 'run-' + crypto.randomUUID().replace(/-/g, '');
 
-    // Add loading placeholder
-    setMessages((prev) => [...prev, { role: 'assistant', content: '', loading: true }]);
+    // Capture and clear attachment before any state updates
+    const currentAttachment = attachment;
+    if (attachment) clearAttachment();
+
+    // Enter chat mode and add user message (with attachment preview if present)
+    if (!chatMode) setChatMode(true);
+    setMessages((prev) => [...prev, {
+      role: 'user',
+      content: question,
+      attachment: currentAttachment ? {
+        fileName:  currentAttachment.fileName,
+        type:      currentAttachment.type,
+        thumbnail: currentAttachment.thumbnail,
+        summary:   currentAttachment.summary,
+      } : null,
+    }]);
+
+    // Add loading placeholder — streamingSteps accumulates via SSE while POST is in-flight
+    setMessages((prev) => [...prev, { role: 'assistant', content: '', loading: true, streamingSteps: [] }]);
 
     setSubmitting(true);
     setSubmitError('');
+
+    // Open SSE stream before firing POST so no events are missed
+    const cancelStream = openReasoningStream(clientRunKey, (event) => {
+      if (event.type === 'step_started' || event.type === 'step_completed' || event.type === 'evaluation') {
+        setMessages((prev) => {
+          const next = [...prev];
+          const last = next[next.length - 1];
+          if (!last?.loading) return prev; // already finalised
+          const existing = safeArray(last.streamingSteps);
+
+          if (event.type === 'step_started') {
+            return [...next.slice(0, -1), {
+              ...last,
+              streamingSteps: [...existing, {
+                stepNo:      event.stepNo,
+                description: event.description,
+                rowCount:    null,  // not yet
+                evaluatorDecision: null,
+              }],
+            }];
+          }
+          if (event.type === 'step_completed') {
+            return [...next.slice(0, -1), {
+              ...last,
+              streamingSteps: existing.map(s =>
+                s.stepNo === event.stepNo
+                  ? { ...s, rowCount: event.rowCount, rowSummary: event.summary }
+                  : s),
+            }];
+          }
+          if (event.type === 'evaluation') {
+            return [...next.slice(0, -1), {
+              ...last,
+              streamingSteps: existing.map(s =>
+                s.stepNo === event.stepNo
+                  ? { ...s, evaluatorDecision: event.decision, evaluatorRationale: event.rationale }
+                  : s),
+            }];
+          }
+          return prev;
+        });
+      }
+    });
 
     try {
       const response = await api.chat.ask({
         question,
         conversation_id: activeConvId,
-        agent_key: null,
+        agent_key:       null,
+        attachment_key:  currentAttachment?.key ?? null,
+        client_run_key:  clientRunKey,
       });
+
+      cancelStream();
 
       setMessages((prev) => {
         const next = [...prev];
@@ -714,9 +1153,12 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
         next[lastIdx] = {
           role: 'assistant',
           content: response.answer || response.error || 'No response received.',
-          decisionType: response.decision?.type || response.decision_type,
-          queryData: response.query_data || response.queryData || null,
-          quickRefinements: response.quick_refinements || response.quickRefinements || [],
+          decisionType:    response.decision?.type || response.decision_type,
+          queryData:       response.query_data       || response.queryData       || null,
+          quickRefinements:response.quick_refinements || response.quickRefinements || [],
+          reasoningSteps:  response.reasoning_steps  || response.reasoningSteps  || [],
+          learningsApplied:response.learnings_applied || response.learningsApplied || [],
+          streamingSteps:  [],   // cleared — final steps are in reasoningSteps
           loading: false,
         };
         return next;
@@ -724,12 +1166,14 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
 
       await loadConversations();
     } catch (err) {
+      cancelStream();
       setMessages((prev) => {
         const next = [...prev];
         next[next.length - 1] = {
           role: 'assistant',
           content: `**Error:** ${err.message || 'Unable to get a response.'}`,
           loading: false,
+          streamingSteps: [],
         };
         return next;
       });
@@ -741,7 +1185,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
 
   const handleLandingSubmit = (e) => {
     e.preventDefault();
-    const q = landingQuery.trim();
+    const q = landingQuery.trim() || (attachment ? 'Please analyse this attached file.' : '');
     if (!q) return;
     setLandingQuery('');
     sendQuestion(q, true);   // isNewConv=true: generate a fresh conversation ID
@@ -760,12 +1204,20 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
       const runs = safeArray(await api.chat.conversation(convId));
       const msgs = [];
       for (const run of runs) {
-        if (run.question) msgs.push({ role: 'user', content: run.question });
-        if (run.answer) msgs.push({
-          role: 'assistant',
-          content: run.answer,
-          decisionType: run.decision_type || run.decisionType,
-        });
+        if (run.question) {
+          msgs.push({ role: 'user', content: run.question });
+        }
+        if (run.answer) {
+          // query_data is now returned as a parsed array by the backend.
+          // Cap at 100 rows so the table never renders an unusable wall of data.
+          const qd = safeArray(run.query_data);
+          msgs.push({
+            role:          'assistant',
+            content:       run.answer,
+            decisionType:  run.decision_type || run.decisionType,
+            queryData:     qd.length > 100 ? qd.slice(0, 100) : qd,
+          });
+        }
       }
       if (msgs.length > 0) {
         setMessages(msgs);
@@ -917,6 +1369,28 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
 
             {/* Search box */}
             <form onSubmit={handleLandingSubmit} className="w-full max-w-[640px] mb-4">
+              {/* Attachment preview row */}
+              {(attachment || attachmentLoading || attachmentError) && (
+                <div className="mb-2 px-1">
+                  {attachmentLoading && (
+                    <div className="flex items-center gap-2 text-[12.5px] text-gray-400">
+                      <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full" />
+                      Uploading file…
+                    </div>
+                  )}
+                  {attachmentError && !attachmentLoading && (
+                    <div className="flex items-center gap-2 text-[12px] text-red-500">
+                      <X size={12} className="flex-shrink-0" />
+                      <span className="flex-1">{attachmentError}</span>
+                      <button type="button" onClick={() => setAttachmentError('')}
+                        className="underline text-red-400 hover:text-red-600">Dismiss</button>
+                    </div>
+                  )}
+                  {attachment && !attachmentLoading && (
+                    <AttachmentChip attachment={attachment} onRemove={clearAttachment} />
+                  )}
+                </div>
+              )}
               <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-[16px]
                               border border-gray-200/80 px-4 py-3.5
                               shadow-[0_4px_24px_rgba(0,0,0,0.07)]
@@ -933,12 +1407,22 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                       handleLandingSubmit(e);
                     }
                   }}
-                  placeholder="Ask anything — orders, suppliers, shipments, inventory…"
+                  onPaste={handlePaste}
+                  placeholder="Ask anything about your business — sales, operations, finance, patients, bookings…"
                   className="flex-1 bg-transparent text-[15px] text-[#111827] outline-none placeholder:text-[#C4C9D4]"
                 />
                 <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={attachmentLoading}
+                  title="Attach a file or paste an image (PDF, Excel, CSV, image, text — up to 20 MB)"
+                  className="flex-shrink-0 text-gray-400 hover:text-emerald-600 transition-colors disabled:opacity-40"
+                >
+                  <Paperclip size={17} />
+                </button>
+                <button
                   type="submit"
-                  disabled={submitting || !landingQuery.trim()}
+                  disabled={submitting || (!landingQuery.trim() && !attachment)}
                   className="w-[34px] h-[34px] bg-[#111827] rounded-[9px] flex items-center justify-center
                              flex-shrink-0 hover:bg-[#1F2937] disabled:opacity-40
                              disabled:cursor-not-allowed transition-colors"
@@ -1041,6 +1525,19 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                   History
                 </button>
 
+                {/* Pin as scheduled report */}
+                <button
+                  type="button"
+                  onClick={() => setPinReportOpen(true)}
+                  title="Schedule this conversation as a recurring report"
+                  className="h-7 px-2.5 rounded-[7px] flex items-center gap-1.5 text-[12px] font-medium
+                             border border-gray-200 bg-white/80 text-gray-500
+                             hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50 transition-all"
+                >
+                  <CalendarClock size={13} />
+                  Schedule
+                </button>
+
                 <ExportMenu
                   open={openExportMenu === 'conversation'}
                   onToggle={() => setOpenExportMenu((current) => current === 'conversation' ? null : 'conversation')}
@@ -1055,7 +1552,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
               <div className="max-w-[1100px] mx-auto px-5 py-5 space-y-4">
                 {messages.map((msg, i) =>
                   msg.role === 'user' ? (
-                    <UserMessage key={i} text={msg.content} />
+                    <UserMessage key={i} text={msg.content} attachment={msg.attachment} />
                   ) : (
                     <AssistantMessage
                       key={i}
@@ -1064,6 +1561,9 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                       loading={msg.loading}
                       queryData={msg.queryData}
                       quickRefinements={msg.quickRefinements}
+                      reasoningSteps={msg.reasoningSteps || []}
+                      learningsApplied={msg.learningsApplied || []}
+                      streamingSteps={msg.streamingSteps || []}
                       onAsk={q => sendQuestion(q)}
                       exportMenu={
                         <ExportMenu
@@ -1085,10 +1585,41 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
 
             {/* Chat input */}
             <div className="shrink-0 border-t border-[#E7E2DD] bg-white px-6 py-4">
+              {/* Attachment preview / loading / error */}
+              {(attachment || attachmentLoading || attachmentError) && (
+                <div className="max-w-[1100px] mx-auto mb-2">
+                  {attachmentLoading && (
+                    <div className="flex items-center gap-2 text-[12.5px] text-gray-400">
+                      <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full" />
+                      Uploading file…
+                    </div>
+                  )}
+                  {attachmentError && !attachmentLoading && (
+                    <div className="flex items-center gap-2 text-[12px] text-red-500">
+                      <X size={12} className="flex-shrink-0" />
+                      <span className="flex-1">{attachmentError}</span>
+                      <button type="button" onClick={() => setAttachmentError('')}
+                        className="underline text-red-400 hover:text-red-600">Dismiss</button>
+                    </div>
+                  )}
+                  {attachment && !attachmentLoading && (
+                    <AttachmentChip attachment={attachment} onRemove={clearAttachment} />
+                  )}
+                </div>
+              )}
               <form
                 onSubmit={handleChatSubmit}
                 className="max-w-[1100px] mx-auto flex items-end gap-3 rounded-[12px] border border-[#DDD8D2] bg-[#FAFAF9] px-5 py-3 focus-within:border-[#0C5847] transition-colors"
               >
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={attachmentLoading}
+                  title="Attach a file or paste an image (PDF, Excel, CSV, image, text — up to 20 MB)"
+                  className="mb-0.5 flex-shrink-0 text-gray-400 hover:text-emerald-600 transition-colors disabled:opacity-40"
+                >
+                  <Paperclip size={16} />
+                </button>
                 <textarea
                   ref={chatInputRef}
                   value={chatQuery}
@@ -1099,6 +1630,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                       handleChatSubmit(e);
                     }
                   }}
+                  onPaste={handlePaste}
                   placeholder="Follow up or ask another question…"
                   rows={1}
                   className="flex-1 resize-none bg-transparent text-[14px] text-[#101828] outline-none placeholder:text-[#9AA6B5] max-h-32 overflow-y-auto"
@@ -1106,7 +1638,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                 />
                 <button
                   type="submit"
-                  disabled={submitting || !chatQuery.trim()}
+                  disabled={submitting || (!chatQuery.trim() && !attachment)}
                   className="mb-0.5 h-8 w-8 rounded-full bg-[#0C5847] text-white flex items-center justify-center hover:bg-[#084B3D] disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                   aria-label="Send"
                 >
@@ -1130,6 +1662,29 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
           onClose={() => setHistoryOpen(false)}
         />
       )}
+
+      {/* Pin as Report modal */}
+      {pinReportOpen && chatMode && (
+        <PinReportModal
+          conversationTitle={conversationTitle}
+          messages={messages}
+          user={user}
+          onClose={() => setPinReportOpen(false)}
+        />
+      )}
+
+      {/* Hidden file input — triggered by paperclip buttons in both landing and chat views */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.md,.json,.xml"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) uploadFile(file);
+          e.target.value = '';   // reset so the same file can be re-selected
+        }}
+      />
     </div>
   );
 }

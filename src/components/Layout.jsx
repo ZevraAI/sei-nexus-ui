@@ -19,7 +19,7 @@ function tenantLabel(user) {
 }
 
 // ── nav items ─────────────────────────────────────────────────────────────
-function buildNavItems(isPlatformAdmin) {
+function buildNavItems(isAdmin, isPlatformAdmin) {
   return [
     { path: '/chat',       label: 'Investigations' },
     { path: '/agents',     label: 'Agents' },
@@ -28,6 +28,8 @@ function buildNavItems(isPlatformAdmin) {
     { path: '/connections',label: 'Connections' },
     { path: '/memory',     label: 'AI Memory' },
     { path: '/reports',    label: 'Reports' },
+    ...(isAdmin ? [{ path: '/governance', label: 'Governance' }] : []),
+    { path: '/settings',   label: 'Settings' },
     ...(isPlatformAdmin ? [{ path: '/tenants', label: 'Tenants' }] : []),
   ];
 }
@@ -39,7 +41,7 @@ export default function Layout({ children, currentPath }) {
 
   const isAdmin = user?.role === 'ADMIN';
   const isPlatformAdmin = isAdmin && (user?.tenant_schema === 'public' || !user?.tenant_schema);
-  const navItems = buildNavItems(isPlatformAdmin);
+  const navItems = buildNavItems(isAdmin, isPlatformAdmin);
 
   const active = (path) => {
     if (path === '/chat' && (currentPath === '/' || currentPath === '/chat')) return true;

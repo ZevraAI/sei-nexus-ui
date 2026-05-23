@@ -771,17 +771,62 @@ function StepReview({ suggestions, connectionKey, schemaName, domainKey, onNext,
 
 // ── Step 6 — Done ────────────────────────────────────────────────────────────
 
-function StepDone({ suggestedQuestions, onFinish }) {
+function StepDone({ suggestedQuestions, onFinish, recommendedPack, domainKey }) {
+  const [applying, setApplying] = useState(false);
+  const [packApplied, setPackApplied] = useState(false);
+
   return (
-    <div className="max-w-md mx-auto text-center">
+    <div className="max-w-lg mx-auto text-center">
       <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 mb-6">
         <CheckCircle2 size={32} className="text-emerald-600" />
       </div>
       <h2 className="text-2xl font-bold text-gray-900 mb-3">You're ready!</h2>
-      <p className="text-[14px] text-gray-500 mb-8">
-        Zevra has learnt your data. Start by asking one of these questions
-        or type your own.
+      <p className="text-[14px] text-gray-500 mb-6">
+        Zevra has learnt your data. Start by asking one of these questions or type your own.
       </p>
+
+      {/* Pack recommendation card */}
+      {recommendedPack && !packApplied && (
+        <div className="mb-6 text-left bg-indigo-50 border border-indigo-200 rounded-2xl p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
+              <p className="text-[11px] font-bold text-indigo-500 uppercase tracking-wide mb-0.5">Recommended pack</p>
+              <p className="text-[14px] font-bold text-[#111827]">{recommendedPack.display_name}</p>
+              <p className="text-[12px] text-indigo-600 mt-1">
+                {Math.round(recommendedPack.coverage_score * 100)}% of pack entities match your discovered tables.
+                Applying adds pre-built entities, vocabulary, and example questions.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 mt-3">
+            <button
+              disabled={applying}
+              onClick={async () => {
+                setApplying(true);
+                try {
+                  await api.industryPacks.apply(recommendedPack.pack_key, { domainKey: domainKey || 'PLATFORM' });
+                  setPackApplied(true);
+                } catch (e) { console.error(e); }
+                finally { setApplying(false); }
+              }}
+              className="px-4 py-2 text-[12.5px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all disabled:opacity-50"
+            >
+              {applying ? 'Applying…' : `Apply ${recommendedPack.display_name} pack`}
+            </button>
+            <button onClick={() => setPackApplied(true)}
+              className="px-4 py-2 text-[12.5px] font-medium text-gray-500 hover:text-gray-700 transition-colors">
+              Skip
+            </button>
+          </div>
+        </div>
+      )}
+      {packApplied && recommendedPack && (
+        <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-left">
+          <p className="text-[12.5px] font-semibold text-emerald-700">
+            ✓ {recommendedPack.display_name} pack applied — entities and vocabulary are ready in the Semantic Layer.
+          </p>
+        </div>
+      )}
 
       {safeArray(suggestedQuestions).length > 0 && (
         <div className="text-left space-y-2.5 mb-8">
@@ -816,9 +861,19 @@ export default function OnboardingWizard({ user, onComplete }) {
   const [suggested, setSuggested]         = useState(saved?.suggested ?? []);
   const [analyseError, setAnalyseError]   = useState('');
   const [connForm, setConnForm]           = useState(saved?.connForm ?? null);
+  const [packRec, setPackRec]             = useState(null);   // pack recommendation at completion
 
   const schemaName = connection?.schemaName || 'public';
   const domainKey  = 'PLATFORM';
+
+  // Fetch pack recommendation when step 5 (Done) is reached
+  useEffect(() => {
+    if (step === 5 && !packRec) {
+      api.industryPacks.recommend(domainKey)
+        .then(r => { if (r.recommended) setPackRec(r); })
+        .catch(() => {});
+    }
+  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist state on every change so the user can resume after a refresh
   useEffect(() => {
@@ -918,6 +973,8 @@ export default function OnboardingWizard({ user, onComplete }) {
               <StepDone
                 suggestedQuestions={suggested}
                 onFinish={handleComplete}
+                recommendedPack={packRec}
+                domainKey={domainKey}
               />
             </div>
           )}

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../api.js';
 import { Card, PageHeader, Badge, Btn, EmptyState, Modal, Input, Select, Textarea, Spinner } from '../components/Card.jsx';
 import {
   Layers, Plus, ChevronDown, ChevronRight,
   ArrowLeftRight, BookOpen, Pencil, Trash2,
   Sparkles, Database, Check, X, ChevronLeft,
-  AlertCircle, Search,
+  AlertCircle, Search, Brain, Package,
 } from 'lucide-react';
 
 function safeArray(v) { return Array.isArray(v) ? v : []; }
@@ -912,6 +912,16 @@ export default function Semantic() {
   const [loading, setLoading]         = useState(false);
   const [tab, setTab]                 = useState('entities');
   const [selectedEntityKey, setSelectedEntityKey] = useState(null);
+  const [learnings, setLearnings]     = useState([]);
+  const [learningsLoading, setLearningsLoading] = useState(false);
+  const [editLearning, setEditLearning] = useState(null);
+  const [editSqlPattern, setEditSqlPattern] = useState('');
+  const [allPacks,     setAllPacks]     = useState([]);
+  const [appliedPacks, setAppliedPacks] = useState([]);
+  const [packsLoading, setPacksLoading] = useState(false);
+  const [previewPack,  setPreviewPack]  = useState(null);
+  const [previewData,  setPreviewData]  = useState(null);
+  const [applyingPack, setApplyingPack] = useState('');
 
   // discovery wizard
   const [showWizard, setShowWizard] = useState(false);
@@ -964,6 +974,34 @@ export default function Semantic() {
     if (!selectedDomain) return;
     reload(selectedDomain);
   }, [selectedDomain]);
+
+  const loadLearnings = async (dk) => {
+    setLearningsLoading(true);
+    try { setLearnings(await api.semantic.learnings.list(dk)); }
+    catch { setLearnings([]); }
+    finally { setLearningsLoading(false); }
+  };
+
+  useEffect(() => {
+    if (tab === 'learned' && selectedDomain) loadLearnings(selectedDomain);
+  }, [tab, selectedDomain]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadPacks = useCallback(async () => {
+    setPacksLoading(true);
+    try {
+      const [all, applied] = await Promise.all([
+        api.industryPacks.list(),
+        api.industryPacks.applied(),
+      ]);
+      setAllPacks(all);
+      setAppliedPacks(applied);
+    } catch { setAllPacks([]); setAppliedPacks([]); }
+    finally { setPacksLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'packs') loadPacks();
+  }, [tab, loadPacks]);
 
   const reload = async (dk) => {
     const key = dk || selectedDomain;
@@ -1099,10 +1137,13 @@ export default function Semantic() {
         {/* Sidebar header */}
         <div className="px-4 py-3.5 border-b border-gray-200/70 flex items-center justify-between flex-shrink-0">
           <span className="text-[13px] font-semibold text-[#111827]">
-            {tab === 'entities' ? `Entities (${entities.length})` : `Vocabulary (${vocab.length})`}
+            {tab === 'entities' ? `Entities (${entities.length})`
+             : tab === 'vocab'  ? `Vocabulary (${vocab.length})`
+             : tab === 'packs'  ? `Packs (${allPacks.length})`
+             : `Learned (${learnings.length})`}
           </span>
           <button
-            onClick={tab === 'entities' ? openAddEntity : openAddVocab}
+            onClick={tab === 'entities' ? openAddEntity : tab === 'vocab' ? openAddVocab : undefined}
             className="flex items-center gap-1 px-[8px] py-[4px] bg-[#111827] text-white
                        text-[11.5px] font-medium rounded-[6px] hover:bg-[#1F2937] transition-colors">
             <Plus size={10} /> Add
@@ -1111,10 +1152,12 @@ export default function Semantic() {
 
         {/* Tab toggle */}
         <div className="flex border-b border-gray-200/70 flex-shrink-0">
-          {[['entities', 'Entities'], ['vocab', 'Vocabulary']].map(([k, l]) => (
+          {[['entities', 'Entities'], ['vocab', 'Vocabulary'], ['learned', 'Learned'], ['packs', 'Packs']].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)}
-              className={`flex-1 py-2 text-[12px] font-medium transition-colors
+              className={`flex-1 py-2 text-[11px] font-medium transition-colors flex items-center justify-center gap-0.5
                 ${tab === k ? 'text-emerald-600 border-b-2 border-emerald-500' : 'text-[#9CA3AF] hover:text-[#374151]'}`}>
+              {k === 'learned' && <Brain size={9} />}
+              {k === 'packs'   && <Package size={9} />}
               {l}
             </button>
           ))}
@@ -1134,7 +1177,7 @@ export default function Semantic() {
 
         {/* List */}
         <div className="overflow-y-auto flex-1">
-          {loading ? (
+          {(loading && tab !== 'learned' && tab !== 'packs') || (learningsLoading && tab === 'learned') || (packsLoading && tab === 'packs') ? (
             <div className="flex justify-center py-10"><Spinner /></div>
           ) : tab === 'entities' ? (
             entities.length === 0 ? (
@@ -1155,7 +1198,7 @@ export default function Semantic() {
                 </div>
               );
             })
-          ) : (
+          ) : tab === 'vocab' ? (
             vocab.length === 0 ? (
               <div className="px-4 py-8 text-center text-[12px] text-[#9CA3AF]">No vocabulary yet</div>
             ) : vocab.map(v => (
@@ -1165,6 +1208,83 @@ export default function Semantic() {
                 <div className="text-[11px] text-[#9CA3AF] mt-0.5 truncate">{v.definition}</div>
               </div>
             ))
+          ) : tab === 'learned' ? (
+            /* Learned tab — inline list with actions */
+            learnings.length === 0 ? (
+              <div className="px-4 py-8 text-center">
+                <Brain size={24} className="mx-auto mb-2 text-gray-300" />
+                <p className="text-[12px] text-[#9CA3AF]">No learnings yet</p>
+                <p className="text-[11px] text-[#9CA3AF] mt-1">Ask questions — Zevra learns your vocabulary automatically</p>
+              </div>
+            ) : learnings.map(m => (
+              <div key={m.mapping_key}
+                className="px-4 py-3 border-b border-gray-100/80 hover:bg-gray-50/50 transition-colors group">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-[13px] font-semibold text-[#111827]">"{m.business_term}"</span>
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0
+                    ${m.promoted ? 'bg-emerald-50 text-emerald-700'
+                     : m.source === 'USER_CORRECTION' ? 'bg-amber-50 text-amber-700'
+                     : m.source === 'POSITIVE_FEEDBACK' ? 'bg-blue-50 text-blue-700'
+                     : 'bg-gray-100 text-gray-500'}`}>
+                    {m.promoted ? 'Promoted' : m.source === 'USER_CORRECTION' ? 'Corrected'
+                     : m.source === 'POSITIVE_FEEDBACK' ? 'Reinforced' : 'Learned'}
+                  </span>
+                </div>
+                <p className="text-[11px] font-mono text-gray-500 mt-0.5 truncate">{m.sql_pattern}</p>
+                {/* Confidence bar */}
+                <div className="mt-1.5 flex items-center gap-2">
+                  <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-400 rounded-full transition-all"
+                      style={{ width: `${Math.round(m.confidence * 100)}%` }} />
+                  </div>
+                  <span className="text-[10px] text-gray-400 w-8 text-right">
+                    {Math.round(m.confidence * 100)}%
+                  </span>
+                  <span className="text-[10px] text-gray-400">{m.use_count}×</span>
+                </div>
+                {/* Inline actions (visible on hover) */}
+                <div className="mt-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {!m.promoted && (
+                    <button onClick={async () => {
+                      await api.semantic.learnings.promote(m.mapping_key);
+                      loadLearnings(selectedDomain);
+                    }} className="text-[10.5px] text-emerald-600 hover:underline">Promote</button>
+                  )}
+                  <button onClick={() => { setEditLearning(m); setEditSqlPattern(m.sql_pattern); }}
+                    className="text-[10.5px] text-blue-600 hover:underline">Edit SQL</button>
+                  <button onClick={async () => {
+                    if (!window.confirm(`Delete learned term "${m.business_term}"?`)) return;
+                    await api.semantic.learnings.delete(m.mapping_key);
+                    loadLearnings(selectedDomain);
+                  }} className="text-[10.5px] text-red-500 hover:underline">Delete</button>
+                </div>
+              </div>
+            ))
+          ) : (
+            /* Packs tab — browse available packs */
+            allPacks.length === 0 ? (
+              <div className="px-4 py-8 text-center text-[12px] text-[#9CA3AF]">Loading packs…</div>
+            ) : allPacks.map(p => {
+              const isApplied = appliedPacks.some(a => a.pack_key === p.pack_id && a.status === 'ACTIVE');
+              return (
+                <div key={p.pack_id}
+                  onClick={() => setPreviewPack(p)}
+                  className={`px-4 py-3 cursor-pointer border-b border-gray-100/80 transition-colors
+                    ${previewPack?.pack_id === p.pack_id
+                      ? 'bg-emerald-50/80 border-l-2 border-l-emerald-500'
+                      : 'hover:bg-gray-50/60'}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[13px] font-semibold text-[#111827]">{p.display_name}</span>
+                    {isApplied && (
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full shrink-0">Applied</span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-[#9CA3AF] mt-0.5">
+                    {p.entity_count} entities · {p.vocab_count} terms
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
 
@@ -1178,7 +1298,7 @@ export default function Semantic() {
         </div>
       </aside>
 
-      {/* ── Right content: entity detail or vocab list ────────────────────── */}
+      {/* ── Right content: entity detail, vocab list, or learnings summary ── */}
       {tab === 'entities' ? (
         <EntityDetailPanel
           entity={entities.find(e => e.entity_key === selectedEntityKey) ?? null}
@@ -1186,6 +1306,243 @@ export default function Semantic() {
           onEdit={openEditEntity}
           onDelete={deleteEntity}
         />
+      ) : tab === 'learned' ? (
+        <div className="flex-1 min-w-0 overflow-y-auto p-7">
+          <div className="max-w-2xl">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center">
+                <Brain size={20} className="text-emerald-600" />
+              </div>
+              <div>
+                <h2 className="text-[18px] font-bold text-[#111827] tracking-tight">Semantic Learning</h2>
+                <p className="text-[13px] text-[#9CA3AF]">
+                  Terms Zevra has learned from your team's queries — auto-applied to future SQL planning.
+                </p>
+              </div>
+            </div>
+
+            {/* Stats summary */}
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              {[
+                { label: 'Total learned', value: learnings.length },
+                { label: 'Promoted to vocabulary', value: learnings.filter(m => m.promoted).length },
+                { label: 'Avg confidence', value: learnings.length
+                    ? Math.round(learnings.reduce((s, m) => s + m.confidence, 0) / learnings.length * 100) + '%'
+                    : '—' },
+              ].map(({ label, value }) => (
+                <div key={label} className="bg-white rounded-xl border border-gray-100 p-4 text-center">
+                  <p className="text-[22px] font-black text-[#111827]">{value}</p>
+                  <p className="text-[11.5px] text-[#9CA3AF] mt-0.5">{label}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-100 p-5">
+              <h3 className="text-[13px] font-semibold text-[#374151] mb-3">How it works</h3>
+              <ul className="space-y-2.5 text-[12.5px] text-[#6B7280] leading-relaxed">
+                <li className="flex gap-2"><span className="text-emerald-500 font-bold">✓</span>After every successful query, Zevra extracts business terms and maps them to their SQL equivalents.</li>
+                <li className="flex gap-2"><span className="text-emerald-500 font-bold">✓</span>Terms are injected into the SQL planner automatically — your vocabulary improves without manual work.</li>
+                <li className="flex gap-2"><span className="text-emerald-500 font-bold">✓</span>When you correct a wrong answer, the related term's confidence decreases.</li>
+                <li className="flex gap-2"><span className="text-emerald-500 font-bold">✓</span>Terms reaching 80% confidence with 10+ uses are promoted to the formal vocabulary automatically.</li>
+                <li className="flex gap-2"><span className="text-emerald-500 font-bold">✓</span>Click <strong>Promote</strong> on any term to move it to the vocabulary immediately.</li>
+              </ul>
+            </div>
+
+            {/* Edit SQL modal */}
+            {editLearning && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={e => { if (e.target === e.currentTarget) setEditLearning(null); }}>
+                <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-lg p-6">
+                  <h2 className="text-[15px] font-bold text-[#111827] mb-1">Edit SQL pattern</h2>
+                  <p className="text-[12.5px] text-gray-500 mb-4">
+                    Term: <strong>"{editLearning.business_term}"</strong>
+                  </p>
+                  <textarea
+                    value={editSqlPattern}
+                    onChange={e => setEditSqlPattern(e.target.value)}
+                    rows={3}
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] font-mono text-gray-800 focus:outline-none focus:border-emerald-400 resize-none"
+                  />
+                  <div className="flex gap-2.5 mt-4">
+                    <button onClick={() => setEditLearning(null)}
+                      className="flex-1 h-9 rounded-xl border border-gray-200 text-[13px] font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                      Cancel
+                    </button>
+                    <button onClick={async () => {
+                      await api.semantic.learnings.update(editLearning.mapping_key, { sqlPattern: editSqlPattern });
+                      setEditLearning(null);
+                      loadLearnings(selectedDomain);
+                    }} className="flex-1 h-9 rounded-xl bg-[#0C5847] text-white text-[13px] font-semibold hover:bg-[#084B3D] transition-colors">
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : tab === 'packs' ? (
+        /* ── Industry Packs right panel ── */
+        <div className="flex-1 min-w-0 overflow-y-auto p-7">
+          <div className="max-w-3xl">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center">
+                <Package size={20} className="text-indigo-600" />
+              </div>
+              <div>
+                <h2 className="text-[18px] font-bold text-[#111827] tracking-tight">Industry Context Packs</h2>
+                <p className="text-[13px] text-[#9CA3AF]">
+                  Pre-built entities, vocabulary, and suggested questions for your industry.
+                </p>
+              </div>
+            </div>
+
+            {/* Applied packs */}
+            {appliedPacks.filter(a => a.status === 'ACTIVE').length > 0 && (
+              <div className="mb-6">
+                <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider mb-3">Applied</p>
+                <div className="space-y-2">
+                  {appliedPacks.filter(a => a.status === 'ACTIVE').map(tp => (
+                    <div key={tp.pack_key} className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-[13px] font-semibold text-emerald-800">{tp.display_name}</p>
+                        <p className="text-[11.5px] text-emerald-600 mt-0.5">
+                          Coverage: {Math.round((tp.coverage_score || 0) * 100)}% of pack entities matched
+                        </p>
+                      </div>
+                      <button onClick={async () => {
+                        if (!window.confirm(`Remove pack "${tp.display_name}"? This does not delete created entities or vocabulary.`)) return;
+                        await api.industryPacks.remove(tp.pack_key);
+                        loadPacks();
+                      }} className="text-[11px] text-emerald-600 hover:text-red-500 transition-colors ml-4">
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Pack detail or browse */}
+            {previewPack ? (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{previewPack.industry}</p>
+                    <h3 className="text-[17px] font-bold text-[#111827]">{previewPack.display_name}</h3>
+                  </div>
+                  <button onClick={() => { setPreviewPack(null); setPreviewData(null); }}
+                    className="text-[12px] text-gray-400 hover:text-gray-700">← Back</button>
+                </div>
+
+                <p className="text-[13px] text-gray-500 mb-5">{previewPack.description}</p>
+
+                {/* Stats row */}
+                <div className="grid grid-cols-3 gap-3 mb-6">
+                  {[
+                    { label: 'Entities',   value: previewPack.entity_count },
+                    { label: 'Vocab terms', value: previewPack.vocab_count },
+                    { label: 'Questions',  value: previewPack.question_count },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="bg-white rounded-xl border border-gray-100 p-3 text-center">
+                      <p className="text-[20px] font-black text-[#111827]">{value}</p>
+                      <p className="text-[11px] text-[#9CA3AF]">{label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Preview data */}
+                {previewData && (
+                  <div className="mb-5 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <p className="text-[12px] font-semibold text-gray-600 mb-2">Preview result</p>
+                    <p className="text-[12.5px] text-gray-700">
+                      Coverage: <strong>{Math.round(previewData.coverage_score * 100)}%</strong> of pack entities matched to your tables.
+                    </p>
+                    {previewData.entity_mapping && Object.keys(previewData.entity_mapping).length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {Object.entries(previewData.entity_mapping).map(([entity, table]) => (
+                          <div key={entity} className="flex items-center gap-2 text-[11.5px]">
+                            <span className="font-semibold text-gray-700">{entity}</span>
+                            <span className="text-gray-400">→</span>
+                            <span className="font-mono text-emerald-700">{table}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {previewData.entities_unmatched?.length > 0 && (
+                      <p className="text-[11.5px] text-amber-600 mt-2">
+                        Not matched: {previewData.entities_unmatched.join(', ')}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div className="flex gap-3 flex-wrap">
+                  {!previewData && (
+                    <button onClick={async () => {
+                      setPreviewData(await api.industryPacks.preview(previewPack.pack_id, { domainKey: selectedDomain }));
+                    }} className="px-4 py-2 text-[13px] font-semibold bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all">
+                      Preview match
+                    </button>
+                  )}
+                  {appliedPacks.some(a => a.pack_key === previewPack.pack_id && a.status === 'ACTIVE') ? (
+                    <span className="px-4 py-2 text-[13px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl">
+                      ✓ Already applied
+                    </span>
+                  ) : (
+                    <button
+                      disabled={applyingPack === previewPack.pack_id}
+                      onClick={async () => {
+                        if (!selectedDomain) { alert('Select a domain first.'); return; }
+                        setApplyingPack(previewPack.pack_id);
+                        try {
+                          await api.industryPacks.apply(previewPack.pack_id, { domainKey: selectedDomain });
+                          await loadPacks();
+                          alert(`Pack "${previewPack.display_name}" applied! Refresh the Entities and Vocabulary tabs to see what was added.`);
+                        } catch (e) { alert(e.message || 'Apply failed'); }
+                        finally { setApplyingPack(''); }
+                      }}
+                      className="px-5 py-2 text-[13px] font-semibold bg-[#0C5847] hover:bg-[#084B3D] text-white rounded-xl transition-all disabled:opacity-50"
+                    >
+                      {applyingPack === previewPack.pack_id ? 'Applying…' : 'Apply Pack'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider mb-3">Available packs</p>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {allPacks.map(p => {
+                    const isApplied = appliedPacks.some(a => a.pack_key === p.pack_id && a.status === 'ACTIVE');
+                    return (
+                      <button key={p.pack_id} onClick={() => { setPreviewPack(p); setPreviewData(null); }}
+                        className="text-left bg-white border border-gray-100 rounded-2xl p-4 hover:border-indigo-200 hover:shadow-md transition-all group">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div>
+                            <p className="text-[11px] font-bold text-indigo-500 uppercase tracking-wide">{p.industry}</p>
+                            <p className="text-[14px] font-bold text-[#111827] mt-0.5 group-hover:text-indigo-700 transition-colors">{p.display_name}</p>
+                          </div>
+                          {isApplied && (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">Applied</span>
+                          )}
+                        </div>
+                        <div className="flex gap-3 text-[11.5px] text-gray-500">
+                          <span>{p.entity_count} entities</span>
+                          <span>·</span>
+                          <span>{p.vocab_count} terms</span>
+                          <span>·</span>
+                          <span>{p.question_count} questions</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       ) : (
         <div className="flex-1 min-w-0 overflow-y-auto p-7">
           {vocab.length === 0 ? (
