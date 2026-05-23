@@ -138,8 +138,8 @@ body {
 [data-theme="dark"] .text-gray-700     { color: #CBD5E1 !important; }
 [data-theme="dark"] .text-gray-600     { color: #94A3B8 !important; }
 [data-theme="dark"] .text-gray-500     { color: #64748B !important; }
-[data-theme="dark"] .text-gray-400     { color: #4E5F78 !important; }
-[data-theme="dark"] .text-gray-300     { color: #374151 !important; }
+[data-theme="dark"] .text-gray-400     { color: #94A3B8 !important; }
+[data-theme="dark"] .text-gray-300     { color: #64748B !important; }
 
 [data-theme="dark"] .hover\:text-gray-900:hover { color: #F0F4F8 !important; }
 [data-theme="dark"] .hover\:text-gray-700:hover { color: #CBD5E1 !important; }
@@ -181,3 +181,110 @@ body {
 
 /* ── Scrollbar in dark mode ───────────────────────────────────────────────── */
 [data-theme="dark"] ::-webkit-scrollbar-thumb { background: #2D3748; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DARK MODE — extended overrides
+   Covers opacity-variant classes, hardcoded hex values, and generic inputs.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Opacity-variant backgrounds ─────────────────────────────────────────── */
+[data-theme="dark"] .bg-white\/88  { background-color: rgba(26, 31, 43, 0.96) !important; }
+[data-theme="dark"] .bg-white\/80  { background-color: rgba(26, 31, 43, 0.92) !important; }
+[data-theme="dark"] .bg-white\/75  { background-color: rgba(19, 23, 31, 0.92) !important; }
+[data-theme="dark"] .bg-white\/70  { background-color: rgba(26, 31, 43, 0.88) !important; }
+
+/* ── Opacity-variant borders ─────────────────────────────────────────────── */
+[data-theme="dark"] .border-gray-100\/80 { border-color: rgba(37, 46, 63, 0.8) !important; }
+[data-theme="dark"] .border-gray-200\/70 { border-color: rgba(45, 55, 72, 0.7) !important; }
+[data-theme="dark"] .border-gray-200\/80 { border-color: rgba(45, 55, 72, 0.8) !important; }
+
+/* ── Hardcoded text colors ────────────────────────────────────────────────── */
+[data-theme="dark"] .text-\[\#111827\] { color: #F0F4F8 !important; }
+[data-theme="dark"] .text-\[\#101828\] { color: #F0F4F8 !important; }
+[data-theme="dark"] .text-\[\#1a2637\] { color: #E2E8F0 !important; }
+[data-theme="dark"] .text-\[\#0d2438\] { color: #E2E8F0 !important; }
+[data-theme="dark"] .text-\[\#344054\] { color: #CBD5E1 !important; }
+[data-theme="dark"] .text-\[\#253248\] { color: #94A3B8 !important; }
+[data-theme="dark"] .text-\[\#415268\] { color: #94A3B8 !important; }
+[data-theme="dark"] .text-\[\#53647C\] { color: #64748B !important; }
+[data-theme="dark"] .text-\[\#667085\] { color: #64748B !important; }
+[data-theme="dark"] .text-\[\#8A96A6\] { color: #64748B !important; }
+[data-theme="dark"] .text-\[\#9CA3AF\] { color: #94A3B8 !important; }
+[data-theme="dark"] .text-\[\#C4C9D4\] { color: #64748B !important; }
+[data-theme="dark"] .text-\[\#9AA6B5\] { color: #64748B !important; }
+[data-theme="dark"] .text-\[\#0C5847\] { color: #34D399 !important; }
+[data-theme="dark"] .text-\[\#0c5847\] { color: #34D399 !important; }
+
+/* ── Hardcoded placeholder colors ────────────────────────────────────────── */
+[data-theme="dark"] .placeholder\:text-\[\#C4C9D4\]::placeholder { color: #475569 !important; }
+[data-theme="dark"] .placeholder\:text-\[\#9AA6B5\]::placeholder { color: #475569 !important; }
+
+/* ── Hardcoded backgrounds ────────────────────────────────────────────────── */
+[data-theme="dark"] .bg-\[\#F7F8FA\]  { background-color: #0F1117 !important; }
+[data-theme="dark"] .bg-\[\#f8faf9\]  { background-color: #1E2535 !important; }
+[data-theme="dark"] .bg-\[\#f0faf5\]  { background-color: #0A2820 !important; }
+[data-theme="dark"] .bg-\[\#FAFAF9\]  { background-color: #161B26 !important; }
+[data-theme="dark"] .bg-\[\#E8EBF0\]  { background-color: #252E3F !important; }
+[data-theme="dark"] .bg-\[\#111827\]  { background-color: #1E2535 !important; }
+[data-theme="dark"] .bg-\[\#E0DBD5\]  { background-color: #252E3F !important; }
+
+/* ── Hardcoded borders ────────────────────────────────────────────────────── */
+[data-theme="dark"] .border-\[\#E8EBF0\] { border-color: #252E3F !important; }
+[data-theme="dark"] .border-\[\#DDE4E1\] { border-color: #252E3F !important; }
+[data-theme="dark"] .border-\[\#DDD8D2\] { border-color: #252E3F !important; }
+[data-theme="dark"] .border-\[\#E7E2DD\] { border-color: #252E3F !important; }
+[data-theme="dark"] .border-\[\#E0DBD5\] { border-color: #252E3F !important; }
+[data-theme="dark"] .border-\[\#F0EDE8\] { border-color: #252E3F !important; }
+
+/* ── Send button hover ────────────────────────────────────────────────────── */
+[data-theme="dark"] .hover\:bg-\[\#1F2937\]:hover { background-color: #252E3F !important; }
+
+/* ── Gradient icon containers (quick tiles, stat cards) ─────────────────── */
+[data-theme="dark"] .from-emerald-100 { --tw-gradient-from: #064e3b var(--tw-gradient-from-position) !important; }
+[data-theme="dark"] .to-emerald-200   { --tw-gradient-to:   #065f46 var(--tw-gradient-to-position)   !important; }
+[data-theme="dark"] .from-blue-100    { --tw-gradient-from: #1e3a5f var(--tw-gradient-from-position) !important; }
+[data-theme="dark"] .to-blue-200      { --tw-gradient-to:   #1e40af var(--tw-gradient-to-position)   !important; }
+[data-theme="dark"] .from-violet-100  { --tw-gradient-from: #2e1065 var(--tw-gradient-from-position) !important; }
+[data-theme="dark"] .to-violet-200    { --tw-gradient-to:   #3b0764 var(--tw-gradient-to-position)   !important; }
+[data-theme="dark"] .from-orange-100  { --tw-gradient-from: #431407 var(--tw-gradient-from-position) !important; }
+[data-theme="dark"] .to-orange-200    { --tw-gradient-to:   #7c2d12 var(--tw-gradient-to-position)   !important; }
+[data-theme="dark"] .from-sky-100     { --tw-gradient-from: #0c1a2e var(--tw-gradient-from-position) !important; }
+[data-theme="dark"] .to-sky-200       { --tw-gradient-to:   #0c4a6e var(--tw-gradient-to-position)   !important; }
+[data-theme="dark"] .from-pink-100    { --tw-gradient-from: #4a044e var(--tw-gradient-from-position) !important; }
+[data-theme="dark"] .to-pink-200      { --tw-gradient-to:   #701a75 var(--tw-gradient-to-position)   !important; }
+[data-theme="dark"] .from-indigo-100  { --tw-gradient-from: #1e1b4b var(--tw-gradient-from-position) !important; }
+[data-theme="dark"] .to-indigo-200    { --tw-gradient-to:   #312e81 var(--tw-gradient-to-position)   !important; }
+[data-theme="dark"] .from-rose-100    { --tw-gradient-from: #450a0a var(--tw-gradient-from-position) !important; }
+[data-theme="dark"] .to-rose-200      { --tw-gradient-to:   #7f1d1d var(--tw-gradient-to-position)   !important; }
+[data-theme="dark"] .from-amber-100   { --tw-gradient-from: #451a03 var(--tw-gradient-from-position) !important; }
+[data-theme="dark"] .to-amber-200     { --tw-gradient-to:   #78350f var(--tw-gradient-to-position)   !important; }
+[data-theme="dark"] .from-teal-100    { --tw-gradient-from: #042f2e var(--tw-gradient-from-position) !important; }
+[data-theme="dark"] .to-teal-200      { --tw-gradient-to:   #134e4a var(--tw-gradient-to-position)   !important; }
+
+/* ── Colored text on dark colored-badge backgrounds ─────────────────────── */
+[data-theme="dark"] .text-blue-700    { color: #60A5FA !important; }
+[data-theme="dark"] .text-blue-800    { color: #93C5FD !important; }
+[data-theme="dark"] .text-indigo-700  { color: #818CF8 !important; }
+[data-theme="dark"] .text-violet-700  { color: #A78BFA !important; }
+[data-theme="dark"] .text-orange-700  { color: #FB923C !important; }
+[data-theme="dark"] .text-amber-700   { color: #FBBF24 !important; }
+[data-theme="dark"] .text-amber-800   { color: #FCD34D !important; }
+[data-theme="dark"] .text-red-700     { color: #F87171 !important; }
+[data-theme="dark"] .text-red-800     { color: #FCA5A5 !important; }
+[data-theme="dark"] .text-red-600     { color: #F87171 !important; }
+[data-theme="dark"] .text-emerald-700 { color: #34D399 !important; }
+[data-theme="dark"] .text-emerald-800 { color: #6EE7B7 !important; }
+[data-theme="dark"] .text-emerald-600 { color: #34D399 !important; }
+
+/* ── Generic inputs / textareas / selects ────────────────────────────────── */
+[data-theme="dark"] input:not(.bg-transparent):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+[data-theme="dark"] textarea:not(.bg-transparent),
+[data-theme="dark"] select {
+  background-color: #161B26 !important;
+  color: #E2E8F0 !important;
+  border-color: #252E3F !important;
+}
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #475569 !important;
+}
