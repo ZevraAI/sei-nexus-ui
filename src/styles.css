@@ -276,6 +276,78 @@ body {
 [data-theme="dark"] .text-emerald-800 { color: #6EE7B7 !important; }
 [data-theme="dark"] .text-emerald-600 { color: #34D399 !important; }
 
+/* ── More opacity-variant backgrounds ───────────────────────────────────── */
+[data-theme="dark"] .bg-white\/95  { background-color: rgba(26, 31, 43, 0.98) !important; }
+[data-theme="dark"] .bg-white\/60  { background-color: rgba(26, 31, 43, 0.80) !important; }
+[data-theme="dark"] .bg-white\/40  { background-color: rgba(26, 31, 43, 0.65) !important; }
+[data-theme="dark"] .bg-gray-50\/80  { background-color: rgba(22, 27, 38, 0.88) !important; }
+[data-theme="dark"] .bg-gray-50\/60  { background-color: rgba(22, 27, 38, 0.75) !important; }
+[data-theme="dark"] .bg-gray-100\/80 { background-color: rgba(30, 37, 53, 0.85) !important; }
+[data-theme="dark"] .bg-emerald-50\/80 { background-color: rgba(10, 40, 32, 0.85) !important; }
+[data-theme="dark"] .bg-amber-50\/80   { background-color: rgba(39, 23, 5,  0.85) !important; }
+[data-theme="dark"] .bg-amber-200\/70  { border-color: rgba(120, 83, 30, 0.7) !important; }
+
+/* ── Hover opacity-variant ───────────────────────────────────────────────── */
+[data-theme="dark"] .hover\:bg-gray-50\/60:hover { background-color: rgba(22, 27, 38, 0.85) !important; }
+[data-theme="dark"] .hover\:bg-white\/80:hover   { background-color: rgba(26, 31, 43, 0.92) !important; }
+[data-theme="dark"] .focus\:bg-white:focus        { background-color: #1A1F2B !important; }
+
+/* ── Missing hardcoded text colors ──────────────────────────────────────── */
+[data-theme="dark"] .text-\[\#374151\]  { color: #CBD5E1 !important; }
+[data-theme="dark"] .text-\[\#6B7280\]  { color: #94A3B8 !important; }
+[data-theme="dark"] .text-\[\#15803D\]  { color: #4ade80 !important; }
+[data-theme="dark"] .text-\[\#A16207\]  { color: #fbbf24 !important; }
+[data-theme="dark"] .text-\[\#DC2626\]  { color: #f87171 !important; }
+[data-theme="dark"] .text-\[\#1D4ED8\]  { color: #60a5fa !important; }
+[data-theme="dark"] .text-\[\#0F766E\]  { color: #2dd4bf !important; }
+[data-theme="dark"] .text-\[\#4338CA\]  { color: #818cf8 !important; }
+[data-theme="dark"] .text-\[\#6D28D9\]  { color: #a78bfa !important; }
+[data-theme="dark"] .text-\[\#C2410C\]  { color: #fb923c !important; }
+
+/* ── Named color text overrides (standard Tailwind classes) ─────────────── */
+[data-theme="dark"] .text-green-600    { color: #4ade80 !important; }
+[data-theme="dark"] .text-green-500    { color: #4ade80 !important; }
+[data-theme="dark"] .text-yellow-600   { color: #fcd34d !important; }
+
+/* ── Missing hardcoded backgrounds (badge pairs, stat cards) ────────────── */
+[data-theme="dark"] .bg-\[\#F9FAFB\]   { background-color: #1E2535 !important; }
+[data-theme="dark"] .bg-\[\#F3F4F6\]   { background-color: #252E3F !important; }
+[data-theme="dark"] .bg-\[\#DCFCE7\]   { background-color: #0A2015 !important; }
+[data-theme="dark"] .bg-\[\#FEF9C3\]   { background-color: #221A08 !important; }
+[data-theme="dark"] .bg-\[\#FEE2E2\]   { background-color: #2A1010 !important; }
+[data-theme="dark"] .bg-\[\#DBEAFE\]   { background-color: #0A1E38 !important; }
+[data-theme="dark"] .bg-\[\#EDE9FE\]   { background-color: #1A1130 !important; }
+[data-theme="dark"] .bg-\[\#CCFBF1\]   { background-color: #042820 !important; }
+[data-theme="dark"] .bg-\[\#EEF2FF\]   { background-color: #101830 !important; }
+[data-theme="dark"] .bg-\[\#FFEDD5\]   { background-color: #2A1808 !important; }
+[data-theme="dark"] .bg-\[\#FECACA\]   { background-color: #3A1515 !important; }
+
+/* ── Group-hover text fix ────────────────────────────────────────────────── */
+[data-theme="dark"] .group:hover .group-hover\:text-\[\#111827\] { color: #F0F4F8 !important; }
+
+/* ── Ghost button hover (Semantic / Agents / Connections edit buttons) ───── */
+[data-theme="dark"] .hover\:bg-gray-100\/80:hover  { background-color: rgba(37, 46, 63, 0.85) !important; }
+[data-theme="dark"] .hover\:bg-gray-100:hover      { background-color: #252E3F !important; }
+[data-theme="dark"] .hover\:text-\[\#111827\]:hover { color: #F0F4F8 !important; }
+
+/* ── Danger button hover border ─────────────────────────────────────────── */
+[data-theme="dark"] .hover\:bg-\[\#FECACA\]:hover  { background-color: #3A1515 !important; }
+[data-theme="dark"] .border-\[\#FECACA\]           { border-color: #5A2020 !important; }
+
+/* ── Named color badge backgrounds (used by plan/status badges) ──────────── */
+[data-theme="dark"] .bg-blue-100   { background-color: #0A1E38 !important; }
+[data-theme="dark"] .bg-purple-100 { background-color: #1A1130 !important; }
+[data-theme="dark"] .bg-amber-100  { background-color: #221A08 !important; }
+[data-theme="dark"] .bg-green-100  { background-color: #0A2015 !important; }
+[data-theme="dark"] .bg-red-100    { background-color: #2A1010 !important; }
+[data-theme="dark"] .bg-orange-100 { background-color: #2A1808 !important; }
+[data-theme="dark"] .bg-violet-100 { background-color: #1A1130 !important; }
+[data-theme="dark"] .bg-sky-100    { background-color: #082030 !important; }
+
+/* ── Named color text for badge backgrounds above ───────────────────────── */
+[data-theme="dark"] .text-purple-700 { color: #c084fc !important; }
+[data-theme="dark"] .text-purple-600 { color: #c084fc !important; }
+
 /* ── Generic inputs / textareas / selects ────────────────────────────────── */
 [data-theme="dark"] input:not(.bg-transparent):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 [data-theme="dark"] textarea:not(.bg-transparent),
