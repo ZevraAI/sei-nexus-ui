@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { ThemeProvider } from './context/ThemeContext.jsx';
 import { api } from './api.js';
 import Login from './pages/Login.jsx';
 import OnboardingWizard from './pages/OnboardingWizard.jsx';
@@ -138,7 +139,7 @@ export default function App() {
   // ── Loading spinner ─────────────────────────────────────────────────────────
   if (checking || (user && onboardingComplete === null)) {
     return (
-      <div className="flex items-center justify-center h-screen bg-[#f0faf5]">
+      <div className="flex items-center justify-center h-screen">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-[3px] border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
           <p className="text-sm text-gray-400">Loading Zevra…</p>
@@ -150,29 +151,33 @@ export default function App() {
   // ── Login ───────────────────────────────────────────────────────────────────
   if (!user) {
     return (
-      <Login onLogin={payload => {
-        const nextUser = normalizeAuth(payload);
-        setUser(nextUser);
-        localStorage.setItem('nexus_user', JSON.stringify(nextUser));
-      }} />
+      <ThemeProvider>
+        <Login onLogin={payload => {
+          const nextUser = normalizeAuth(payload);
+          setUser(nextUser);
+          localStorage.setItem('nexus_user', JSON.stringify(nextUser));
+        }} />
+      </ThemeProvider>
     );
   }
 
   // ── Onboarding wizard (shown once, on first login) ─────────────────────────
   if (onboardingComplete === false) {
     return (
-      <AuthContext.Provider value={{ user, logout }}>
-        <OnboardingWizard
-          user={user}
-          onComplete={(question) => {
-            setOnboardingComplete(true);
-            if (question) {
-              setFirstQuestion(question);
-            }
-            navigate('/chat');
-          }}
-        />
-      </AuthContext.Provider>
+      <ThemeProvider>
+        <AuthContext.Provider value={{ user, logout }}>
+          <OnboardingWizard
+            user={user}
+            onComplete={(question) => {
+              setOnboardingComplete(true);
+              if (question) {
+                setFirstQuestion(question);
+              }
+              navigate('/chat');
+            }}
+          />
+        </AuthContext.Provider>
+      </ThemeProvider>
     );
   }
 
@@ -180,13 +185,15 @@ export default function App() {
   const page = ROUTES[hash] ?? ROUTES[hash.split('?')[0]] ?? <Chat />;
 
   return (
-    <AuthContext.Provider value={{ user, logout }}>
-      <Layout currentPath={hash}>
-        {hash === '/chat' || hash === '/'
-          ? React.cloneElement(<Chat />, { prefillQuestion: firstQuestion,
-                                           onPrefillUsed: () => setFirstQuestion(null) })
-          : page}
-      </Layout>
-    </AuthContext.Provider>
+    <ThemeProvider>
+      <AuthContext.Provider value={{ user, logout }}>
+        <Layout currentPath={hash}>
+          {hash === '/chat' || hash === '/'
+            ? React.cloneElement(<Chat />, { prefillQuestion: firstQuestion,
+                                             onPrefillUsed: () => setFirstQuestion(null) })
+            : page}
+        </Layout>
+      </AuthContext.Provider>
+    </ThemeProvider>
   );
 }
