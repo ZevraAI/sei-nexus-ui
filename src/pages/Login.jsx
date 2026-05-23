@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../api.js';
 import { Spinner } from '../components/Card.jsx';
+import { ZevraLogo } from '../components/ZevraLogo.jsx';
 import { Building2 } from 'lucide-react';
 
 export default function Login({ onLogin }) {
@@ -36,12 +37,8 @@ export default function Login({ onLogin }) {
 
         {/* Logo */}
         <div className="text-center mb-9">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/8 border border-white/10 mb-4">
-            <svg viewBox="0 0 32 32" className="w-8 h-8 text-[#2BD19B]" aria-hidden="true">
-              <path d="M16 1.8l2.7 9.5 9.5 2.7-9.5 2.7-2.7 9.5-2.7-9.5-9.5-2.7 9.5-2.7L16 1.8Z"
-                fill="none" stroke="currentColor" strokeWidth="1.6" />
-              <path d="M25.5 3.5l.9 3.2 3.1.8-3.1.9-.9 3.1-.9-3.1-3.1-.9 3.1-.8.9-3.2Z" fill="currentColor" />
-            </svg>
+          <div className="inline-flex items-center justify-center mb-4">
+            <ZevraLogo size={56} />
           </div>
           <h1 className="text-[22px] font-bold text-white tracking-tight">Zevra</h1>
           <p className="text-white/45 text-[13px] mt-1">Enterprise Operational Intelligence</p>

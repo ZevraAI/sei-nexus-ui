@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../api.js';
+import { ZevraLogo } from '../components/ZevraLogo.jsx';
 import {
   Database, Check, ChevronRight, Sparkles, ArrowRight,
   AlertCircle, Search, RefreshCw, ChevronDown, ChevronUp,
@@ -891,11 +892,7 @@ export default function OnboardingWizard({ user, onComplete }) {
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-10">
-          <svg viewBox="0 0 32 32" className="w-7 h-7 text-emerald-600" aria-hidden="true">
-            <path d="M16 1.8l2.7 9.5 9.5 2.7-9.5 2.7-2.7 9.5-2.7-9.5-9.5-2.7 9.5-2.7L16 1.8Z"
-              fill="none" stroke="currentColor" strokeWidth="1.6" />
-            <path d="M25.5 3.5l.9 3.2 3.1.8-3.1.9-.9 3.1-.9-3.1-3.1-.9 3.1-.8.9-3.2Z" fill="currentColor" />
-          </svg>
+          <ZevraLogo size={28} />
           <span className="text-lg font-bold text-gray-900">Zevra</span>
           <span className="text-gray-300 ml-auto text-sm">Setup wizard</span>
         </div>

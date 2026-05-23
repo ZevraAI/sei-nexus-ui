@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth, navigate } from '../App.jsx';
 import { AlertBell } from './NotificationPanel.jsx';
+import { ZevraLogo } from './ZevraLogo.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
 import {
-  Building2, ChevronDown, LogOut, Moon, Sparkles, Sun,
+  Building2, ChevronDown, LogOut, Moon, Sun,
 } from 'lucide-react';
 
 // ── helpers ───────────────────────────────────────────────────────────────
@@ -90,11 +91,7 @@ export default function Layout({ children, currentPath }) {
           onClick={() => navigate('/chat')}
           className="flex items-center gap-2 mr-7 group"
         >
-          <div className="w-[26px] h-[26px] bg-gradient-to-br from-emerald-500 to-emerald-700
-                          rounded-[7px] flex items-center justify-center shadow-sm
-                          group-hover:shadow-emerald-200 group-hover:shadow-md transition-all">
-            <Sparkles size={12} className="text-white" />
-          </div>
+          <ZevraLogo size={26} />
           <span className={`text-[14.5px] font-bold tracking-tight transition-colors
                             ${isDark ? 'text-[#F0F4F8]' : 'text-[#111827]'}`}>
             Zevra
