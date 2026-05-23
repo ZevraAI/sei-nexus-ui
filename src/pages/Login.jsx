@@ -38,7 +38,7 @@ export default function Login({ onLogin }) {
         {/* Logo */}
         <div className="text-center mb-9">
           <div className="inline-flex items-center justify-center mb-4">
-            <ZevraLogo size={56} />
+            <ZevraLogo size={56} style={{ borderRadius: '14px' }} />
           </div>
           <h1 className="text-[22px] font-bold text-white tracking-tight">Zevra</h1>
           <p className="text-white/45 text-[13px] mt-1">Enterprise Operational Intelligence</p>

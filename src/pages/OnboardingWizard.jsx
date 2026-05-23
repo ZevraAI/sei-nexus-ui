@@ -892,7 +892,7 @@ export default function OnboardingWizard({ user, onComplete }) {
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-10">
-          <ZevraLogo size={28} />
+          <ZevraLogo size={28} style={{ borderRadius: '8px' }} />
           <span className="text-lg font-bold text-gray-900">Zevra</span>
           <span className="text-gray-300 ml-auto text-sm">Setup wizard</span>
         </div>

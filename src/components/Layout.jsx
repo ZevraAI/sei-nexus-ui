@@ -91,7 +91,7 @@ export default function Layout({ children, currentPath }) {
           onClick={() => navigate('/chat')}
           className="flex items-center gap-2 mr-7 group"
         >
-          <ZevraLogo size={26} />
+          <ZevraLogo size={26} style={{ borderRadius: '7px' }} />
           <span className={`text-[14.5px] font-bold tracking-tight transition-colors
                             ${isDark ? 'text-[#F0F4F8]' : 'text-[#111827]'}`}>
             Zevra
