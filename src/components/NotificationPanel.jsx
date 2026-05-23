@@ -121,13 +121,13 @@ function NotificationPanel({ onClose, onCountChange }) {
     <div
       ref={ref}
       className="fixed top-[58px] right-4 z-50 w-[360px] max-h-[76vh] flex flex-col
-                 bg-white/88 backdrop-blur-xl rounded-[18px]
-                 border border-gray-200/60
-                 shadow-[0_24px_64px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.8)]
+                 bg-white rounded-[18px]
+                 border border-gray-200
+                 shadow-[0_24px_64px_rgba(0,0,0,0.18),0_2px_8px_rgba(0,0,0,0.08)]
                  overflow-hidden"
     >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-100/80 flex items-center justify-between flex-shrink-0">
+      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
           <Bell size={13} className="text-amber-500" />
           <span className="text-[13px] font-semibold text-[#111827]">Alerts</span>
@@ -184,7 +184,7 @@ function NotificationPanel({ onClose, onCountChange }) {
         )}
 
         {!loading && alerts.length > 0 && (
-          <div className="divide-y divide-gray-100/80">
+          <div className="divide-y divide-gray-100">
             {alerts.map(alert => {
               const sev   = getSeverity(alert);
               const unreadItem = alert.status === 'UNREAD';
@@ -192,7 +192,7 @@ function NotificationPanel({ onClose, onCountChange }) {
                 <div
                   key={alert.delivery_key}
                   className={`px-4 py-3.5 transition-colors cursor-pointer group
-                              ${unreadItem ? 'bg-amber-50/40' : 'hover:bg-gray-50/60'}`}
+                              ${unreadItem ? 'bg-amber-50' : 'hover:bg-gray-50'}`}
                   onClick={() => unreadItem && markRead(alert.delivery_key)}
                 >
                   <div className="flex items-start gap-3">
@@ -266,7 +266,7 @@ function NotificationPanel({ onClose, onCountChange }) {
 
       {/* Footer */}
       {alerts.length > 0 && (
-        <div className="px-4 py-2.5 border-t border-gray-100/80 flex-shrink-0 flex items-center justify-between">
+        <div className="px-4 py-2.5 border-t border-gray-100 flex-shrink-0 flex items-center justify-between">
           <button
             onClick={() => { navigate('/temporal'); onClose(); }}
             className="text-[11.5px] font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
