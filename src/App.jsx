@@ -19,6 +19,8 @@ import Temporal from './pages/Temporal.jsx';
 import KnowledgeGaps from './pages/KnowledgeGaps.jsx';
 import Governance from './pages/Governance.jsx';
 import Settings   from './pages/Settings.jsx';
+import Automations from './pages/Automations.jsx';
+import AutomationEditor from './pages/AutomationEditor.jsx';
 
 // ─── Auth context ─────────────────────────────────────────────────────────────
 export const AuthContext = createContext(null);
@@ -57,6 +59,7 @@ const ROUTES = {
   '/gaps':         <KnowledgeGaps />,
   '/governance':   <Governance />,
   '/settings':     <Settings />,
+  '/automations':  <Automations />,
 };
 
 function normalizeAuth(payload) {
@@ -182,7 +185,11 @@ export default function App() {
   }
 
   // ── Normal app ──────────────────────────────────────────────────────────────
-  const page = ROUTES[hash] ?? ROUTES[hash.split('?')[0]] ?? <Chat />;
+  // Dynamic route: /automations/:id/edit
+  const automationEditMatch = hash.match(/^\/automations\/([^/?]+)\/edit/);
+  const page = automationEditMatch
+    ? <AutomationEditor workflowId={automationEditMatch[1]} />
+    : (ROUTES[hash] ?? ROUTES[hash.split('?')[0]] ?? <Chat />);
 
   return (
     <ThemeProvider>

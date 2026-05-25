@@ -52,9 +52,10 @@ function buildNavItems(isAdmin, isPlatformAdmin) {
     { path: '/agents',     label: 'Agents' },
     { path: '/graph',      label: 'Knowledge Graph' },
     { path: '/semantic',   label: 'Semantic Layer' },
-    { path: '/connections',label: 'Connections' },
-    { path: '/memory',     label: 'AI Memory' },
-    { path: '/reports',    label: 'Reports' },
+    { path: '/connections',   label: 'Connections' },
+    { path: '/automations',   label: 'Automations' },
+    { path: '/memory',        label: 'AI Memory' },
+    { path: '/reports',       label: 'Reports' },
     ...(isAdmin ? [{ path: '/governance', label: 'Governance' }] : []),
     { path: '/settings',   label: 'Settings' },
     ...(isPlatformAdmin ? [{ path: '/tenants', label: 'Tenants' }] : []),
@@ -73,7 +74,9 @@ export default function Layout({ children, currentPath }) {
 
   const active = (path) => {
     if (path === '/chat' && (currentPath === '/' || currentPath === '/chat')) return true;
-    return currentPath === path || currentPath.startsWith(path + '?');
+    if (currentPath === path || currentPath.startsWith(path + '?')) return true;
+    if (currentPath.startsWith(path + '/')) return true;
+    return false;
   };
 
   return (

@@ -314,4 +314,18 @@ export const api = {
       test:   (key)        => post(`/alert-rules/${key}/test`),
     },
   },
+
+  // ── Automations ───────────────────────────────────────────────────────────
+  automations: {
+    list:           ()              => get('/automations'),
+    get:            (id)            => get(`/automations/${id}`),
+    create:         (body)          => post('/automations', body),
+    update:         (id, body)      => put(`/automations/${id}`, body),
+    delete:         (id)            => del(`/automations/${id}`),
+    run:            (id, payload)   => post(`/automations/${id}/run`, payload ?? {}),
+    executions:     (id)            => get(`/automations/${id}/executions`),
+    execution:      (execId)        => get(`/automations/executions/${execId}`),
+    analyze:        (body)          => post('/automations/generate/analyze', body),
+    generate:       (body)          => post('/automations/generate', body),
+  },
 };
