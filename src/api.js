@@ -328,4 +328,16 @@ export const api = {
     analyze:        (body)          => post('/automations/generate/analyze', body),
     generate:       (body)          => post('/automations/generate', body),
   },
+
+  // ── Zevra Agents (agentic AI runners) ────────────────────────────────────
+  zevraAgents: {
+    list:       ()          => get('/zevra-agents'),
+    get:        (id)        => get(`/zevra-agents/${id}`),
+    create:     (body)      => post('/zevra-agents', body),
+    update:     (id, body)  => put(`/zevra-agents/${id}`, body),
+    remove:     (id)        => del(`/zevra-agents/${id}`),
+    chat:       (id, msg)   => post(`/zevra-agents/${id}/chat`, { message: msg }),
+    sessions:   (id)        => get(`/zevra-agents/${id}/sessions`),
+    getSession: (sid)       => get(`/zevra-agents/sessions/${sid}`),
+  },
 };

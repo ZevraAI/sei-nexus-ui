@@ -21,6 +21,7 @@ import Governance from './pages/Governance.jsx';
 import Settings   from './pages/Settings.jsx';
 import Automations from './pages/Automations.jsx';
 import AutomationEditor from './pages/AutomationEditor.jsx';
+import AgentChat from './pages/AgentChat.jsx';
 
 // ─── Auth context ─────────────────────────────────────────────────────────────
 export const AuthContext = createContext(null);
@@ -187,8 +188,12 @@ export default function App() {
   // ── Normal app ──────────────────────────────────────────────────────────────
   // Dynamic route: /automations/:id/edit
   const automationEditMatch = hash.match(/^\/automations\/([^/?]+)\/edit/);
+  // Dynamic route: /agents/:id
+  const agentChatMatch = hash.match(/^\/agents\/([^/?]+)$/);
   const page = automationEditMatch
     ? <AutomationEditor workflowId={automationEditMatch[1]} />
+    : agentChatMatch
+    ? <AgentChat agentId={agentChatMatch[1]} />
     : (ROUTES[hash] ?? ROUTES[hash.split('?')[0]] ?? <Chat />);
 
   return (

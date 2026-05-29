@@ -582,7 +582,7 @@ function UserMessage({ text, attachment }) {
   );
 }
 
-function AssistantMessage({ content, decisionType, loading, exportMenu, queryData, quickRefinements, onAsk, reasoningSteps, learningsApplied, streamingSteps }) {
+function AssistantMessage({ content, decisionType, agentName, loading, exportMenu, queryData, quickRefinements, onAsk, reasoningSteps, learningsApplied, streamingSteps }) {
   return (
     <div className="flex justify-start">
       <div className="flex items-start gap-2.5 w-full">
@@ -619,9 +619,14 @@ function AssistantMessage({ content, decisionType, loading, exportMenu, queryDat
               {queryData?.length > 0 && <DataViz queryData={queryData} />}
               <SuggestedQuestions quickRefinements={quickRefinements} queryData={queryData} onAsk={onAsk} />
               <ReasoningTrace steps={reasoningSteps} loading={false} />
-              {(decisionType || reasoningSteps?.length > 0) && (
+              {(decisionType || agentName || reasoningSteps?.length > 0) && (
                 <div className="mt-2.5 pt-2.5 border-t border-[#F0EDE8] flex items-center gap-2 flex-wrap">
-                  {decisionType && (
+                  {agentName && decisionType === 'ZEVRA_AGENT' ? (
+                    <span className="inline-flex items-center gap-1.5 text-[10.5px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                      <Bot size={10} className="text-emerald-600" />
+                      Answered by {agentName}
+                    </span>
+                  ) : decisionType && (
                     <>
                       <span className="text-[10px] text-[#8A96A6]">via</span>
                       <span className="text-[10px] font-medium text-[#0C5847]">{decisionType}</span>
@@ -1154,6 +1159,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
           role: 'assistant',
           content: response.answer || response.error || 'No response received.',
           decisionType:    response.decision?.type || response.decision_type,
+          agentName:       response.routed_agent_name || response.routedAgentName || null,
           queryData:       response.query_data       || response.queryData       || null,
           quickRefinements:response.quick_refinements || response.quickRefinements || [],
           reasoningSteps:  response.reasoning_steps  || response.reasoningSteps  || [],
@@ -1215,6 +1221,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
             role:          'assistant',
             content:       run.answer,
             decisionType:  run.decision_type || run.decisionType,
+            agentName:     run.routed_agent_name || run.routedAgentName || null,
             queryData:     qd.length > 100 ? qd.slice(0, 100) : qd,
           });
         }
@@ -1558,6 +1565,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                       key={i}
                       content={msg.content}
                       decisionType={msg.decisionType}
+                      agentName={msg.agentName}
                       loading={msg.loading}
                       queryData={msg.queryData}
                       quickRefinements={msg.quickRefinements}
