@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 import { api } from './api.js';
+import { supabase } from './supabase.js';
 import Login from './pages/Login.jsx';
+import SetNewPassword from './pages/SetNewPassword.jsx';
 import OnboardingWizard from './pages/OnboardingWizard.jsx';
 import Layout from './components/Layout.jsx';
 import Chat from './pages/Chat.jsx';
@@ -22,6 +24,10 @@ import Settings   from './pages/Settings.jsx';
 import Automations from './pages/Automations.jsx';
 import AutomationEditor from './pages/AutomationEditor.jsx';
 import AgentChat from './pages/AgentChat.jsx';
+import Users from './pages/Users.jsx';
+import Brief from './pages/Brief.jsx';
+import Usage from './pages/Usage.jsx';
+import Templates from './pages/Templates.jsx';
 
 // ─── Auth context ─────────────────────────────────────────────────────────────
 export const AuthContext = createContext(null);
@@ -61,12 +67,21 @@ const ROUTES = {
   '/governance':   <Governance />,
   '/settings':     <Settings />,
   '/automations':  <Automations />,
+  '/users':        <Users />,
+  '/brief':        <Brief />,
+  '/usage':        <Usage />,
+  '/templates':    <Templates />,
 };
 
 function normalizeAuth(payload) {
   if (!payload) return null;
+  // Legacy: { token, user } format from old email/password login
   if (payload.user && payload.token) {
     localStorage.setItem('nexus_token', payload.token);
+    return payload.user;
+  }
+  // Supabase: { user, supabaseSession } — extract just the user object
+  if (payload.user && payload.supabaseSession) {
     return payload.user;
   }
   return payload;
@@ -79,8 +94,14 @@ export default function App() {
   const [user, setUser] = useState(() => {
     try {
       const stored = JSON.parse(localStorage.getItem('nexus_user'));
+      // Legacy: { token, user } format
       if (stored?.token && stored?.user) {
         localStorage.setItem('nexus_token', stored.token);
+        localStorage.setItem('nexus_user', JSON.stringify(stored.user));
+        return stored.user;
+      }
+      // Stale Supabase format: { user, supabaseSession } — fix and re-store
+      if (stored?.user && stored?.supabaseSession) {
         localStorage.setItem('nexus_user', JSON.stringify(stored.user));
         return stored.user;
       }
@@ -95,9 +116,78 @@ export default function App() {
   const [onboardingComplete, setOnboardingComplete] = useState(null);
   // First question to pre-fill in chat after onboarding
   const [firstQuestion,      setFirstQuestion]      = useState(null);
+  // True while the user must set a new password (password recovery flow)
+  const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
 
   // ── Verify session on load ─────────────────────────────────────────────────
   useEffect(() => {
+    if (supabase) {
+      // If we already have a cached user, stop the spinner immediately so the
+      // app renders without waiting for network. Session is then verified in
+      // the background and the user is updated silently if needed.
+      if (user) setChecking(false);
+
+      supabase.auth.getSession()
+        .then(async ({ data: { session } }) => {
+          if (!session) {
+            // Supabase session expired or missing — send to login
+            setUser(null);
+            localStorage.removeItem('nexus_user');
+          } else {
+            // Valid session — refresh user from backend silently
+            try {
+              const u = await api.auth.me();
+              setUser(u);
+              localStorage.setItem('nexus_user', JSON.stringify(u));
+            } catch (_) {
+              // Backend temporarily unreachable — keep the cached user
+              // so the app stays usable; don't sign the user out
+            }
+          }
+          setChecking(false);
+        })
+        .catch(() => {
+          // Supabase itself unreachable — keep cached user if any
+          setChecking(false);
+        });
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          // INITIAL_SESSION fires on every page load for an existing session.
+          // getSession() already handled it above — skip to avoid a duplicate
+          // api.auth.me() call that could race and leave stale state.
+          if (event === 'INITIAL_SESSION') return;
+
+          if (event === 'PASSWORD_RECOVERY') {
+            // User arrived via a password-reset link — stop here and show the
+            // "set new password" screen.  Do NOT sign them into the app yet.
+            setNeedsPasswordReset(true);
+            setChecking(false);
+            return;
+          }
+
+          if (event === 'SIGNED_IN' && session) {
+            // If we were in recovery mode and the user just updated their
+            // password, Supabase fires SIGNED_IN — clear the recovery flag
+            // and complete the normal sign-in flow.
+            setNeedsPasswordReset(false);
+            try {
+              const u = await api.auth.me();
+              setUser(u);
+              localStorage.setItem('nexus_user', JSON.stringify(u));
+            } catch (_) {}
+          } else if (event === 'SIGNED_OUT') {
+            localStorage.removeItem('nexus_user');
+            localStorage.removeItem('nexus_token');
+            setUser(null);
+            setOnboardingComplete(null);
+          }
+        }
+      );
+      return () => subscription.unsubscribe();
+    }
+
+    // Legacy auth path (Supabase env vars not set)
     if (user && localStorage.getItem('nexus_token')) {
       setChecking(false);
       return;
@@ -133,6 +223,7 @@ export default function App() {
   // ── Logout ─────────────────────────────────────────────────────────────────
   const logout = useCallback(async () => {
     try { await api.auth.logout(); } catch (_) {}
+    if (supabase) { try { await supabase.auth.signOut(); } catch (_) {} }
     localStorage.removeItem('nexus_user');
     localStorage.removeItem('nexus_token');
     setUser(null);
@@ -149,6 +240,15 @@ export default function App() {
           <p className="text-sm text-gray-400">Loading Zevra…</p>
         </div>
       </div>
+    );
+  }
+
+  // ── Password recovery ───────────────────────────────────────────────────────
+  if (needsPasswordReset) {
+    return (
+      <ThemeProvider>
+        <SetNewPassword onComplete={() => setNeedsPasswordReset(false)} />
+      </ThemeProvider>
     );
   }
 

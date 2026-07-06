@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../api.js';
 import { Card, PageHeader, Btn, Modal, Input, Select, Spinner, EmptyState } from '../components/Card.jsx';
 import {
-  Building2, Plus, Shield, Users, RefreshCw,
+  Building2, Plus, Users, RefreshCw,
   CheckCircle, PauseCircle, XCircle, Pencil, Trash2,
-  ChevronDown, ChevronRight, Database,
+  ChevronDown, Database, Mail, Calendar, Hash,
 } from 'lucide-react';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -43,95 +43,258 @@ function PlanBadge({ plan }) {
   );
 }
 
-// ── Tenant row ─────────────────────────────────────────────────────────────────
+// ── Tenant detail panel ────────────────────────────────────────────────────────
 
-function TenantRow({ tenant, onSuspend, onActivate, onDeprovision, onEdit }) {
-  const [expanded, setExpanded] = useState(false);
-  const isActive = tenant.status === 'ACTIVE';
+function TenantDetail({ tenant, onSuspend, onActivate, onDeprovision, onEdit }) {
+  const [reinviteEmail, setReinviteEmail] = useState(tenant.contact_email || '');
+  const [reinviting,   setReinviting]   = useState(false);
+  const [reinviteMsg,  setReinviteMsg]  = useState('');
+  const [recoveryLink, setRecoveryLink] = useState('');
+  const isActive       = tenant.status === 'ACTIVE';
   const isDeprovisioned = tenant.status === 'DEPROVISIONED';
+
+  // Reset reinvite state when the selected tenant changes
+  useEffect(() => {
+    setReinviteEmail(tenant.contact_email || '');
+    setReinviteMsg('');
+    setRecoveryLink('');
+  }, [tenant.slug]);
+
+  const sendReinvite = async () => {
+    const email = reinviteEmail.trim();
+    if (!email) return;
+    setReinviting(true); setReinviteMsg(''); setRecoveryLink('');
+    try {
+      const res = await api.admin.tenants.reinvite(tenant.slug, email);
+      if (res?.mode === 'recovery_link' && res?.link) {
+        setRecoveryLink(res.link);
+        setReinviteMsg(res.message || 'Recovery link generated.');
+      } else {
+        setReinviteMsg('ok');
+      }
+    } catch (err) {
+      setReinviteMsg(err.message || 'Failed to send invite');
+    } finally {
+      setReinviting(false);
+    }
+  };
 
   return (
     <Card className="overflow-hidden">
-      {/* Summary row */}
-      <div className="flex items-center gap-4 p-4">
-        <button
-          onClick={() => setExpanded(e => !e)}
-          className="text-gray-400 hover:text-gray-600 shrink-0"
-        >
-          {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </button>
-
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0">
-          <Building2 size={18} className="text-white" />
+      {/* Header row */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0">
+          <Building2 size={17} className="text-white" />
         </div>
-
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-gray-900">{tenant.name}</span>
             <StatusBadge status={tenant.status} />
             <PlanBadge plan={tenant.plan} />
           </div>
-          <div className="flex items-center gap-3 mt-0.5">
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <span className="text-xs text-gray-400 font-mono">{tenant.slug}</span>
-            <span className="text-gray-200">·</span>
+            <span className="text-gray-200 select-none">·</span>
             <span className="text-xs text-gray-400 font-mono flex items-center gap-1">
-              <Database size={10} />{tenant.schema_name}
+              <Database size={10} /> {tenant.schema_name}
             </span>
-            <span className="text-gray-200">·</span>
+            <span className="text-gray-200 select-none">·</span>
             <span className="text-xs text-gray-400 flex items-center gap-1">
               <Users size={10} /> max {tenant.max_users}
             </span>
           </div>
         </div>
-
-        {/* Actions */}
         {!isDeprovisioned && (
           <div className="flex items-center gap-1.5 shrink-0">
-            <Btn variant="ghost" size="sm" onClick={() => onEdit(tenant)} title="Edit plan / limits">
-              <Pencil size={13} />
+            <Btn variant="secondary" size="sm" onClick={() => onEdit(tenant)}>
+              <Pencil size={12} /> Edit
             </Btn>
             {isActive ? (
-              <Btn variant="ghost" size="sm" onClick={() => onSuspend(tenant.slug)} title="Suspend tenant">
-                <PauseCircle size={13} className="text-yellow-500" />
+              <Btn variant="secondary" size="sm" onClick={() => onSuspend(tenant.slug)}>
+                <PauseCircle size={12} className="text-yellow-500" /> Pause
               </Btn>
             ) : (
-              <Btn variant="ghost" size="sm" onClick={() => onActivate(tenant.slug)} title="Reactivate tenant">
-                <CheckCircle size={13} className="text-green-500" />
+              <Btn variant="secondary" size="sm" onClick={() => onActivate(tenant.slug)}>
+                <CheckCircle size={12} className="text-green-500" /> Activate
               </Btn>
             )}
             {tenant.slug !== 'default' && (
-              <Btn variant="ghost" size="sm" onClick={() => onDeprovision(tenant)} title="Deprovision (irreversible)">
-                <Trash2 size={13} className="text-red-500" />
+              <Btn variant="ghost" size="sm" onClick={() => onDeprovision(tenant)}
+                className="text-red-500 hover:bg-red-50">
+                <Trash2 size={12} /> Delete
               </Btn>
             )}
           </div>
         )}
       </div>
 
-      {/* Expanded details */}
-      {expanded && (
-        <div className="border-t border-gray-100 px-14 py-4 bg-gray-50/60 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Contact</p>
-            <p className="text-sm text-gray-700">{tenant.contact_email || '—'}</p>
+      {/* Info grid */}
+      <div className="grid grid-cols-4 gap-x-4 gap-y-2 px-4 py-3 border-b border-gray-100">
+        <div>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5 flex items-center gap-1">
+            <Mail size={9} /> Contact
+          </p>
+          <p className="text-xs text-gray-700 truncate">{tenant.contact_email || '—'}</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5 flex items-center gap-1">
+            <Database size={9} /> Schema
+          </p>
+          <p className="text-xs text-gray-700 font-mono">{tenant.schema_name}</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5 flex items-center gap-1">
+            <Calendar size={9} /> Created
+          </p>
+          <p className="text-xs text-gray-700">
+            {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : '—'}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5 flex items-center gap-1">
+            <Hash size={9} /> Tenant ID
+          </p>
+          <p className="text-[10px] text-gray-500 font-mono truncate">{tenant.tenant_id}</p>
+        </div>
+      </div>
+
+      {/* SSO domains + resend invite side by side */}
+      {!isDeprovisioned && (
+        <div className="grid grid-cols-2 divide-x divide-gray-100">
+          <div className="px-4 py-3">
+            <DomainManager tenant={tenant} compact />
           </div>
-          <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Schema</p>
-            <p className="text-sm text-gray-700 font-mono">{tenant.schema_name}</p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Created</p>
-            <p className="text-sm text-gray-700">
-              {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : '—'}
+          <div className="px-4 py-3">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+              Resend invite
             </p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Tenant ID</p>
-            <p className="text-xs text-gray-500 font-mono truncate">{tenant.tenant_id}</p>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                value={reinviteEmail}
+                onChange={e => { setReinviteEmail(e.target.value); setReinviteMsg(''); }}
+                placeholder="admin@tenant.com"
+                className="flex-1 h-7 border border-gray-200 rounded-lg px-2 text-xs focus:outline-none focus:border-indigo-400"
+              />
+              <Btn variant="secondary" size="sm" onClick={sendReinvite} disabled={reinviting || !reinviteEmail.trim()}>
+                {reinviting ? <Spinner size={3} /> : <Mail size={11} />}
+                {reinviting ? 'Sending…' : 'Send'}
+              </Btn>
+            </div>
+            {reinviteMsg === 'ok' && (
+              <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
+                <CheckCircle size={10} /> Sent.
+              </p>
+            )}
+            {recoveryLink && (
+              <div className="mt-1.5 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-[10px] font-semibold text-amber-800 mb-1">
+                  User exists — share this one-time link:
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    readOnly
+                    value={recoveryLink}
+                    className="flex-1 h-6 border border-amber-300 rounded px-1.5 text-[10px] font-mono bg-white text-gray-700 select-all"
+                    onFocus={e => e.target.select()}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard.writeText(recoveryLink)}
+                    className="shrink-0 px-1.5 py-0.5 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-medium rounded transition-colors"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <p className="text-[10px] text-amber-600 mt-0.5">Expires in 1 hour · single-use</p>
+              </div>
+            )}
+            {reinviteMsg && reinviteMsg !== 'ok' && !recoveryLink && (
+              <p className="text-xs text-red-500 mt-1">{reinviteMsg}</p>
+            )}
           </div>
         </div>
       )}
     </Card>
+  );
+}
+
+// ── Domain manager ─────────────────────────────────────────────────────────────
+
+function DomainManager({ tenant, compact }) {
+  const [domains,     setDomains]     = useState([]);
+  const [newDomain,   setNewDomain]   = useState('');
+  const [defaultRole, setDefaultRole] = useState('ANALYST');
+  const [adding,      setAdding]      = useState(false);
+  const [error,       setError]       = useState('');
+
+  useEffect(() => {
+    api.admin.tenants.domains.list(tenant.slug)
+      .then(d => setDomains(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, [tenant.slug]);
+
+  const add = async (e) => {
+    e.preventDefault();
+    const d = newDomain.trim().toLowerCase().replace(/^@/, '');
+    if (!d) return;
+    setAdding(true); setError('');
+    try {
+      await api.admin.tenants.domains.add(tenant.slug, { domain: d, default_role: defaultRole });
+      setDomains(prev => [...prev, { domain: d, tenant_schema: tenant.schema_name, default_role: defaultRole }]);
+      setNewDomain('');
+    } catch (err) { setError(err.message || 'Failed to add domain'); }
+    finally { setAdding(false); }
+  };
+
+  const remove = async (domain) => {
+    try {
+      await api.admin.tenants.domains.remove(tenant.slug, domain);
+      setDomains(prev => prev.filter(d => d.domain !== domain));
+    } catch (_) {}
+  };
+
+  return (
+    <div>
+      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+        SSO Domains
+      </p>
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        {domains.length === 0
+          ? <span className="text-xs text-gray-400">No domains registered</span>
+          : domains.map(d => (
+            <span key={d.domain}
+              className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 border border-indigo-200 rounded-full text-xs font-medium text-indigo-700">
+              @{d.domain}
+              <span className="text-indigo-400">·</span>
+              <span className="text-indigo-500">{d.default_role}</span>
+              <button onClick={() => remove(d.domain)}
+                className="ml-0.5 text-indigo-400 hover:text-red-500 transition-colors">
+                ×
+              </button>
+            </span>
+          ))
+        }
+      </div>
+      <form onSubmit={add} className="flex items-center gap-1.5">
+        <input
+          type="text" placeholder="acme.com"
+          value={newDomain} onChange={e => setNewDomain(e.target.value)}
+          className="border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 w-28"
+        />
+        <select value={defaultRole} onChange={e => setDefaultRole(e.target.value)}
+          className="border border-gray-200 rounded-lg px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
+          <option value="ANALYST">Analyst</option>
+          <option value="DOMAIN_OWNER">Domain Owner</option>
+          <option value="ADMIN">Admin</option>
+        </select>
+        <button type="submit" disabled={adding || !newDomain.trim()}
+          className="flex items-center gap-1 px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium disabled:opacity-50 transition-colors">
+          <Plus size={10} /> Add
+        </button>
+      </form>
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </div>
   );
 }
 
@@ -253,8 +416,9 @@ function ProvisionModal({ open, onClose, onProvisioned }) {
               onChange={e => set('adminPassword', e.target.value)}
             />
           </div>
-          <p className="text-xs text-gray-400 mt-1">
-            The tenant admin will use these credentials at first login.
+          <p className="text-xs text-amber-600 mt-1">
+            An invite email will be sent to the admin so they can set their own Supabase login password.
+            The temporary password above is only used if Supabase auth is disabled.
           </p>
         </div>
 
@@ -332,16 +496,27 @@ function EditModal({ open, tenant, onClose, onSaved }) {
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function TenantAdmin() {
-  const [tenants, setTenants]       = useState([]);
-  const [loading, setLoading]       = useState(true);
+  const [tenants,       setTenants]       = useState([]);
+  const [selectedSlug,  setSelectedSlug]  = useState('');
+  const [loading,       setLoading]       = useState(true);
   const [showProvision, setShowProvision] = useState(false);
-  const [editTarget, setEditTarget] = useState(null);
+  const [editTarget,    setEditTarget]    = useState(null);
 
   const load = async () => {
     setLoading(true);
-    try { setTenants(safeArray(await api.admin.tenants.list())); }
-    catch { setTenants([]); }
-    finally { setLoading(false); }
+    try {
+      const list = safeArray(await api.admin.tenants.list());
+      setTenants(list);
+      // Keep selection valid after reload; default to first tenant if none selected
+      setSelectedSlug(prev => {
+        if (prev && list.some(t => t.slug === prev)) return prev;
+        return list[0]?.slug ?? '';
+      });
+    } catch {
+      setTenants([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -366,12 +541,13 @@ export default function TenantAdmin() {
     load();
   };
 
-  const active      = tenants.filter(t => t.status === 'ACTIVE');
-  const suspended   = tenants.filter(t => t.status === 'SUSPENDED');
+  const active        = tenants.filter(t => t.status === 'ACTIVE');
+  const suspended     = tenants.filter(t => t.status === 'SUSPENDED');
   const deprovisioned = tenants.filter(t => t.status === 'DEPROVISIONED');
+  const selectedTenant = tenants.find(t => t.slug === selectedSlug) ?? null;
 
   return (
-    <div className="flex-1 overflow-auto p-7 bg-transparent">
+    <div className="flex-1 overflow-auto p-5 bg-transparent">
       <PageHeader
         title="Tenant Management"
         subtitle="Provision, configure, and manage isolated customer workspaces"
@@ -388,15 +564,15 @@ export default function TenantAdmin() {
       />
 
       {/* Summary stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-3 mb-4">
         {[
-          { label: 'Active tenants',  value: active.length,       color: 'text-green-600',  bg: 'bg-green-50',  border: 'border-green-100' },
-          { label: 'Suspended',       value: suspended.length,    color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-100' },
-          { label: 'Deprovisioned',   value: deprovisioned.length, color: 'text-red-500',   bg: 'bg-red-50',    border: 'border-red-100' },
+          { label: 'Active tenants', value: active.length,        color: 'text-green-600',  bg: 'bg-green-50',  border: 'border-green-100' },
+          { label: 'Suspended',      value: suspended.length,     color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-100' },
+          { label: 'Deprovisioned',  value: deprovisioned.length, color: 'text-red-500',    bg: 'bg-red-50',    border: 'border-red-100' },
         ].map(s => (
-          <div key={s.label} className={`rounded-xl border ${s.border} ${s.bg} px-5 py-4`}>
-            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-xs font-medium text-gray-500 mt-0.5">{s.label}</p>
+          <div key={s.label} className={`rounded-xl border ${s.border} ${s.bg} px-4 py-3`}>
+            <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
+            <p className="text-xs font-medium text-gray-500">{s.label}</p>
           </div>
         ))}
       </div>
@@ -410,18 +586,38 @@ export default function TenantAdmin() {
           body="Provision your first tenant to get started. Each tenant gets an isolated PostgreSQL schema."
         />
       ) : (
-        <div className="space-y-2">
-          {tenants.map(t => (
-            <TenantRow
-              key={t.tenant_id}
-              tenant={t}
+        <>
+          {/* Tenant selector */}
+          <div className="mb-3">
+            <div className="relative max-w-sm">
+              <select
+                value={selectedSlug}
+                onChange={e => setSelectedSlug(e.target.value)}
+                className="w-full h-9 pl-9 pr-8 border border-gray-200 rounded-xl text-sm bg-white shadow-sm appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+              >
+                {tenants.map(t => (
+                  <option key={t.slug} value={t.slug}>
+                    {t.name} ({t.slug}) — {t.status}
+                  </option>
+                ))}
+              </select>
+              <Building2 size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Detail panel */}
+          {selectedTenant && (
+            <TenantDetail
+              key={selectedTenant.slug}
+              tenant={selectedTenant}
               onSuspend={suspend}
               onActivate={activate}
               onDeprovision={deprovision}
               onEdit={t => setEditTarget(t)}
             />
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       <ProvisionModal

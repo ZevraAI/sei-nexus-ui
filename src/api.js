@@ -2,6 +2,8 @@
 // All requests include session cookie automatically (credentials: 'include').
 // On 401 the client clears local auth state and redirects to /login.
 
+import { supabase, getCachedToken } from './supabase.js';
+
 const BASE = import.meta.env.VITE_API_BASE ?? '';
 const TOKEN_KEY = 'nexus_token';
 const USER_KEY = 'nexus_user';
@@ -17,13 +19,24 @@ function authToken() {
   }
 }
 
-async function req(method, path, body, isForm = false) {
+function getAuthHeader() {
+  // Use the module-level cached Supabase token — synchronous, no network call.
+  // The cache is kept up-to-date by supabase.js onAuthStateChange listener.
+  const jwt = supabase ? getCachedToken() : null;
+  if (jwt) return { 'Authorization': 'Bearer ' + jwt };
+
+  // Fall back to legacy X-Nexus-Token for existing sessions
   const token = authToken();
+  return token ? { 'X-Nexus-Token': token } : {};
+}
+
+async function req(method, path, body, isForm = false) {
+  const authHeader = getAuthHeader();
   const opts = {
     method,
     headers: {
       ...(isForm ? {} : { 'Content-Type': 'application/json' }),
-      ...(token ? { 'X-Nexus-Token': token } : {}),
+      ...authHeader,
     },
   };
   if (body) {
@@ -66,6 +79,31 @@ export const api = {
     logout: ()                      => post('/auth/logout'),
   },
 
+  // ── Usage & Cost ──────────────────────────────────────────────────────────
+  usage: {
+    summary: (period) => get(`/usage/summary${period ? '?period=' + period : ''}`),
+    admin:   (period) => get(`/usage/admin${period   ? '?period=' + period : ''}`),
+  },
+
+  // ── Morning Brief ─────────────────────────────────────────────────────────
+  brief: {
+    today:      ()     => get('/brief'),
+    generate:   ()     => post('/brief/generate'),
+    getConfig:  ()     => get('/brief/config'),
+    saveConfig: (body) => put('/brief/config', body),
+    agents:     ()     => get('/zevra-agents'),   // active agents available for brief selection
+  },
+
+  // ── User Management ────────────────────────────────────────────────────────
+  users: {
+    list:         ()              => get('/auth/users'),
+    invite:       (body)          => post('/auth/users/invite', body),
+    update:       (email, body)   => patch(`/auth/users/${encodeURIComponent(email)}`, body),
+    remove:       (email)         => del(`/auth/users/${encodeURIComponent(email)}`),
+    resendInvite: (email)         => post(`/auth/users/${encodeURIComponent(email)}/resend-invite`),
+    reactivate:   (email)         => patch(`/auth/users/${encodeURIComponent(email)}`, { status: 'ACTIVE' }),
+  },
+
   // ── Admin — Tenant Management ──────────────────────────────────────────────
   admin: {
     tenants: {
@@ -75,6 +113,12 @@ export const api = {
       update:      (slug, body) => patch(`/admin/tenants/${slug}`, body),
       suspend:     (slug)       => post(`/admin/tenants/${slug}/suspend`),
       deprovision: (slug)       => del(`/admin/tenants/${slug}`),
+      reinvite:    (slug, email) => post(`/admin/tenants/${slug}/reinvite`, { email }),
+      domains: {
+        list:   (slug)          => get(`/admin/tenants/${slug}/domains`),
+        add:    (slug, body)    => post(`/admin/tenants/${slug}/domains`, body),
+        remove: (slug, domain)  => del(`/admin/tenants/${slug}/domains/${encodeURIComponent(domain)}`),
+      },
     },
   },
 
@@ -253,6 +297,15 @@ export const api = {
     preview: (packKey, body)         => post(`/industry-packs/${packKey}/preview`, body || {}),
     apply:   (packKey, body)         => post(`/industry-packs/${packKey}/apply`, body),
     remove:  (packKey)               => del(`/industry-packs/applied/${packKey}`),
+  },
+
+  // ── Integration Templates ──────────────────────────────────────────────────
+  integrationTemplates: {
+    list:     ()                       => get('/templates'),
+    get:      (id)                     => get(`/templates/${id}`),
+    applied:  ()                       => get('/templates/applied'),
+    validate: (id, connectionKey)      => post(`/templates/${id}/validate`, { connection_key: connectionKey }),
+    apply:    (id, body)               => post(`/templates/${id}/apply`, body),
   },
 
   // ── Governance Hub ─────────────────────────────────────────────────────────

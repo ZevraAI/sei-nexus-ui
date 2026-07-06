@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth, navigate } from '../App.jsx';
 import { AlertBell } from './NotificationPanel.jsx';
 import { ZevraLogo } from './ZevraLogo.jsx';
@@ -45,20 +45,85 @@ function ThemeToggle() {
   );
 }
 
-// ── nav items ─────────────────────────────────────────────────────────────
-function buildNavItems(isAdmin, isPlatformAdmin) {
+// ── Nav dropdown component ────────────────────────────────────────────────
+function NavDropdown({ label, items, active, isDark }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const isActive = items.some(i => active(i.path));
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`flex items-center gap-1 px-[11px] py-[6px] rounded-[7px] text-[13px] font-medium
+                    transition-all whitespace-nowrap ${
+          isActive
+            ? isDark ? 'bg-[#1E2535] text-[#F0F4F8] font-semibold'
+                     : 'bg-[#F3F4F6] text-[#111827] font-semibold'
+            : isDark ? 'text-[#94A3B8] hover:bg-[#1E2535] hover:text-[#F0F4F8]'
+                     : 'text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827]'
+        }`}
+      >
+        {label}
+        <ChevronDown size={12} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className={`absolute top-[38px] left-0 w-[180px] border rounded-[10px]
+                         shadow-xl py-1 z-50
+                         ${isDark ? 'bg-[#1A1F2B] border-[#252E3F]' : 'bg-white border-gray-200'}`}>
+          {items.map(({ path, label: itemLabel }) => (
+            <button
+              key={path}
+              onClick={() => { navigate(path); setOpen(false); }}
+              className={`w-full text-left px-3 py-2 text-[13px] transition-colors ${
+                active(path)
+                  ? isDark ? 'bg-[#1E2535] text-[#F0F4F8] font-semibold'
+                           : 'bg-[#F3F4F6] text-[#111827] font-semibold'
+                  : isDark ? 'text-[#94A3B8] hover:bg-[#1E2535] hover:text-[#F0F4F8]'
+                           : 'text-[#6B7280] hover:bg-gray-50 hover:text-[#111827]'
+              }`}
+            >
+              {itemLabel}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── nav structure ─────────────────────────────────────────────────────────
+const FLAT_ITEMS = [
+  { path: '/brief',   label: 'Brief' },
+  { path: '/chat',    label: 'Investigations' },
+  { path: '/agents',  label: 'Agents' },
+  { path: '/reports', label: 'Reports' },
+];
+
+const CONFIGURE_ITEMS = [
+  { path: '/connections',  label: 'Connections' },
+  { path: '/templates',    label: 'Templates' },
+  { path: '/automations',  label: 'Automations' },
+  { path: '/graph',        label: 'Knowledge Graph' },
+  { path: '/semantic',     label: 'Semantic Layer' },
+  { path: '/memory',       label: 'AI Memory' },
+];
+
+function buildAdminItems(isAdmin) {
+  if (!isAdmin) return [];
   return [
-    { path: '/chat',       label: 'Investigations' },
-    { path: '/agents',     label: 'Agents' },
-    { path: '/graph',      label: 'Knowledge Graph' },
-    { path: '/semantic',   label: 'Semantic Layer' },
-    { path: '/connections',   label: 'Connections' },
-    { path: '/automations',   label: 'Automations' },
-    { path: '/memory',        label: 'AI Memory' },
-    { path: '/reports',       label: 'Reports' },
-    ...(isAdmin ? [{ path: '/governance', label: 'Governance' }] : []),
+    { path: '/users',      label: 'Team' },
+    { path: '/usage',      label: 'Usage' },
+    { path: '/governance', label: 'Governance' },
     { path: '/settings',   label: 'Settings' },
-    ...(isPlatformAdmin ? [{ path: '/tenants', label: 'Tenants' }] : []),
   ];
 }
 
@@ -70,7 +135,7 @@ export default function Layout({ children, currentPath }) {
 
   const isAdmin = user?.role === 'ADMIN';
   const isPlatformAdmin = isAdmin && (user?.tenant_schema === 'public' || !user?.tenant_schema);
-  const navItems = buildNavItems(isAdmin, isPlatformAdmin);
+  const adminItems = buildAdminItems(isAdmin);
 
   const active = (path) => {
     if (path === '/chat' && (currentPath === '/' || currentPath === '/chat')) return true;
@@ -103,24 +168,31 @@ export default function Layout({ children, currentPath }) {
 
         {/* Nav items */}
         <nav className="flex items-center gap-0.5 flex-1">
-          {navItems.map(({ path, label }) => (
+          {/* Flat primary items */}
+          {FLAT_ITEMS.map(({ path, label }) => (
             <button
               key={path}
               onClick={() => navigate(path)}
               className={`px-[11px] py-[6px] rounded-[7px] text-[13px] font-medium
                           transition-all whitespace-nowrap ${
                 active(path)
-                  ? isDark
-                    ? 'bg-[#1E2535] text-[#F0F4F8] font-semibold'
-                    : 'bg-[#F3F4F6] text-[#111827] font-semibold'
-                  : isDark
-                    ? 'text-[#94A3B8] hover:bg-[#1E2535] hover:text-[#F0F4F8]'
-                    : 'text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827]'
+                  ? isDark ? 'bg-[#1E2535] text-[#F0F4F8] font-semibold'
+                           : 'bg-[#F3F4F6] text-[#111827] font-semibold'
+                  : isDark ? 'text-[#94A3B8] hover:bg-[#1E2535] hover:text-[#F0F4F8]'
+                           : 'text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827]'
               }`}
             >
               {label}
             </button>
           ))}
+
+          {/* Configure dropdown */}
+          <NavDropdown label="Configure" items={CONFIGURE_ITEMS} active={active} isDark={isDark} />
+
+          {/* Admin dropdown */}
+          {isAdmin && adminItems.length > 0 && (
+            <NavDropdown label="Admin" items={adminItems} active={active} isDark={isDark} />
+          )}
         </nav>
 
         {/* Right side */}
