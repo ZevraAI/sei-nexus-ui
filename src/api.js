@@ -5,8 +5,18 @@
 import { supabase, getCachedToken } from './supabase.js';
 
 const BASE = import.meta.env.VITE_API_BASE ?? '';
-const TOKEN_KEY = 'nexus_token';
-const USER_KEY = 'nexus_user';
+const TOKEN_KEY        = 'nexus_token';
+const USER_KEY         = 'nexus_user';
+const IMPERSONATION_KEY = 'nexus_impersonation';
+
+export function getImpersonation() {
+  try { return JSON.parse(localStorage.getItem(IMPERSONATION_KEY)); } catch { return null; }
+}
+
+export function saveImpersonation(data) {
+  if (data) localStorage.setItem(IMPERSONATION_KEY, JSON.stringify(data));
+  else localStorage.removeItem(IMPERSONATION_KEY);
+}
 
 function authToken() {
   const direct = localStorage.getItem(TOKEN_KEY);
@@ -23,7 +33,15 @@ function getAuthHeader() {
   // Use the module-level cached Supabase token — synchronous, no network call.
   // The cache is kept up-to-date by supabase.js onAuthStateChange listener.
   const jwt = supabase ? getCachedToken() : null;
-  if (jwt) return { 'Authorization': 'Bearer ' + jwt };
+  if (jwt) {
+    const headers = { 'Authorization': 'Bearer ' + jwt };
+    // Attach impersonation token if active and not expired
+    const imp = getImpersonation();
+    if (imp?.token && imp?.expiresAt && new Date(imp.expiresAt) > new Date()) {
+      headers['X-Nexus-Impersonate'] = imp.token;
+    }
+    return headers;
+  }
 
   // Fall back to legacy X-Nexus-Token for existing sessions
   const token = authToken();
@@ -68,7 +86,7 @@ const get  = (path)             => req('GET',    path);
 const post = (path, body, f)    => req('POST',   path, body, f);
 const put  = (path, body)       => req('PUT',    path, body);
 const patch= (path, body)       => req('PATCH',  path, body);
-const del  = (path)             => req('DELETE', path);
+const del  = (path, body)       => req('DELETE', path, body);
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 export const api = {
@@ -114,6 +132,8 @@ export const api = {
       suspend:     (slug)       => post(`/admin/tenants/${slug}/suspend`),
       deprovision: (slug)       => del(`/admin/tenants/${slug}`),
       reinvite:    (slug, email) => post(`/admin/tenants/${slug}/reinvite`, { email }),
+      impersonate:     (slug)  => post(`/admin/tenants/${slug}/impersonate`),
+      exitImpersonation: (token) => del('/admin/tenants/impersonate', { token }),
       domains: {
         list:   (slug)          => get(`/admin/tenants/${slug}/domains`),
         add:    (slug, body)    => post(`/admin/tenants/${slug}/domains`, body),

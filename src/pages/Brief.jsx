@@ -364,8 +364,31 @@ export default function Brief() {
     );
   }
 
+  // No brief for today yet — offer to generate one now.
+  // (Without this state the page showed a permanent "preparing" skeleton:
+  // nothing was generating and nothing on the page could start a generation.)
+  if (!brief) {
+    return (
+      <div className="h-full overflow-y-auto bg-white">
+        <BriefHeader user={user} brief={null} regenerating={false} onRegenerate={null} />
+        <div className="max-w-3xl mx-auto px-8 py-16 text-center">
+          <p className="text-[15px] text-gray-600 mb-2">No brief has been generated for today yet.</p>
+          <p className="text-[13px] text-gray-400 mb-6">
+            Your next brief is scheduled for {config.schedule_time ?? config.scheduleTime ?? '07:00'}{' '}
+            {config.timezone ?? 'UTC'} — or generate one now.
+          </p>
+          <button onClick={regenerate} disabled={regenerating}
+            className="inline-flex items-center gap-2 bg-[#07201A] text-white px-5 py-2.5 rounded-xl text-[13px] font-semibold disabled:opacity-50">
+            <RefreshCw size={14} className={regenerating ? 'animate-spin' : ''} />
+            {regenerating ? 'Starting…' : 'Generate Now'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Brief generating
-  if (!brief || brief.status === 'GENERATING') {
+  if (brief.status === 'GENERATING') {
     return (
       <div className="h-full overflow-y-auto bg-white">
         {/* Header */}

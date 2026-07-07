@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth, navigate } from '../App.jsx';
 import { AlertBell } from './NotificationPanel.jsx';
 import { ZevraLogo } from './ZevraLogo.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
+import { api } from '../api.js';
 import {
-  Building2, ChevronDown, LogOut, Moon, Sun,
+  Building2, ChevronDown, LogOut, Moon, Sun, ArrowLeftRight, X,
 } from 'lucide-react';
 
 // ── helpers ───────────────────────────────────────────────────────────────
@@ -100,6 +101,162 @@ function NavDropdown({ label, items, active, isDark }) {
   );
 }
 
+// ── WorkspaceSwitcher (platform admin only) ──────────────────────────────
+function WorkspaceSwitcher({ user, isDark }) {
+  const { impersonation, startImpersonation, exitImpersonation } = useAuth();
+  const [open,    setOpen]    = useState(false);
+  const [tenants, setTenants] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const ref = useRef(null);
+
+  // Auto-expire stale impersonation tokens
+  useEffect(() => {
+    if (impersonation?.expiresAt && new Date(impersonation.expiresAt) <= new Date()) {
+      exitImpersonation();
+    }
+  }, [impersonation, exitImpersonation]);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleOpen = useCallback(async () => {
+    if (open) { setOpen(false); return; }
+    setOpen(true);
+    if (tenants.length === 0) {
+      setLoading(true);
+      try {
+        const list = await api.admin.tenants.list();
+        setTenants((list || []).filter(t => t.status !== 'DEPROVISIONED'));
+      } catch (_) {}
+      setLoading(false);
+    }
+  }, [open, tenants.length]);
+
+  const handleSelect = useCallback(async (tenant) => {
+    setOpen(false);
+    if (impersonation?.tenantSlug === tenant.slug) return;
+    try {
+      const result = await api.admin.tenants.impersonate(tenant.slug);
+      startImpersonation(result);
+    } catch (e) {
+      alert('Failed to switch workspace: ' + e.message);
+    }
+  }, [impersonation, startImpersonation]);
+
+  const handleExit = useCallback((e) => {
+    e.stopPropagation();
+    exitImpersonation();
+    setOpen(false);
+  }, [exitImpersonation]);
+
+  const label    = impersonation ? impersonation.tenantName : tenantLabel(user);
+  const initials = label.slice(0, 2).toUpperCase();
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={handleOpen}
+        className={`flex items-center gap-[6px] px-[10px] py-[5px] rounded-[7px]
+                    text-[12px] font-medium border transition-colors
+                    ${
+                      impersonation
+                        ? isDark
+                          ? 'bg-amber-900/30 border-amber-700/60 text-amber-300 hover:bg-amber-900/50'
+                          : 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
+                        : isDark
+                          ? 'bg-[#1A1F2B] border-[#252E3F] text-[#94A3B8] hover:bg-[#1E2535]'
+                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+      >
+        <div className={`w-[18px] h-[18px] rounded-[4px] flex items-center justify-center
+                         text-[8px] font-bold text-white flex-shrink-0
+                         ${
+                           impersonation
+                             ? 'bg-gradient-to-br from-amber-500 to-orange-600'
+                             : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                         }`}>
+          {initials}
+        </div>
+        <span className="truncate max-w-[100px]">{label}</span>
+        <ChevronDown size={10} className={`transition-transform flex-shrink-0 ${
+          isDark ? 'text-[#64748B]' : 'text-gray-400'
+        } ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className={`absolute right-0 top-[38px] w-[220px] border rounded-[10px]
+                         shadow-xl py-1 z-50
+                         ${isDark ? 'bg-[#1A1F2B] border-[#252E3F]' : 'bg-white border-gray-200'}`}>
+
+          {/* Platform admin option */}
+          <button
+            onClick={handleExit}
+            className={`w-full flex items-center gap-2 px-3 py-2 text-[12px] transition-colors
+                         ${
+                           !impersonation
+                             ? isDark ? 'bg-[#1E2535] text-[#F0F4F8] font-semibold'
+                                      : 'bg-gray-50 text-gray-900 font-semibold'
+                             : isDark ? 'text-[#94A3B8] hover:bg-[#1E2535] hover:text-[#F0F4F8]'
+                                      : 'text-gray-600 hover:bg-gray-50'
+                         }`}
+          >
+            <div className="w-[16px] h-[16px] rounded-[3px] bg-gradient-to-br from-blue-500
+                            to-purple-600 flex items-center justify-center
+                            text-[7px] font-bold text-white flex-shrink-0">
+              PA
+            </div>
+            <span className="flex-1 text-left truncate">Platform Admin</span>
+            {impersonation && <ArrowLeftRight size={11} className="opacity-50" />}
+          </button>
+
+          {/* Divider */}
+          <div className={`mx-2 my-1 border-t ${isDark ? 'border-[#252E3F]' : 'border-gray-100'}`} />
+          <p className={`px-3 pb-1 text-[10px] uppercase tracking-wider font-semibold
+                         ${isDark ? 'text-[#475569]' : 'text-gray-400'}`}>
+            Tenant Workspaces
+          </p>
+
+          {loading && (
+            <p className={`px-3 py-2 text-[12px] ${isDark ? 'text-[#64748B]' : 'text-gray-400'}`}>
+              Loading&hellip;
+            </p>
+          )}
+
+          {!loading && tenants.map(t => (
+            <button
+              key={t.slug}
+              onClick={() => handleSelect(t)}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-[12px] transition-colors
+                           ${
+                             impersonation?.tenantSlug === t.slug
+                               ? isDark ? 'bg-[#1E2535] text-[#F0F4F8] font-semibold'
+                                        : 'bg-amber-50 text-amber-800 font-semibold'
+                               : isDark ? 'text-[#94A3B8] hover:bg-[#1E2535] hover:text-[#F0F4F8]'
+                                        : 'text-gray-600 hover:bg-gray-50'
+                           }`}
+            >
+              <div className="w-[16px] h-[16px] rounded-[3px] bg-gradient-to-br from-emerald-500
+                              to-teal-600 flex items-center justify-center
+                              text-[7px] font-bold text-white flex-shrink-0">
+                {t.name.slice(0, 2).toUpperCase()}
+              </div>
+              <span className="flex-1 text-left truncate">{t.name}</span>
+              {impersonation?.tenantSlug === t.slug && (
+                <span className={`text-[10px] ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                  active
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── nav structure ─────────────────────────────────────────────────────────
 const FLAT_ITEMS = [
   { path: '/brief',   label: 'Brief' },
@@ -129,7 +286,7 @@ function buildAdminItems(isAdmin) {
 
 // ── component ─────────────────────────────────────────────────────────────
 export default function Layout({ children, currentPath }) {
-  const { user, logout } = useAuth();
+  const { user, logout, impersonation, exitImpersonation } = useAuth();
   const { isDark } = useTheme();
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -147,7 +304,25 @@ export default function Layout({ children, currentPath }) {
   return (
     <div className="flex flex-col h-screen">
 
-      {/* ── Top navigation bar ─────────────────────────────────────────── */}
+      {/* ── Impersonation banner ────────────────────────────────────── */}
+      {impersonation && (
+        <div className="shrink-0 flex items-center justify-between px-4 py-1.5
+                        bg-amber-500 text-white text-[12px] font-medium">
+          <span>
+            🔍 Viewing as <strong>{impersonation.tenantName}</strong>
+            &nbsp;&mdash; changes affect this tenant’s data
+          </span>
+          <button
+            onClick={exitImpersonation}
+            className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-600
+                       hover:bg-amber-700 transition-colors text-[11px]"
+          >
+            <X size={11} /> Exit
+          </button>
+        </div>
+      )}
+
+      {/* ── Top navigation bar ──────────────────────────────────── */}
       <header className={`h-[52px] shrink-0 flex items-center px-5 gap-0 z-50
                           backdrop-blur-md border-b transition-colors duration-200
                           ${isDark
@@ -216,20 +391,24 @@ export default function Layout({ children, currentPath }) {
             </span>
           </div>
 
-          {/* Workspace badge */}
-          <button className={`flex items-center gap-[6px] px-[10px] py-[5px] rounded-[7px]
-                              text-[12px] font-medium border transition-colors
+          {/* Workspace badge — real switcher for platform admins, static badge for tenants */}
+          {isPlatformAdmin
+            ? <WorkspaceSwitcher user={user} isDark={isDark} />
+            : (
+              <div className={`flex items-center gap-[6px] px-[10px] py-[5px] rounded-[7px]
+                              text-[12px] font-medium border
                               ${isDark
-                                ? 'bg-[#1A1F2B] border-[#252E3F] text-[#94A3B8] hover:bg-[#1E2535]'
-                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-            <div className="w-[18px] h-[18px] rounded-[4px] bg-gradient-to-br from-blue-500
-                            to-purple-600 flex items-center justify-center
-                            text-[8px] font-bold text-white flex-shrink-0">
-              {tenantLabel(user).slice(0, 2).toUpperCase()}
-            </div>
-            <span className="truncate max-w-[100px]">{tenantLabel(user)}</span>
-            <ChevronDown size={10} className={isDark ? 'text-[#64748B] flex-shrink-0' : 'text-gray-400 flex-shrink-0'} />
-          </button>
+                                ? 'bg-[#1A1F2B] border-[#252E3F] text-[#94A3B8]'
+                                : 'bg-white border-gray-200 text-gray-600'}`}>
+                <div className="w-[18px] h-[18px] rounded-[4px] bg-gradient-to-br from-blue-500
+                                to-purple-600 flex items-center justify-center
+                                text-[8px] font-bold text-white flex-shrink-0">
+                  {tenantLabel(user).slice(0, 2).toUpperCase()}
+                </div>
+                <span className="truncate max-w-[100px]">{tenantLabel(user)}</span>
+              </div>
+            )
+          }
 
           {/* User avatar + dropdown */}
           <div className="relative">

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 import { api } from './api.js';
+import { getImpersonation, saveImpersonation } from './api.js';
 import { supabase } from './supabase.js';
 import Login from './pages/Login.jsx';
 import SetNewPassword from './pages/SetNewPassword.jsx';
@@ -118,6 +119,27 @@ export default function App() {
   const [firstQuestion,      setFirstQuestion]      = useState(null);
   // True while the user must set a new password (password recovery flow)
   const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
+  // Active impersonation session (platform admin only)
+  const [impersonation, setImpersonation] = useState(() => getImpersonation());
+
+  const startImpersonation = useCallback((data) => {
+    saveImpersonation(data);
+    setImpersonation(data);
+    // Hard refresh so all views/data reset to the new tenant immediately
+    setTimeout(() => window.location.reload(), 0);
+  }, []);
+
+  const exitImpersonation = useCallback(() => {
+    if (!impersonation) return;
+    const token = impersonation.token;
+    // Clear locally first — UI updates immediately
+    saveImpersonation(null);
+    setImpersonation(null);
+    // Fire-and-forget server cleanup; token expires in 30 min regardless
+    api.admin.tenants.exitImpersonation(token).catch(() => {});
+    // Hard refresh so any tenant-scoped state and caches are cleared
+    setTimeout(() => window.location.reload(), 0);
+  }, [impersonation]);
 
   // ── Verify session on load ─────────────────────────────────────────────────
   useEffect(() => {
@@ -269,7 +291,7 @@ export default function App() {
   if (onboardingComplete === false) {
     return (
       <ThemeProvider>
-        <AuthContext.Provider value={{ user, logout }}>
+        <AuthContext.Provider value={{ user, logout, impersonation, startImpersonation, exitImpersonation }}>
           <OnboardingWizard
             user={user}
             onComplete={(question) => {
@@ -298,7 +320,7 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <AuthContext.Provider value={{ user, logout }}>
+      <AuthContext.Provider value={{ user, logout, impersonation, startImpersonation, exitImpersonation }}>
         <Layout currentPath={hash}>
           {hash === '/chat' || hash === '/'
             ? React.cloneElement(<Chat />, { prefillQuestion: firstQuestion,

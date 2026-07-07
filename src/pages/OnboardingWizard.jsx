@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../api.js';
 import { ZevraLogo } from '../components/ZevraLogo.jsx';
+import { useAuth, navigate } from '../App.jsx';
 import {
   Database, Check, ChevronRight, Sparkles, ArrowRight,
   AlertCircle, Search, RefreshCw, ChevronDown, ChevronUp,
@@ -852,6 +853,7 @@ function StepDone({ suggestedQuestions, onFinish, recommendedPack, domainKey }) 
 // ── Main wizard ───────────────────────────────────────────────────────────────
 
 export default function OnboardingWizard({ user, onComplete }) {
+  const { impersonation, exitImpersonation } = useAuth();
   // Restore saved progress so users can resume where they left off
   const saved = loadProgress();
 
@@ -895,6 +897,24 @@ export default function OnboardingWizard({ user, onComplete }) {
           <ZevraLogo size={28} style={{ borderRadius: '8px' }} />
           <span className="text-lg font-bold text-gray-900">Zevra</span>
           <span className="text-gray-300 ml-auto text-sm">Setup wizard</span>
+          {/* Escape actions */}
+          {impersonation ? (
+            <button
+              onClick={exitImpersonation}
+              title="Exit impersonation"
+              className="ml-3 h-8 px-3 rounded-lg bg-amber-100 text-amber-800 text-xs font-semibold border border-amber-200 hover:bg-amber-200 transition-colors"
+            >
+              Exit impersonation
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate('/chat')}
+              title="Back to app"
+              className="ml-3 h-8 px-3 rounded-lg bg-gray-100 text-gray-700 text-xs font-semibold border border-gray-200 hover:bg-gray-200 transition-colors"
+            >
+              Back to app
+            </button>
+          )}
         </div>
 
         <StepBar step={step} />

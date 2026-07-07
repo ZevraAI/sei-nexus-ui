@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { marked } from 'marked';
 import {
   ArrowLeft, Bot, CalendarClock, Clipboard, Clock, Database, Download, FileDown,
-  FileSpreadsheet, FileText, Layers, MoreHorizontal, Network, Paperclip, Printer,
-  Search, Send, Sparkles, User, Users, X,
+  FileSpreadsheet, FileText, Layers, ListTree, MoreHorizontal, Network, Paperclip,
+  Printer, Search, Send, Sparkles, User, Users, X,
 } from 'lucide-react';
 import { api } from '../api.js';
 import { useAuth, navigate } from '../App.jsx';
@@ -20,6 +20,7 @@ const QUICK_TILES = [
 ];
 import DataViz from '../components/DataViz.jsx';
 import ReasoningTrace from '../components/ReasoningTrace.jsx';
+import AgentStepTrace from '../components/agents/AgentStepTrace.jsx';
 
 // ── markdown ──────────────────────────────────────────────────────────────────
 marked.setOptions({ breaks: true, gfm: true });
@@ -582,7 +583,63 @@ function UserMessage({ text, attachment }) {
   );
 }
 
-function AssistantMessage({ content, decisionType, agentName, loading, exportMenu, queryData, quickRefinements, onAsk, reasoningSteps, learningsApplied, streamingSteps }) {
+// Small "view steps" toggle shown on answers produced by a Zevra Agent.
+// Fetches the agent session lazily on first open and renders the tool-call
+// trace with the same component used on the agent detail page.
+function AgentStepsToggle({ sessionId }) {
+  const [open,    setOpen]    = useState(false);
+  const [session, setSession] = useState(null);
+  const [error,   setError]   = useState('');
+
+  const toggle = async () => {
+    const next = !open;
+    setOpen(next);
+    if (next && !session && !error) {
+      try {
+        setSession(await api.zevraAgents.getSession(sessionId));
+      } catch (e) {
+        setError(e.message || 'Could not load agent steps');
+      }
+    }
+  };
+
+  let steps = [];
+  if (session) {
+    const raw = session.steps_json ?? session.stepsJson ?? session.steps;
+    try { steps = typeof raw === 'string' ? JSON.parse(raw) : (raw ?? []); }
+    catch { steps = []; }
+  }
+  const toolCalls = steps.filter(s => s.type === 'TOOL_CALL').length;
+
+  return (
+    <>
+      <button
+        onClick={toggle}
+        title="View the steps the agent executed"
+        className="inline-flex items-center gap-1.5 text-[10.5px] font-medium text-[#3B82F6]
+                   bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full
+                   hover:bg-blue-100 transition-colors cursor-pointer">
+        <ListTree size={10} />
+        {open
+          ? `Hide steps${toolCalls > 0 ? ` (${toolCalls} tool call${toolCalls !== 1 ? 's' : ''})` : ''}`
+          : 'View steps'}
+      </button>
+      {open && (
+        <div className="w-full mt-1.5">
+          {error ? (
+            <div className="text-[12px] text-red-600">{error}</div>
+          ) : !session ? (
+            <div className="text-[12px] text-[#9CA3AF]">Loading steps…</div>
+          ) : (
+            <AgentStepTrace steps={steps} status={session.status} />
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+function AssistantMessage({ content, decisionType, agentName, loading, exportMenu, queryData, quickRefinements, onAsk, reasoningSteps, learningsApplied, streamingSteps, agentSessionId }) {
   return (
     <div className="flex justify-start">
       <div className="flex items-start gap-2.5 w-full">
@@ -622,10 +679,13 @@ function AssistantMessage({ content, decisionType, agentName, loading, exportMen
               {(decisionType || agentName || reasoningSteps?.length > 0) && (
                 <div className="mt-2.5 pt-2.5 border-t border-[#F0EDE8] flex items-center gap-2 flex-wrap">
                   {agentName && decisionType === 'ZEVRA_AGENT' ? (
-                    <span className="inline-flex items-center gap-1.5 text-[10.5px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                      <Bot size={10} className="text-emerald-600" />
-                      Answered by {agentName}
-                    </span>
+                    <>
+                      <span className="inline-flex items-center gap-1.5 text-[10.5px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                        <Bot size={10} className="text-emerald-600" />
+                        Answered by {agentName}
+                      </span>
+                      {agentSessionId && <AgentStepsToggle sessionId={agentSessionId} />}
+                    </>
                   ) : decisionType && (
                     <>
                       <span className="text-[10px] text-[#8A96A6]">via</span>
@@ -1164,6 +1224,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
           quickRefinements:response.quick_refinements || response.quickRefinements || [],
           reasoningSteps:  response.reasoning_steps  || response.reasoningSteps  || [],
           learningsApplied:response.learnings_applied || response.learningsApplied || [],
+          agentSessionId:  response.agent_session_id  || response.agentSessionId  || null,
           streamingSteps:  [],   // cleared — final steps are in reasoningSteps
           loading: false,
         };
@@ -1572,6 +1633,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                       reasoningSteps={msg.reasoningSteps || []}
                       learningsApplied={msg.learningsApplied || []}
                       streamingSteps={msg.streamingSteps || []}
+                      agentSessionId={msg.agentSessionId || null}
                       onAsk={q => sendQuestion(q)}
                       exportMenu={
                         <ExportMenu
