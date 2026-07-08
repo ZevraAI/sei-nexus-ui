@@ -161,9 +161,19 @@ export default function App() {
               const u = await api.auth.me();
               setUser(u);
               localStorage.setItem('nexus_user', JSON.stringify(u));
-            } catch (_) {
-              // Backend temporarily unreachable — keep the cached user
-              // so the app stays usable; don't sign the user out
+            } catch (e) {
+              if (e?.status === 401 || e?.status === 403) {
+                // Supabase considers the session valid but the backend rejected
+                // it (expired, revoked, or no user profile). Sign out locally so
+                // the dead session isn't restored on the next load — otherwise
+                // every reload retries /auth/me and loops back here forever.
+                setUser(null);
+                localStorage.removeItem('nexus_user');
+                localStorage.removeItem('nexus_token');
+                try { await supabase.auth.signOut({ scope: 'local' }); } catch (_) {}
+              }
+              // Otherwise the backend is temporarily unreachable — keep the
+              // cached user so the app stays usable; don't sign the user out
             }
           }
           setChecking(false);
@@ -197,7 +207,13 @@ export default function App() {
               const u = await api.auth.me();
               setUser(u);
               localStorage.setItem('nexus_user', JSON.stringify(u));
-            } catch (_) {}
+            } catch (e) {
+              if (e?.status === 401 || e?.status === 403) {
+                // Backend rejected the fresh Supabase session — drop it so it
+                // can't trigger a retry loop; Login.jsx surfaces the error.
+                try { await supabase.auth.signOut({ scope: 'local' }); } catch (_) {}
+              }
+            }
           } else if (event === 'SIGNED_OUT') {
             localStorage.removeItem('nexus_user');
             localStorage.removeItem('nexus_token');
@@ -222,7 +238,14 @@ export default function App() {
     }
     api.auth.me()
       .then(u => { setUser(u); localStorage.setItem('nexus_user', JSON.stringify(u)); })
-      .catch(() => {})
+      .catch(e => {
+        if (e?.status === 401 || e?.status === 403) {
+          // Stale legacy token — drop it so it isn't retried on every load
+          localStorage.removeItem('nexus_token');
+          localStorage.removeItem('nexus_user');
+          setUser(null);
+        }
+      })
       .finally(() => setChecking(false));
   }, []);
 

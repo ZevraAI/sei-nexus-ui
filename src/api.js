@@ -1,6 +1,10 @@
 // ─── Zevra API client ────────────────────────────────────────────────────
-// All requests include session cookie automatically (credentials: 'include').
-// On 401 the client clears local auth state and redirects to /login.
+// On 401 (dead session) the client clears ALL local auth state — including the
+// persisted Supabase session — then reloads to the login screen. Clearing the
+// Supabase session is critical: leaving it behind makes the app restore it on
+// reload, retry /auth/me, get rejected again, and reload in an infinite loop.
+// A 403 (authorization denial) never logs the user out — it is thrown to the
+// calling page to display.
 
 import { supabase, getCachedToken } from './supabase.js';
 
@@ -48,6 +52,22 @@ function getAuthHeader() {
   return token ? { 'X-Nexus-Token': token } : {};
 }
 
+// Single-flight guard — several parallel requests can 401/403 at once;
+// only the first one should tear down the session and navigate.
+let authFailureInProgress = false;
+
+async function handleAuthFailure() {
+  if (authFailureInProgress) return;
+  authFailureInProgress = true;
+  localStorage.removeItem(USER_KEY);
+  localStorage.removeItem(TOKEN_KEY);
+  if (supabase) {
+    // scope:'local' drops the persisted session without a network round-trip
+    try { await supabase.auth.signOut({ scope: 'local' }); } catch (_) {}
+  }
+  window.location.href = '/';
+}
+
 async function req(method, path, body, isForm = false) {
   const authHeader = getAuthHeader();
   const opts = {
@@ -61,22 +81,26 @@ async function req(method, path, body, isForm = false) {
     opts.body = isForm ? body : JSON.stringify(body);
   }
   const res = await fetch(`${BASE}/api/v1${path}`, opts);
-  const isAuthAttempt = path === '/auth/login' || path === '/auth/signup';
+  // 401 = session dead (expired/revoked token) → tear down local auth state and
+  // return to the login screen. 403 = authenticated but not allowed (e.g. a
+  // role check, or an admin API refusing a tenant context) → surface the error
+  // to the caller and KEEP the session; logging out on 403 breaks flows like
+  // tenant impersonation. Auth-flow endpoints handle their own failures.
+  const isAuthFlow = path === '/auth/login' || path === '/auth/signup' || path === '/auth/me';
   if (res.status === 401 || res.status === 403) {
-    if (isAuthAttempt) {
-      let msg = `HTTP ${res.status}`;
-      try { const d = await res.json(); msg = d.message || d.error || msg; } catch (_) {}
-      throw new Error(msg);
-    }
-    localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(TOKEN_KEY);
-    window.location.href = '/login';
-    return;
+    let msg = `HTTP ${res.status}`;
+    try { const d = await res.json(); msg = d.message || d.error || msg; } catch (_) {}
+    const err = new Error(msg);
+    err.status = res.status;
+    if (res.status === 401 && !isAuthFlow) await handleAuthFailure();
+    throw err;
   }
   if (!res.ok) {
     let msg = `HTTP ${res.status}`;
     try { const d = await res.json(); msg = d.message || d.error || msg; } catch (_) {}
-    throw new Error(msg);
+    const err = new Error(msg);
+    err.status = res.status;
+    throw err;
   }
   if (res.status === 204) return null;
   return res.json();
