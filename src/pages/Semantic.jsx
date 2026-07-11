@@ -252,11 +252,24 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
       tableSuggestions.forEach((t, i) => {
         defaults[i] = {
           approved: !t.error,
+          tableName: t.tableName,
           entityKey: slugify(t.entityName || t.tableName),
           entityName: t.entityName || t.tableName,
           description: t.purpose || '',
           operationalMeaning: t.usageGuidance || '',
           investigationHints: t.filterGuidance || '',
+          // Data-object fields from the AI analysis, passed through untouched to
+          // the registration pipeline (consumed by EnterpriseMapService).
+          businessName: t.businessName || '',
+          identifierColumns: t.identifierColumns || [],
+          statusColumns: t.statusColumns || [],
+          exceptionColumns: t.exceptionColumns || [],
+          safeFilterColumns: t.safeFilterColumns || [],
+          usageGuidance: t.usageGuidance || '',
+          filterGuidance: t.filterGuidance || '',
+          avoidGuidance: t.avoidGuidance || '',
+          // PRO-22: AI reuse-vs-create decision, validated server-side
+          entityResolution: t.entityResolution || null,
           vocab: safeArray(t.vocabularySuggestions).map((v, vi) => ({
             approved: true,
             termKey: slugify(v.term || `term-${vi}`),
@@ -276,36 +289,50 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
     }
   };
 
-  // Step 3 → save approved items
+  // Step 3 → save approved items through the canonical Metadata Registration
+  // Pipeline (one server-side call, same pipeline as the Onboarding Wizard):
+  // data object + columns + value domains + linked entity + linked vocabulary
+  // + relationship discovery.
   const saveApproved = async () => {
     setSaving(true); setSaveError('');
-    let saved = 0;
     try {
-      for (const [idxStr, item] of Object.entries(approved)) {
-        if (!item.approved) continue;
-        // Save entity
-        await api.semantic.createEntity({
-          entity_key: item.entityKey,
-          entity_name: item.entityName,
-          description: item.description,
-          operational_meaning: item.operationalMeaning,
-          investigation_hints: item.investigationHints,
-          domain_key: domainKey,
-          node_type: 'ENTITY',
-          status: 'ACTIVE',
-        });
-        // Save approved vocab
-        for (const v of safeArray(item.vocab).filter(v => v.approved)) {
-          await api.semantic.createVocab({
-            term_key: v.termKey,
+      const entities = Object.values(approved)
+        .filter(item => item.approved)
+        .map(item => ({
+          approved: true,
+          tableName: item.tableName,
+          entityKey: item.entityKey,
+          entityName: item.entityName,
+          purpose: item.description,
+          operationalMeaning: item.operationalMeaning,
+          investigationHints: item.investigationHints,
+          businessName: item.businessName,
+          identifierColumns: item.identifierColumns,
+          statusColumns: item.statusColumns,
+          exceptionColumns: item.exceptionColumns,
+          safeFilterColumns: item.safeFilterColumns,
+          usageGuidance: item.usageGuidance,
+          filterGuidance: item.filterGuidance,
+          avoidGuidance: item.avoidGuidance,
+          entityResolution: item.entityResolution,
+          vocabulary: safeArray(item.vocab).map(v => ({
+            approved: v.approved,
             term: v.term,
             definition: v.definition,
-            sql_equivalent: v.sqlEquivalent,
-            domain_key: domainKey,
-            status: 'ACTIVE',
-          });
-        }
-        saved++;
+            sqlEquivalent: v.sqlEquivalent,
+          })),
+        }));
+
+      const result = await api.semantic.discoverApply({
+        connectionKey: connKey,
+        domainKey,
+        schemaName: schema,
+        entities,
+      });
+
+      if ((result.entities_created ?? 0) === 0 && safeArray(result.failures).length > 0) {
+        setSaveError(safeArray(result.failures).join('; '));
+        return;
       }
       setStep(4);
       onComplete?.();

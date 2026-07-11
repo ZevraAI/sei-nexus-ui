@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, Circle, Loader2, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { CheckCircle2, Circle, Loader2, AlertCircle, ChevronDown, ChevronRight, Languages } from 'lucide-react';
 
 /**
  * Collapsible panel that shows the iterative reasoning steps Zevra took
@@ -9,6 +9,10 @@ import { CheckCircle2, Circle, Loader2, AlertCircle, ChevronDown, ChevronRight }
  *   steps   — array from ChatResponse.reasoningSteps:
  *             [{stepNo, description, sql, rowCount, rowSummary,
  *               evaluatorDecision, evaluatorRationale, executionMs}]
+ *             Entries with {type: 'resolution'} are Business Language
+ *             Resolutions (PRO-31): {surface, kind, target, tier, source} —
+ *             rendered as a "Business language" section above the steps so
+ *             users can see exactly how their terms were interpreted.
  *   loading — true while the answer is still streaming in
  */
 export default function ReasoningTrace({ steps = [], loading = false }) {
@@ -17,10 +21,16 @@ export default function ReasoningTrace({ steps = [], loading = false }) {
 
   if (!loading && steps.length === 0) return null;
 
+  // 'resolution' = deterministic BLR mapping; 'literal' = AI-chosen literal
+  // validated against a persisted value domain (PRO-33). Both render in the
+  // Business language section with their provenance badge.
+  const resolutions = steps.filter(s => s.type === 'resolution' || s.type === 'literal');
+  const querySteps  = steps.filter(s => s.type !== 'resolution' && s.type !== 'literal');
+
   const decisionIcon = (decision) => {
     if (!decision)                                                          return <Circle       size={12} className="text-gray-300" />;
     if (decision === 'SUFFICIENT')                                          return <CheckCircle2 size={12} className="text-emerald-500" />;
-    if (decision === 'DEAD_END')                                            return <AlertCircle  size={12} className="text-amber-500" />;
+    if (decision === 'DEAD_END' || decision === 'LITERAL_REJECTED')         return <AlertCircle  size={12} className="text-amber-500" />;
     if (decision.includes('BLOCK') || decision === 'ERROR')                 return <AlertCircle  size={12} className="text-red-400" />;
     return <Loader2 size={12} className="text-blue-400 animate-spin" />;
   };
@@ -32,13 +42,15 @@ export default function ReasoningTrace({ steps = [], loading = false }) {
     DEAD_END:                'Dead end',
     BLOCKED:                 'Blocked',
     CONTRACT_BLOCKED:        'Contract blocked',
+    LITERAL_REJECTED:        'Invalid value rejected',
+    LITERAL_BLOCKED:         'Invalid value blocked',
     ERROR:                   'Error',
   }[d] ?? d ?? '');
 
   const stepBadge = (d) => {
     if (!d) return '';
     if (d === 'SUFFICIENT')                              return 'bg-emerald-50 text-emerald-700';
-    if (d === 'DEAD_END')                               return 'bg-amber-50 text-amber-700';
+    if (d === 'DEAD_END' || d === 'LITERAL_REJECTED')   return 'bg-amber-50 text-amber-700';
     if (d.includes('BLOCK') || d === 'ERROR')           return 'bg-red-50 text-red-600';
     return 'bg-blue-50 text-blue-600';
   };
@@ -53,21 +65,45 @@ export default function ReasoningTrace({ steps = [], loading = false }) {
         {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
         {loading
           ? <><Loader2 size={11} className="animate-spin text-blue-400" /> Investigating…</>
-          : <>How Zevra investigated this ({steps.length} {steps.length === 1 ? 'step' : 'steps'})</>
+          : <>How Zevra investigated this ({querySteps.length} {querySteps.length === 1 ? 'step' : 'steps'}{resolutions.length > 0 ? `, ${resolutions.length} term${resolutions.length !== 1 ? 's' : ''} resolved` : ''})</>
         }
       </button>
+
+      {/* Business language resolutions (PRO-31) — how the user's terms were
+          mapped to this tenant's canonical names/values, and from which tier */}
+      {open && resolutions.length > 0 && (
+        <div className="mt-3 p-2.5 bg-gray-50 border border-gray-100 rounded-lg space-y-1.5">
+          <div className="flex items-center gap-1.5 text-[10.5px] font-semibold text-gray-500 uppercase tracking-wide">
+            <Languages size={11} className="text-emerald-600" />
+            Business language
+          </div>
+          {resolutions.map((r, i) => (
+            <div key={`res-${i}`} className="flex items-center gap-2 flex-wrap text-[11.5px]">
+              <span className="font-semibold text-gray-700">"{r.surface}"</span>
+              <span className="text-gray-400">→</span>
+              <code className="px-1 py-0.5 bg-white border border-gray-100 rounded text-[10.5px] text-gray-600 font-mono">
+                {r.target}
+              </code>
+              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700"
+                    title={`Resolution kind: ${r.kind}`}>
+                {r.source || r.tier}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Step list */}
       {open && (
         <div className="mt-3 space-y-2">
-          {steps.map((step, i) => (
+          {querySteps.map((step, i) => (
             <div key={step.stepNo ?? i} className="flex gap-3">
               {/* Step number + connector line */}
               <div className="flex flex-col items-center">
                 <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500 shrink-0">
                   {step.stepNo ?? i + 1}
                 </div>
-                {i < steps.length - 1 && (
+                {i < querySteps.length - 1 && (
                   <div className="w-px flex-1 bg-gray-100 my-1 min-h-[8px]" />
                 )}
               </div>

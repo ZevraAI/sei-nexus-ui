@@ -717,6 +717,8 @@ function StepReview({ suggestions, connectionKey, schemaName, domainKey, onNext,
           investigationHints:   e.investigationHints || '',
           suggestedQuestions:   safeArray(e.suggestedQuestions),
           vocabulary:           safeArray(e.vocabulary),
+          // PRO-22: AI reuse-vs-create decision, validated server-side
+          entityResolution:     e.entityResolution || null,
         })),
       };
       const result = await api.onboarding.apply(payload);

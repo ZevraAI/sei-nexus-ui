@@ -235,6 +235,7 @@ export const api = {
     vocabulary:      (domainKey)    => get(`/semantic/vocabulary?domainKey=${encodeURIComponent(domainKey)}`),
     createVocab:     (body)         => post('/semantic/vocabulary', body),
     discover:             (body)          => post('/semantic/discover', body),
+    discoverApply:        (body)          => post('/semantic/discover/apply', body),
     discoverRelationships:(body)          => post('/semantic/discover-relationships', body),
     // ── Phase 3: Semantic Learning endpoints ─────────────────────────────────
     learnings: {
