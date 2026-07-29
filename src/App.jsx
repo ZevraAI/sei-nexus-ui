@@ -29,6 +29,14 @@ import Users from './pages/Users.jsx';
 import Brief from './pages/Brief.jsx';
 import Usage from './pages/Usage.jsx';
 import Templates from './pages/Templates.jsx';
+import HomePage from './pages/home/HomePage.tsx';
+import { ExperienceProvider, MockPulseSource } from './experience';
+
+// Enterprise Pulse data boundary (Rule 2 / Rule 5). Representative for now; a real governed
+// PulseSource is injected here in a later, isolated step — the runtime is unchanged.
+const enterprisePulseSource = new MockPulseSource({
+  coverage: 98.6, status: 'watching', reasoningLoad: 3, activityRate: 1, confidenceTrend: 'up',
+});
 
 // ─── Auth context ─────────────────────────────────────────────────────────────
 export const AuthContext = createContext(null);
@@ -343,14 +351,18 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <AuthContext.Provider value={{ user, logout, impersonation, startImpersonation, exitImpersonation }}>
-        <Layout currentPath={hash}>
-          {hash === '/chat' || hash === '/'
-            ? React.cloneElement(<Chat />, { prefillQuestion: firstQuestion,
-                                             onPrefillUsed: () => setFirstQuestion(null) })
-            : page}
-        </Layout>
-      </AuthContext.Provider>
+      <ExperienceProvider pulseSource={enterprisePulseSource}>
+        <AuthContext.Provider value={{ user, logout, impersonation, startImpersonation, exitImpersonation }}>
+          <Layout currentPath={hash}>
+            {hash === '/'
+              ? <HomePage user={user} />
+              : hash === '/chat'
+              ? React.cloneElement(<Chat />, { prefillQuestion: firstQuestion,
+                                               onPrefillUsed: () => setFirstQuestion(null) })
+              : page}
+          </Layout>
+        </AuthContext.Provider>
+      </ExperienceProvider>
     </ThemeProvider>
   );
 }
