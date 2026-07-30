@@ -1,7 +1,17 @@
 /** Zevra Design Language — Form controls. Focus = border + 3px ring, always. */
-import { forwardRef } from 'react';
+import { forwardRef, useState } from 'react';
 import type { InputHTMLAttributes, SelectHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
 import { cn } from '../../utils/cn';
+
+function EyeIcon({ off = false }: { off?: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      {off
+        ? <><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19M6.61 6.61A18.5 18.5 0 0 0 2 12s3 8 10 8a9.12 9.12 0 0 0 5.39-1.61" /><line x1="2" y1="2" x2="22" y2="22" /></>
+        : <><path d="M2 12s3-8 10-8 10 8 10 8-3 8-10 8-10-8-10-8Z" /><circle cx="12" cy="12" r="3" /></>}
+    </svg>
+  );
+}
 
 const controlBase =
   'w-full rounded-z-md border border-z-border-strong bg-z-surface px-3.5 py-2.5 text-z-body text-z-text ' +
@@ -24,9 +34,35 @@ export function Field({ label, className, children, ...rest }: FieldProps) {
   );
 }
 
-export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
-  function Input({ className, ...rest }, ref) {
-    return <input ref={ref} className={cn(controlBase, className)} {...rest} />;
+export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  /** Adds a show/hide toggle for password fields (the button lives inside the Input). */
+  reveal?: boolean;
+}
+
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+  function Input({ className, reveal, type, ...rest }, ref) {
+    const [show, setShow] = useState(false);
+    if (reveal) {
+      return (
+        <span className="relative block">
+          <input
+            ref={ref}
+            type={show ? 'text' : (type ?? 'password')}
+            className={cn(controlBase, 'pr-10', className)}
+            {...rest}
+          />
+          <button
+            type="button" tabIndex={-1}
+            aria-label={show ? 'Hide password' : 'Show password'}
+            onClick={() => setShow((s) => !s)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-z-text-3 transition-colors hover:text-z-text-2"
+          >
+            <EyeIcon off={show} />
+          </button>
+        </span>
+      );
+    }
+    return <input ref={ref} type={type} className={cn(controlBase, className)} {...rest} />;
   },
 );
 

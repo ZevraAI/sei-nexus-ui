@@ -71,3 +71,16 @@ export function Badge({ status, dot = false, live = false, className, children, 
     </span>
   );
 }
+
+/** Platform-wide mapper: a raw status string → semantic Badge/StatusDot StatusKind.
+ *  success→healthy · info→info · warning→warning · neutral→neutral · danger→critical.
+ *  Reused across pages so status colouring stays consistent product-wide. */
+export function statusKind(raw?: string | null): StatusKind {
+  const v = (raw ?? '').toUpperCase();
+  if (['ACTIVE', 'CONNECTED', 'HEALTHY', 'OK', 'SUCCESS', 'READY', 'RESOLVED', 'COMPLETE', 'COMPLETED'].includes(v)) return 'healthy';
+  if (['RUNNING', 'TESTING', 'IN_PROGRESS', 'INVESTIGATING'].includes(v)) return 'info';
+  if (['WARNING', 'DEGRADED', 'WATCHING'].includes(v)) return 'warning';
+  if (['PENDING', 'QUEUED', 'IDLE', 'UNKNOWN'].includes(v)) return 'neutral';
+  if (['DISCONNECTED', 'FAILED', 'ERROR', 'CRITICAL'].includes(v)) return 'critical';
+  return 'neutral';
+}

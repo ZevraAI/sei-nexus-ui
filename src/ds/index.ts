@@ -22,7 +22,7 @@ export { Button, IconButton } from './components/Button';
 export type { ButtonProps, ButtonVariant, ButtonSize, IconButtonProps } from './components/Button';
 
 // Status
-export { Badge, StatusDot } from './components/Badge';
+export { Badge, StatusDot, statusKind } from './components/Badge';
 export type { BadgeProps, StatusDotProps } from './components/Badge';
 
 // Cards
@@ -52,6 +52,10 @@ export type { NavItemProps } from './components/AppShell';
 // Shared page primitives + UI states (the homepage-derived enterprise scaffold)
 export { PageContainer, PageHeader, Section } from './components/Page';
 export { Skeleton, EmptyState, ErrorState } from './components/States';
+export { Dialog } from './components/Dialog';
+export type { DialogProps } from './components/Dialog';
+export { Spinner } from './components/Spinner';
+export { InlineAlert } from './components/InlineAlert';
 
 // Foundation showcase / verification harness (not a product screen)
 export { Showcase } from './Showcase';
