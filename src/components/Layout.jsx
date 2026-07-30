@@ -3,9 +3,10 @@ import { useAuth, navigate } from '../App.jsx';
 import { AlertBell } from './NotificationPanel.jsx';
 import { ZevraLogo } from './ZevraLogo.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
+import { useTenant } from '../context/TenantContext.jsx';
 import { api } from '../api.js';
 import {
-  Building2, ChevronDown, LogOut, Moon, Sun, ArrowLeftRight, X,
+  Building2, ChevronDown, LogOut, Moon, Sun, ArrowLeftRight, X, Sparkles,
 } from 'lucide-react';
 
 // ── helpers ───────────────────────────────────────────────────────────────
@@ -19,6 +20,37 @@ function tenantLabel(user) {
   const schema = user?.tenant_schema;
   if (!schema || schema === 'public') return 'Default workspace';
   return schema.replace(/^tenant_/, '').replace(/_/g, '-');
+}
+
+// Environment badge styling — Production (emerald), UAT/Staging (amber), Dev/other (slate).
+function envMeta(env, isDark) {
+  const e = (env || '').toLowerCase();
+  if (e.startsWith('prod')) return { dot: 'bg-emerald-500', text: isDark ? 'text-emerald-400' : 'text-emerald-600' };
+  if (e.startsWith('uat') || e.startsWith('stag')) return { dot: 'bg-amber-500', text: isDark ? 'text-amber-400' : 'text-amber-600' };
+  return { dot: 'bg-slate-400', text: isDark ? 'text-slate-400' : 'text-slate-500' };
+}
+
+// Organization mark: real logo when available, otherwise a generated monogram in the Zevra emerald.
+function OrgMark({ tenant, size = 30 }) {
+  if (tenant.tenantLogoUrl) {
+    return (
+      <img
+        src={tenant.tenantLogoUrl}
+        alt={tenant.tenantName}
+        className="rounded-[7px] object-cover border border-black/5"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+  return (
+    <div
+      className="rounded-[7px] flex items-center justify-center font-bold text-white
+                 bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm"
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
+    >
+      {tenant.tenantShortName}
+    </div>
+  );
 }
 
 // ── Theme toggle switch ───────────────────────────────────────────────────
@@ -288,6 +320,7 @@ function buildAdminItems(isAdmin) {
 export default function Layout({ children, currentPath }) {
   const { user, logout, impersonation, exitImpersonation } = useAuth();
   const { isDark } = useTheme();
+  const tenant = useTenant();
   const [profileOpen, setProfileOpen] = useState(false);
 
   const isAdmin = user?.role === 'ADMIN';
@@ -300,6 +333,18 @@ export default function Layout({ children, currentPath }) {
     if (currentPath.startsWith(path + '/')) return true;
     return false;
   };
+
+  // ⌘K / Ctrl+K opens the command bar's flow (ask the enterprise / commission an investigation).
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        navigate('/chat');
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   return (
     <div className="flex flex-col h-screen">
@@ -322,20 +367,21 @@ export default function Layout({ children, currentPath }) {
         </div>
       )}
 
-      {/* ── Top navigation bar ──────────────────────────────────── */}
-      <header className={`h-[52px] shrink-0 flex items-center px-5 gap-0 z-50
+      {/* ── Top navigation bar (Row 1) ──────────────────────────── */}
+      <header className={`h-[52px] shrink-0 flex items-center px-6 gap-4 z-50
                           backdrop-blur-md border-b transition-colors duration-200
                           ${isDark
                             ? 'bg-[#13171F]/90 border-[#252E3F]/80'
                             : 'bg-white/75 border-gray-200/70'}`}>
 
-        {/* Logo */}
+        {/* Product identity — iconic Zevra. The tenant is the active workspace (right-side selector). */}
         <button
-          onClick={() => navigate('/chat')}
-          className="flex items-center gap-2 mr-7 group"
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2.5 shrink-0 group"
+          title="Zevra — Enterprise Intelligence"
         >
-          <ZevraLogo size={26} style={{ borderRadius: '7px' }} />
-          <span className={`text-[14.5px] font-bold tracking-tight transition-colors
+          <ZevraLogo size={30} style={{ borderRadius: '8px' }} />
+          <span className={`text-[17px] font-bold tracking-[-0.01em]
                             ${isDark ? 'text-[#F0F4F8]' : 'text-[#111827]'}`}>
             Zevra
           </span>
@@ -379,35 +425,40 @@ export default function Layout({ children, currentPath }) {
           {/* Alert bell */}
           <AlertBell />
 
-          {/* Agent pill */}
-          <div className={`flex items-center gap-[5px] px-[10px] py-[4px] rounded-[7px] border
-                           ${isDark
-                             ? 'bg-emerald-950/50 border-emerald-900/60'
-                             : 'bg-emerald-50 border-emerald-200'}`}>
-            <div className="w-[6px] h-[6px] bg-emerald-500 rounded-full" />
-            <span className={`text-[11.5px] font-medium
-                              ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
-              Data Analyst
-            </span>
-          </div>
-
-          {/* Workspace badge — real switcher for platform admins, static badge for tenants */}
+          {/* Workspace badge — real switcher for platform admins, tenant-aware badge for customers.
+              Two lines: the workspace (business unit / region) over the environment. */}
           {isPlatformAdmin
             ? <WorkspaceSwitcher user={user} isDark={isDark} />
-            : (
-              <div className={`flex items-center gap-[6px] px-[10px] py-[5px] rounded-[7px]
-                              text-[12px] font-medium border
-                              ${isDark
-                                ? 'bg-[#1A1F2B] border-[#252E3F] text-[#94A3B8]'
-                                : 'bg-white border-gray-200 text-gray-600'}`}>
-                <div className="w-[18px] h-[18px] rounded-[4px] bg-gradient-to-br from-blue-500
-                                to-purple-600 flex items-center justify-center
-                                text-[8px] font-bold text-white flex-shrink-0">
-                  {tenantLabel(user).slice(0, 2).toUpperCase()}
-                </div>
-                <span className="truncate max-w-[100px]">{tenantLabel(user)}</span>
-              </div>
-            )
+            : (() => {
+                const env = envMeta(tenant.environment, isDark);
+                const region = tenant.workspaceName || tenant.businessUnit;
+                return (
+                  <div className={`flex items-center gap-[7px] px-[10px] py-[4px] rounded-[7px] border
+                                  ${isDark
+                                    ? 'bg-[#1A1F2B] border-[#252E3F]'
+                                    : 'bg-white border-gray-200'}`}>
+                    <OrgMark tenant={tenant} size={20} />
+                    <div className="flex flex-col items-start leading-[1.1]">
+                      <span className={`text-[12px] font-semibold truncate max-w-[150px]
+                                        ${isDark ? 'text-[#E2E8F0]' : 'text-gray-800'}`}>
+                        {tenant.tenantName}
+                      </span>
+                      <span className="flex items-center gap-[5px] text-[10px] font-medium">
+                        {region && (
+                          <>
+                            <span className={isDark ? 'text-[#64748B]' : 'text-gray-500'}>{region}</span>
+                            <span className={isDark ? 'text-[#3B4658]' : 'text-gray-300'}>•</span>
+                          </>
+                        )}
+                        <span className={`inline-flex items-center gap-[5px] ${env.text}`}>
+                          <span className={`w-[5px] h-[5px] rounded-full ${env.dot}`} />
+                          {tenant.environment}
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()
           }
 
           {/* User avatar + dropdown */}
@@ -467,6 +518,55 @@ export default function Layout({ children, currentPath }) {
           </div>
         </div>
       </header>
+
+      {/* ── Command Center band (Row 2) — the bridge between the shell and the enterprise
+           intelligence below. Compact, centered, and visually distinct from both the nav
+           row above and the page content beneath. This is Zevra's primary interaction. */}
+      <div className={`shrink-0 h-[54px] grid grid-cols-[1fr_minmax(0,940px)_1fr] items-center gap-4 px-6
+                       border-b transition-colors duration-200
+                       ${isDark
+                         ? 'bg-[#0F141C] border-[#20293A] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]'
+                         : 'bg-[#EEECE4] border-[#E4E2D9] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]'}`}>
+
+        {/* Area title — sits at the inner edge of its column so it reads as the caption of the
+            command surface it precedes (the bar stays perfectly centered). */}
+        <div className="justify-self-end flex items-center gap-2 min-w-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(52,211,160,0.6)] shrink-0" />
+          <span className={`text-[10px] font-semibold uppercase tracking-[0.18em] truncate
+                            ${isDark ? 'text-[#9AA7BA]' : 'text-[#5B6675]'}`}>Command Center</span>
+        </div>
+
+        <button
+          onClick={() => navigate('/chat')}
+          className={`group w-full flex items-center gap-3 h-[38px] pl-2 pr-3 rounded-[11px]
+                      border transition-all duration-200
+                      ${isDark
+                        ? 'border-[#3E4B62] bg-[#1B222F] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ' +
+                          'hover:border-emerald-500/55 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_0_3px_rgba(52,211,160,0.10)]'
+                        : 'border-gray-300 bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(16,24,40,0.04)] ' +
+                          'hover:border-emerald-400 hover:shadow-[0_0_0_3px_rgba(16,185,129,0.09)]'}`}
+        >
+          {/* Signature command mark — echoes the Zevra product logo. */}
+          <span className="grid place-items-center w-7 h-7 rounded-[8px] shrink-0 text-white
+                           bg-gradient-to-br from-emerald-400 to-emerald-600
+                           shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]
+                           transition-transform duration-200 group-hover:scale-[1.03]">
+            <Sparkles size={15} />
+          </span>
+          <span className={`flex-1 text-left truncate text-[13.5px]
+                            ${isDark ? 'text-[#8D9BB0]' : 'text-[#5B6675]'}`}>
+            Ask the enterprise, or commission an investigation…
+          </span>
+          <kbd className={`shrink-0 font-mono text-[11px] px-1.5 py-[2px] rounded border
+                           ${isDark
+                             ? 'border-[#3A465C] bg-[#12161F] text-[#8492A6]'
+                             : 'border-gray-300 bg-gray-50 text-gray-500'}`}>⌘K</kbd>
+        </button>
+
+        {/* Right column intentionally empty — the 1fr side columns keep the bar perfectly
+            centered without a decorative label. */}
+        <span aria-hidden />
+      </div>
 
       {/* ── Page content ─────────────────────────────────────────────────── */}
       <main className="flex-1 min-h-0 overflow-hidden bg-transparent">
