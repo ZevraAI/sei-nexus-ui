@@ -77,14 +77,33 @@ export interface MetricCardProps extends HTMLAttributes<HTMLDivElement> {
   label: ReactNode;
   /** Colors the value for trend. */
   trend?: 'up' | 'down';
+  /** Optional trend delta (e.g. "+12%"), shown beside the value. */
+  delta?: ReactNode;
+  /** Trend direction for the delta — the platform-wide trend language. */
+  deltaTrend?: 'up' | 'down' | 'flat';
 }
 
-/** A single figure. Composes status strips and "by the numbers" grids. */
-export function MetricCard({ value, label, trend, className, ...rest }: MetricCardProps) {
+const deltaToneClass = {
+  up: 'text-z-up',
+  down: 'text-z-down',
+  flat: 'text-z-text-3',
+} as const;
+
+/** A single figure. The platform-wide metric primitive — composes status strips,
+ *  "by the numbers" grids, and snapshot grids. Optional trend delta uses the same
+ *  up/down/flat language as every other trend on the platform. */
+export function MetricCard({ value, label, trend, delta, deltaTrend, className, ...rest }: MetricCardProps) {
   return (
     <div className={cn('rounded-z-lg border border-z-border bg-z-card p-z-card-sm shadow-z-1', className)} {...rest}>
-      <div className={cn('text-z-kpi tabular-nums', trend === 'up' ? 'text-z-up' : trend === 'down' ? 'text-z-down' : 'text-z-text')}>
-        {value}
+      <div className="flex items-baseline gap-2">
+        <span className={cn('text-z-kpi tabular-nums', trend === 'up' ? 'text-z-up' : trend === 'down' ? 'text-z-down' : 'text-z-text')}>
+          {value}
+        </span>
+        {delta != null && (
+          <span className={cn('text-z-caption font-semibold tabular-nums', deltaToneClass[deltaTrend ?? 'flat'])}>
+            {delta}
+          </span>
+        )}
       </div>
       <div className="mt-1.5 text-z-caption text-z-text-3">{label}</div>
     </div>
