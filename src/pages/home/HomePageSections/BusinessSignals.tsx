@@ -3,7 +3,7 @@
  *  aware). Navigation only. No animation code on the page. */
 import { CardTitle, CardBody, SectionLabel, Grid } from '../../../ds';
 import { LivingCard, LivingBadge, RevealPriority } from '../../../experience';
-import { SectionEmpty } from '../HomePageStates';
+import { EmptyState } from '../../../ds';
 import type { SignalVM } from '../HomePageViewModel';
 
 function trendClass(t?: SignalVM['deltaTrend']) {
@@ -13,7 +13,7 @@ function trendClass(t?: SignalVM['deltaTrend']) {
 export function BusinessSignals({ signals }: { signals: SignalVM[] }) {
   if (!signals.length) {
     return (
-      <SectionEmpty
+      <EmptyState
         label="What needs your attention"
         title="No signals yet"
         hint="Anomalies, findings, and alerts will surface here as Zevra monitors your connected sources."

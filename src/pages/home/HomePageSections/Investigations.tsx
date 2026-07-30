@@ -3,13 +3,13 @@
  *  Navigation only. No animation code on the page. */
 import { SectionLabel, Grid, CardTitle } from '../../../ds';
 import { LivingInvestigationCard, LivingBadge, RevealPriority } from '../../../experience';
-import { SectionEmpty } from '../HomePageStates';
+import { EmptyState } from '../../../ds';
 import type { InvestigationVM } from '../HomePageViewModel';
 
 export function Investigations({ investigations }: { investigations: InvestigationVM[] }) {
   if (!investigations.length) {
     return (
-      <SectionEmpty
+      <EmptyState
         label="Active investigations"
         title="No investigations yet"
         hint="Ask Zevra a question or commission an investigation, and its reasoning will appear here as it works."

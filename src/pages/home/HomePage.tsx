@@ -12,7 +12,7 @@
  *  → active investigations → Enterprise activity (ledger + AI workforce).
  *  ============================================================================ */
 import { RevealGroup } from '../../experience';
-import { SectionLabel, Grid } from '../../ds';
+import { SectionLabel, Grid, PageContainer, ErrorState } from '../../ds';
 import { useHomepageViewModel } from './HomePageAdapter';
 import { ExecutiveHeader } from './HomePageSections/ExecutiveHeader';
 import { KPISection } from './HomePageSections/KPISection';
@@ -21,7 +21,7 @@ import { BusinessSignals } from './HomePageSections/BusinessSignals';
 import { Investigations } from './HomePageSections/Investigations';
 import { AIWorkforce } from './HomePageSections/AIWorkforce';
 import { RecentActivity } from './HomePageSections/RecentActivity';
-import { StripSkeleton, SectionsSkeleton, SectionError } from './HomePageStates';
+import { StripSkeleton, SectionsSkeleton } from './HomePageStates';
 
 export interface HomePageUser {
   full_name?: string;
@@ -39,15 +39,15 @@ export default function HomePage({ user }: HomePageProps) {
   const { capturedAt, executiveSummary, kpis, signals, recommendations, investigations, workforce, recentActivity } = vm;
 
   return (
-    <div className="h-full overflow-y-auto bg-z-bg">
-      <RevealGroup className="mx-auto w-full max-w-[1280px] px-z-page pt-6 pb-28">
+    <PageContainer width="wide" className="pt-6 pb-28">
+      <RevealGroup>
         <ExecutiveHeader
           vm={executiveSummary}
           loading={loading}
           kpiSlot={loading ? <StripSkeleton /> : <KPISection kpis={kpis} capturedAt={capturedAt} />}
         />
 
-        {error && <SectionError message={error} />}
+        {error && <ErrorState message={error} className="mt-6" />}
 
         {loading ? (
           <SectionsSkeleton />
@@ -68,6 +68,6 @@ export default function HomePage({ user }: HomePageProps) {
           </>
         )}
       </RevealGroup>
-    </div>
+    </PageContainer>
   );
 }

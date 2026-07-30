@@ -360,3 +360,95 @@ body {
 [data-theme="dark"] textarea::placeholder {
   color: #475569 !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ZEVRA SIGNATURE BRIDGE  (Phase 3 · Track A — legacy token bridge)
+   Re-points the legacy token layer + raw Tailwind neutrals at the Signature
+   palette so every legacy-styled page shares the homepage's design language.
+   VALUES ONLY — no page markup changes. Light = Executive Porcelain, dark =
+   Signature Graphite. Appended last for precedence. The homepage + shell use
+   the z-* tokens / arbitrary-hex classes and are unaffected by this block.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Legacy tokens → Signature (light · Executive Porcelain) */
+:root {
+  --bg-app: #f4f0e7; --bg-surface: #fbf9f3; --bg-surface-muted: #f5f1e8;
+  --bg-sidebar: #efeae0; --bg-hover: rgba(38,30,16,0.045);
+  --border-subtle: #e7e0d2; --border-strong: #d8cfbd;
+  --text-primary: #221f18; --text-secondary: #5f5949; --text-tertiary: #6d6656; --text-disabled: #c3bca9;
+  --accent-primary: #0f7a58; --accent-primary-hover: #12946b; --accent-soft: #e2f1ea; --accent-line: #12946b;
+  --success: #0f7a58; --warning: #a9772a; --danger: #b3324a; --info: #2a5bd7;
+  --shadow-sm: inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 2px rgba(80,64,40,0.05);
+  --shadow-md: inset 0 1px 0 rgba(255,255,255,0.9), 0 14px 30px -16px rgba(80,64,40,0.18);
+}
+
+/* Legacy tokens → Signature (dark · Signature Graphite) */
+[data-theme="dark"] {
+  --bg-app: #10161c; --bg-surface: #161d26; --bg-surface-muted: #1b232d;
+  --bg-sidebar: #13171f; --bg-hover: rgba(255,255,255,0.045);
+  --border-subtle: #26303c; --border-strong: #33404e;
+  --text-primary: #f2efe8; --text-secondary: #a9b0aa; --text-tertiary: #7c857d; --text-disabled: #414a44;
+  --accent-primary: #34d3a0; --accent-primary-hover: #43e0ad; --accent-soft: #0e2a20; --accent-line: #34d3a0;
+  --success: #34d3a0; --warning: #e0b25e; --danger: #ef6f82; --info: #5b8cff;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+  --shadow-md: 0 16px 36px -12px rgba(0,0,0,0.72), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+/* Body canvas → Signature atmosphere */
+body {
+  background-color: #f4f0e7;
+  background-image:
+    radial-gradient(46% 40% at 8% -8%, rgba(15,122,88,0.10), transparent 60%),
+    radial-gradient(30% 30% at 96% -6%, rgba(154,123,63,0.10), transparent 62%),
+    linear-gradient(180deg, #f4f0e7, #ece5d7);
+  background-attachment: fixed; color: #221f18;
+}
+[data-theme="dark"] body {
+  background-color: #10161c;
+  background-image:
+    radial-gradient(42% 36% at 10% -6%, rgba(52,211,160,0.12), transparent 60%),
+    radial-gradient(30% 30% at 96% -4%, rgba(201,168,106,0.05), transparent 62%),
+    linear-gradient(180deg, #10161c, #0c1116);
+  background-attachment: fixed; color: #f2efe8;
+}
+
+/* Raw Tailwind neutrals → Signature surfaces (light) */
+.bg-white     { background-color: #fbf9f3 !important; }
+.bg-gray-50   { background-color: #f5f1e8 !important; }
+.bg-gray-100  { background-color: #efeae0 !important; }
+.bg-gray-200  { background-color: #e7e0d2 !important; }
+.text-gray-900 { color: #221f18 !important; }
+.text-gray-800 { color: #3a352c !important; }
+.text-gray-700 { color: #5f5949 !important; }
+.text-gray-600 { color: #6d6656 !important; }
+.text-gray-500 { color: #837c6c !important; }
+.text-gray-400 { color: #948c79 !important; }
+.border-gray-100 { border-color: #efeae0 !important; }
+.border-gray-200 { border-color: #e7e0d2 !important; }
+.border-gray-300 { border-color: #d8cfbd !important; }
+
+/* Raw Tailwind neutrals → Signature surfaces (dark) */
+[data-theme="dark"] .bg-white    { background-color: #161d26 !important; }
+[data-theme="dark"] .bg-gray-50  { background-color: #1b232d !important; }
+[data-theme="dark"] .bg-gray-100 { background-color: #212b36 !important; }
+[data-theme="dark"] .bg-gray-200 { background-color: #26303c !important; }
+[data-theme="dark"] .text-gray-900 { color: #f2efe8 !important; }
+[data-theme="dark"] .text-gray-800 { color: #d7dbd4 !important; }
+[data-theme="dark"] .text-gray-700 { color: #a9b0aa !important; }
+[data-theme="dark"] .text-gray-600 { color: #a9b0aa !important; }
+[data-theme="dark"] .text-gray-500 { color: #7c857d !important; }
+[data-theme="dark"] .text-gray-400 { color: #7c857d !important; }
+[data-theme="dark"] .border-gray-100 { border-color: #26303c !important; }
+[data-theme="dark"] .border-gray-200 { border-color: #33404e !important; }
+[data-theme="dark"] .border-gray-300 { border-color: #3d4a5a !important; }
+
+/* Inputs → Signature surfaces (both themes) */
+input:not(.bg-transparent):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+textarea:not(.bg-transparent), select {
+  background-color: #fbf9f3; color: #221f18; border-color: #e7e0d2;
+}
+[data-theme="dark"] input:not(.bg-transparent):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+[data-theme="dark"] textarea:not(.bg-transparent), [data-theme="dark"] select {
+  background-color: #1b232d !important; color: #f2efe8 !important; border-color: #26303c !important;
+}
+[data-theme="dark"] input::placeholder, [data-theme="dark"] textarea::placeholder { color: #7c857d !important; }

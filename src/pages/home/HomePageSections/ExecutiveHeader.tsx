@@ -3,9 +3,8 @@
  *  brief is still loading it shows a skeleton; when the tenant has no brief yet it shows an honest
  *  "ready" state inviting the first step — never a fabricated verdict. Signature rhythm unchanged. */
 import type { ReactNode } from 'react';
-import { Display, Button, PulseSpine } from '../../../ds';
+import { Display, Button, PulseSpine, Skeleton } from '../../../ds';
 import { EnterprisePulse, Reveal, RevealPriority } from '../../../experience';
-import { Skeleton } from '../HomePageStates';
 import type { ExecutiveSummaryVM, Segment } from '../HomePageViewModel';
 
 const toneClass: Record<NonNullable<Segment['tone']>, string> = {

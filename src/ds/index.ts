@@ -49,5 +49,9 @@ export {
 } from './components/AppShell';
 export type { NavItemProps } from './components/AppShell';
 
+// Shared page primitives + UI states (the homepage-derived enterprise scaffold)
+export { PageContainer, PageHeader, Section } from './components/Page';
+export { Skeleton, EmptyState, ErrorState } from './components/States';
+
 // Foundation showcase / verification harness (not a product screen)
 export { Showcase } from './Showcase';
