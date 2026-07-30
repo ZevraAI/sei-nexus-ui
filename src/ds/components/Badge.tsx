@@ -79,7 +79,7 @@ export function statusKind(raw?: string | null): StatusKind {
   const v = (raw ?? '').toUpperCase();
   if (['ACTIVE', 'CONNECTED', 'HEALTHY', 'OK', 'SUCCESS', 'READY', 'RESOLVED', 'COMPLETE', 'COMPLETED'].includes(v)) return 'healthy';
   if (['RUNNING', 'TESTING', 'IN_PROGRESS', 'INVESTIGATING'].includes(v)) return 'info';
-  if (['WARNING', 'DEGRADED', 'WATCHING'].includes(v)) return 'warning';
+  if (['WARNING', 'DEGRADED', 'WATCHING', 'PAUSED'].includes(v)) return 'warning';
   if (['PENDING', 'QUEUED', 'IDLE', 'UNKNOWN'].includes(v)) return 'neutral';
   if (['DISCONNECTED', 'FAILED', 'ERROR', 'CRITICAL'].includes(v)) return 'critical';
   return 'neutral';

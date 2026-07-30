@@ -56,6 +56,8 @@ export { Dialog } from './components/Dialog';
 export type { DialogProps } from './components/Dialog';
 export { Spinner } from './components/Spinner';
 export { InlineAlert } from './components/InlineAlert';
+export { SegmentedControl } from './components/SegmentedControl';
+export type { SegmentedOption, SegmentedControlProps } from './components/SegmentedControl';
 
 // Foundation showcase / verification harness (not a product screen)
 export { Showcase } from './Showcase';
