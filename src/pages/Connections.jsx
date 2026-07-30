@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api.js';
-import { Card, PageHeader, Badge, Btn, EmptyState, Modal, Input, Select, Spinner } from '../components/Card.jsx';
-import { Database, Plus, Pencil, Trash2, CheckCircle, XCircle, RefreshCw, TestTube, Eye, EyeOff } from 'lucide-react';
+import {
+  PageContainer, PageHeader, Card, Button, IconButton, Badge, statusKind, Chip,
+  Dialog, Field, Input, Select, InlineAlert, EmptyState, Skeleton, Spinner,
+} from '../ds';
+import { Database, Plus, Pencil, Trash2, TestTube } from 'lucide-react';
 
 const CONN_TYPES = ['ORACLE', 'POSTGRES', 'REST_API'];
 
@@ -10,8 +13,6 @@ const JDBC_PLACEHOLDER = {
   ORACLE:   'jdbc:oracle:thin:@localhost:1521:ORCL',
   REST_API: 'https://api.example.com/v1',
 };
-
-const STATUS_COLOR = { ACTIVE: 'green', FAILED: 'red', TESTING: 'blue', PENDING: 'yellow' };
 
 const EMPTY_FORM = { connectionKey: '', name: '', connectionType: 'POSTGRES', jdbcUrl: '', allowedSchemas: 'public', username: '', secret: '', domainKeys: '' };
 
@@ -25,7 +26,6 @@ export default function Connections() {
   const [testingKey, setTestingKey] = useState(null);
   const [error, setError] = useState('');
   const [testErrors, setTestErrors] = useState({});
-  const [showPassword, setShowPassword] = useState(false);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -33,7 +33,6 @@ export default function Connections() {
     setEditingKey(null);
     setForm(EMPTY_FORM);
     setError('');
-    setShowPassword(false);
     setShowModal(true);
   };
 
@@ -50,7 +49,6 @@ export default function Connections() {
       domainKeys:     '',
     });
     setError('');
-    setShowPassword(false);
     setShowModal(true);
   };
 
@@ -100,121 +98,122 @@ export default function Connections() {
   };
 
   return (
-    <div className="flex-1 overflow-auto p-7 bg-transparent">
+    <PageContainer className="py-8">
       <PageHeader
+        className="mb-8"
         title="Data Connections"
-        subtitle="Manage approved enterprise data source connections"
-        actions={<Btn onClick={openAdd}><Plus size={13} /> Add Connection</Btn>}
+        summary="Manage approved enterprise data source connections"
+        actions={<Button onClick={openAdd}><Plus size={14} /> Add Connection</Button>}
       />
 
       {loading ? (
-        <div className="flex justify-center py-16"><Spinner /></div>
+        <div className="space-y-3" role="status" aria-label="Loading connections">
+          <Skeleton className="h-[86px]" />
+          <Skeleton className="h-[86px]" />
+          <Skeleton className="h-[86px]" />
+        </div>
       ) : conns.length === 0 ? (
-        <EmptyState icon={Database} title="No connections" body="Add a database connection to enable live data queries." />
+        <EmptyState
+          title="No connections yet"
+          hint="Add a database connection to enable live data queries across your enterprise."
+        />
       ) : (
-        <div className="grid gap-3">
+        <div className="grid gap-z-gutter">
           {conns.map(conn => (
             <div key={conn.connection_key}>
-            <Card className="p-4">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-sky-50 flex items-center justify-center shrink-0">
-                  <Database size={18} className="text-sky-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-medium text-gray-800">{conn.name}</p>
-                    <Badge label={conn.connection_type} color="navy" />
-                    <Badge label={conn.status ?? 'UNKNOWN'} color={STATUS_COLOR[conn.status] ?? 'gray'} />
+              <Card>
+                <div className="flex items-center gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-z-md bg-z-primary-soft">
+                    <Database size={18} className="text-z-primary" />
                   </div>
-                  <p className="text-xs text-gray-400 mt-0.5 font-mono truncate">{conn.jdbc_url}</p>
-                  {conn.last_tested_at && (
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      Last tested: {new Date(conn.last_tested_at).toLocaleString()}
-                    </p>
-                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-z-body font-medium text-z-text">{conn.name}</p>
+                      <Chip>{conn.connection_type}</Chip>
+                      <Badge status={statusKind(conn.status)} dot live={testingKey === conn.connection_key}>
+                        {conn.status ?? 'UNKNOWN'}
+                      </Badge>
+                    </div>
+                    <p className="mt-0.5 truncate font-mono text-z-caption text-z-text-3">{conn.jdbc_url}</p>
+                    {conn.last_tested_at && (
+                      <p className="mt-0.5 text-z-caption text-z-text-3">
+                        Last tested: {new Date(conn.last_tested_at).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => testConn(conn.connection_key)} disabled={testingKey === conn.connection_key}>
+                      {testingKey === conn.connection_key ? <Spinner size="xs" /> : <TestTube size={13} />}
+                      Test
+                    </Button>
+                    <IconButton label={`Edit ${conn.name}`} onClick={() => openEdit(conn)}><Pencil size={15} /></IconButton>
+                    <IconButton label={`Delete ${conn.name}`} onClick={() => deleteConn(conn.connection_key)}><Trash2 size={15} /></IconButton>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Btn variant="secondary" size="sm" onClick={() => testConn(conn.connection_key)} disabled={testingKey === conn.connection_key}>
-                    {testingKey === conn.connection_key ? <Spinner size={3} /> : <TestTube size={13} />}
-                    Test
-                  </Btn>
-                  <Btn variant="ghost" size="sm" onClick={() => openEdit(conn)}>
-                    <Pencil size={13} />
-                  </Btn>
-                  <Btn variant="ghost" size="sm" onClick={() => deleteConn(conn.connection_key)}>
-                    <Trash2 size={13} />
-                  </Btn>
-                </div>
-              </div>
-            </Card>
-            {testErrors[conn.connection_key] && (
-              <div className="mt-1.5 px-3 py-2 rounded-lg bg-red-50 border border-red-200 flex items-start gap-2">
-                <XCircle size={14} className="text-red-500 mt-0.5 shrink-0" />
-                <p className="text-xs text-red-700">{testErrors[conn.connection_key]}</p>
-              </div>
-            )}
+              </Card>
+              {testErrors[conn.connection_key] && (
+                <InlineAlert variant="error" title="Connection test failed" className="mt-2">
+                  {testErrors[conn.connection_key]}
+                </InlineAlert>
+              )}
             </div>
           ))}
         </div>
       )}
 
-      <Modal open={showModal} onClose={closeModal} title={editingKey ? 'Edit Connection' : 'Add Connection'}>
-        <div className="space-y-4">
-          <Input label="Connection Key (unique ID)" placeholder="ods-postgres" value={form.connectionKey}
-            onChange={e => set('connectionKey', e.target.value)} disabled={!!editingKey} />
-          <Input label="Display Name" placeholder="ODS Oracle Production" value={form.name}
-            onChange={e => set('name', e.target.value)} />
-          <Select label="Type" value={form.connectionType} onChange={e => set('connectionType', e.target.value)}>
-            {CONN_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-          </Select>
-          <Input
-            label={form.connectionType === 'REST_API' ? 'Base URL' : 'JDBC URL'}
-            placeholder={JDBC_PLACEHOLDER[form.connectionType] ?? ''}
-            value={form.jdbcUrl}
-            onChange={e => set('jdbcUrl', e.target.value)}
-          />
-          <Input
-            label="Database Schema"
-            placeholder="public"
-            value={form.allowedSchemas}
-            onChange={e => set('allowedSchemas', e.target.value)}
-          />
-          <div className="grid grid-cols-2 gap-3">
-            <Input label="Username" value={form.username} onChange={e => set('username', e.target.value)} />
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                {editingKey ? 'Password (leave blank to keep existing)' : 'Password'}
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={form.secret}
-                  onChange={e => set('secret', e.target.value)}
-                  placeholder={editingKey ? '(unchanged)' : '••••••••'}
-                  className="w-full h-9 border border-gray-300 rounded-lg px-3 pr-9 text-sm focus:outline-none focus:border-indigo-400 placeholder:text-gray-300"
-                />
-                <button type="button" tabIndex={-1}
-                  onClick={() => setShowPassword(s => !s)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
-              </div>
-            </div>
-          </div>
-          <Input label="Domain Keys (comma-separated)" placeholder="invoicing,procurement"
-            value={form.domainKeys} onChange={e => set('domainKeys', e.target.value)} />
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
-
-          <div className="flex justify-end gap-2">
-            <Btn variant="secondary" onClick={closeModal}>Cancel</Btn>
-            <Btn onClick={save} disabled={saving || !form.connectionKey || !form.name || !form.jdbcUrl}>
-              {saving ? <Spinner size={4} /> : editingKey ? <Pencil size={13} /> : <Plus size={13} />}
+      <Dialog
+        open={showModal}
+        onClose={closeModal}
+        title={editingKey ? 'Edit Connection' : 'Add Connection'}
+        description="Approved enterprise data source connection"
+        size="md"
+        footer={
+          <>
+            <Button variant="secondary" onClick={closeModal}>Cancel</Button>
+            <Button onClick={save} disabled={saving || !form.connectionKey || !form.name || !form.jdbcUrl}>
+              {saving ? <Spinner size="xs" /> : editingKey ? <Pencil size={13} /> : <Plus size={13} />}
               {editingKey ? 'Save Changes' : 'Add Connection'}
-            </Btn>
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Field label="Connection Key (unique ID)">
+            <Input placeholder="ods-postgres" value={form.connectionKey}
+              onChange={e => set('connectionKey', e.target.value)} disabled={!!editingKey} />
+          </Field>
+          <Field label="Display Name">
+            <Input placeholder="ODS Oracle Production" value={form.name} onChange={e => set('name', e.target.value)} />
+          </Field>
+          <Field label="Type">
+            <Select value={form.connectionType} onChange={e => set('connectionType', e.target.value)}>
+              {CONN_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </Select>
+          </Field>
+          <Field label={form.connectionType === 'REST_API' ? 'Base URL' : 'JDBC URL'}>
+            <Input placeholder={JDBC_PLACEHOLDER[form.connectionType] ?? ''} value={form.jdbcUrl}
+              onChange={e => set('jdbcUrl', e.target.value)} />
+          </Field>
+          <Field label="Database Schema">
+            <Input placeholder="public" value={form.allowedSchemas} onChange={e => set('allowedSchemas', e.target.value)} />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Username">
+              <Input value={form.username} onChange={e => set('username', e.target.value)} />
+            </Field>
+            <Field label={editingKey ? 'Password (blank = keep)' : 'Password'}>
+              <Input type="password" reveal value={form.secret}
+                onChange={e => set('secret', e.target.value)}
+                placeholder={editingKey ? '(unchanged)' : '••••••••'} />
+            </Field>
           </div>
+          <Field label="Domain Keys (comma-separated)">
+            <Input placeholder="invoicing,procurement" value={form.domainKeys} onChange={e => set('domainKeys', e.target.value)} />
+          </Field>
+
+          {error && <InlineAlert variant="error">{error}</InlineAlert>}
         </div>
-      </Modal>
-    </div>
+      </Dialog>
+    </PageContainer>
   );
 }
