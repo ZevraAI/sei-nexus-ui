@@ -3,6 +3,7 @@
  *  ConfidenceAnimator. The page declares intent + data only — no timing, no scheduling. */
 import { SectionLabel, Grid, CardTitle, CardBody, Button } from '../../../ds';
 import { LivingRecommendationCard, ConfidenceAnimator, RevealPriority } from '../../../experience';
+import { SectionEmpty } from '../HomePageStates';
 import type { RecommendationVM } from '../HomePageViewModel';
 
 function go(to?: string) {
@@ -10,7 +11,15 @@ function go(to?: string) {
 }
 
 export function Recommendations({ recommendations }: { recommendations: RecommendationVM[] }) {
-  if (!recommendations.length) return null;
+  if (!recommendations.length) {
+    return (
+      <SectionEmpty
+        label="Recommended actions"
+        title="No recommendations yet"
+        hint="Zevra surfaces recommended actions from operational findings once it has reasoned over your connected enterprise data."
+      />
+    );
+  }
   return (
     <section aria-label="Recommended actions">
       <SectionLabel>Recommended actions</SectionLabel>

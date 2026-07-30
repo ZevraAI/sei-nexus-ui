@@ -12,6 +12,7 @@ function go(to: string) {
 }
 
 export function AIWorkforce({ workforce }: { workforce: WorkforceVM }) {
+  const hasLiveAgent = workforce.agents.some((a) => a.live);
   if (!workforce.agents.length) {
     return (
       <LivingCard priority={RevealPriority.LOW} className="h-full">
@@ -20,13 +21,17 @@ export function AIWorkforce({ workforce }: { workforce: WorkforceVM }) {
           <Button variant="link" onClick={() => go(workforce.manageTo)}>Manage →</Button>
         </div>
         <p className="text-z-body text-z-text-2 leading-[1.55]">
-          No agents are deployed yet. Deploy an agent to have Zevra investigate and monitor your data continuously.
+          No AI agents have been deployed yet. Deploy your first Zevra Agent to begin autonomous
+          monitoring and investigations.
         </p>
+        <div className="mt-4">
+          <Button size="sm" onClick={() => go(workforce.manageTo)}>Deploy your first agent</Button>
+        </div>
       </LivingCard>
     );
   }
   return (
-    <LivingCard priority={RevealPriority.LOW} className="h-full">
+    <LivingCard priority={RevealPriority.LOW} accent="primary" live={hasLiveAgent} className="h-full">
       <div className="mb-4 flex items-baseline justify-between">
         <h4 className="font-z-serif text-z-h3 font-medium text-z-text">Your AI workforce</h4>
         <Button variant="link" onClick={() => go(workforce.manageTo)}>Manage →</Button>

@@ -1,17 +1,19 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
-import { Showcase } from './ds/Showcase.tsx';
 import './styles.css';
-import './ds/tokens.css'; // Zevra Design Language v1.0 — production token layer
+import './ds/tokens.css'; // Zevra Design Language token layer
 
-// Dev gate: open the Zevra Design Language foundation at "?showcase".
-// Reversible — the normal app renders for every other URL.
+const root = ReactDOM.createRoot(document.getElementById('root'));
 const params = new URLSearchParams(window.location.search);
-const showFoundation = params.has('showcase') || window.location.hash === '#showcase';
+const wantsShowcase = params.has('showcase') || window.location.hash === '#showcase';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    {showFoundation ? <Showcase /> : <App />}
-  </React.StrictMode>
-);
+// Dev-only DS foundation harness ("?showcase"). The literal `import.meta.env.DEV` guard makes the
+// bundler dead-code-eliminate the Showcase (and its representative sample content) from production.
+if (import.meta.env.DEV && wantsShowcase) {
+  import('./ds/Showcase.tsx').then(({ Showcase }) => {
+    root.render(<React.StrictMode><Showcase /></React.StrictMode>);
+  });
+} else {
+  root.render(<React.StrictMode><App /></React.StrictMode>);
+}

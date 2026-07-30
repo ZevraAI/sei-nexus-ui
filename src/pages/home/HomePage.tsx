@@ -1,14 +1,15 @@
 /** ============================================================================
  *  HomePage — the approved Signature "Command" homepage (the ONLY homepage).
  *
- *  Consumes the Experience Runtime by COMPOSITION only. No animation, timing, scheduling, or
- *  orchestration code lives here — the runtime owns all of it. Presentation flows from the
- *  HomepageViewModel; the page never sees raw API data.
+ *  Phase 1 (production data): consumes the Experience Runtime by COMPOSITION only.
+ *  Presentation flows from the production HomePageAdapter (real backend); the page
+ *  never sees raw API data and never fabricates intelligence. Every section supports
+ *  loading, empty, error, and populated states — a brand-new tenant renders honest
+ *  empty states rather than simulated activity.
  *
- *  Signature layout (matches signature-motif-home): hero (eyebrow → Pulse Spine → greeting →
- *  verdict → KPI strip → narrative → actions) → recommended actions → active investigations →
- *  Enterprise activity (ledger + AI workforce, side by side). The KPI strip is passed into the
- *  hero as a slot so it sits between the verdict and the narrative.
+ *  Signature layout (unchanged): hero (eyebrow → Pulse Spine → greeting → verdict →
+ *  KPI strip → narrative → actions) → recommended actions → what needs your attention
+ *  → active investigations → Enterprise activity (ledger + AI workforce).
  *  ============================================================================ */
 import { RevealGroup } from '../../experience';
 import { SectionLabel, Grid } from '../../ds';
@@ -20,6 +21,7 @@ import { BusinessSignals } from './HomePageSections/BusinessSignals';
 import { Investigations } from './HomePageSections/Investigations';
 import { AIWorkforce } from './HomePageSections/AIWorkforce';
 import { RecentActivity } from './HomePageSections/RecentActivity';
+import { StripSkeleton, SectionsSkeleton, SectionError } from './HomePageStates';
 
 export interface HomePageUser {
   full_name?: string;
@@ -33,30 +35,38 @@ export interface HomePageProps {
 
 export default function HomePage({ user }: HomePageProps) {
   const userName = user?.full_name || user?.name || user?.email?.split('@')[0] || undefined;
-  const vm = useHomepageViewModel({ userName });
+  const { vm, loading, error } = useHomepageViewModel({ userName });
   const { capturedAt, executiveSummary, kpis, signals, recommendations, investigations, workforce, recentActivity } = vm;
 
-  // Own scroll container + DS canvas (the host Layout is overflow-hidden + transparent).
-  // Section spacing is layout only; the reveal cascade is entirely runtime-owned.
   return (
     <div className="h-full overflow-y-auto bg-z-bg">
-      <RevealGroup className="mx-auto w-full max-w-[1280px] px-z-page pt-12 pb-28">
+      <RevealGroup className="mx-auto w-full max-w-[1280px] px-z-page pt-6 pb-28">
         <ExecutiveHeader
           vm={executiveSummary}
-          kpiSlot={<KPISection kpis={kpis} capturedAt={capturedAt} />}
+          loading={loading}
+          kpiSlot={loading ? <StripSkeleton /> : <KPISection kpis={kpis} capturedAt={capturedAt} />}
         />
-        {recommendations.length > 0 && <div className="pt-6"><Recommendations recommendations={recommendations} /></div>}
-        <div className="pt-6"><BusinessSignals signals={signals} /></div>
-        <div className="pt-6"><Investigations investigations={investigations} /></div>
-        <div className="pt-6">
-          <section aria-label="Enterprise activity">
-            <SectionLabel>Enterprise activity</SectionLabel>
-            <Grid cols={2}>
-              <RecentActivity items={recentActivity} />
-              <AIWorkforce workforce={workforce} />
-            </Grid>
-          </section>
-        </div>
+
+        {error && <SectionError message={error} />}
+
+        {loading ? (
+          <SectionsSkeleton />
+        ) : (
+          <>
+            <div className="pt-6"><Recommendations recommendations={recommendations} /></div>
+            <div className="pt-6"><BusinessSignals signals={signals} /></div>
+            <div className="pt-6"><Investigations investigations={investigations} /></div>
+            <div className="pt-6">
+              <section aria-label="Enterprise activity">
+                <SectionLabel>Enterprise activity</SectionLabel>
+                <Grid cols={2}>
+                  <RecentActivity items={recentActivity} />
+                  <AIWorkforce workforce={workforce} />
+                </Grid>
+              </section>
+            </div>
+          </>
+        )}
       </RevealGroup>
     </div>
   );

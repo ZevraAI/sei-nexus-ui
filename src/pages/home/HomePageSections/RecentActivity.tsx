@@ -6,7 +6,16 @@ import { LivingCard, LivingStatusDot, RevealPriority } from '../../../experience
 import type { ActivityVM } from '../HomePageViewModel';
 
 export function RecentActivity({ items }: { items: ActivityVM[] }) {
-  if (!items.length) return null;
+  if (!items.length) {
+    return (
+      <LivingCard priority={RevealPriority.LOW} className="h-full">
+        <h4 className="mb-4 font-z-serif text-z-h3 font-medium text-z-text">Enterprise activity</h4>
+        <p className="text-z-body text-z-text-2 leading-[1.55]">
+          No activity yet. Reasoning runs, anomalies, and alerts will appear here as Zevra observes your enterprise.
+        </p>
+      </LivingCard>
+    );
+  }
   return (
     <LivingCard priority={RevealPriority.LOW} className="h-full">
       <div className="mb-4 flex items-baseline justify-between">
