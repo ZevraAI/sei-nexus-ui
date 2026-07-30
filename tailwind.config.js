@@ -157,14 +157,16 @@ export default {
         'z-rise': { from: { opacity: '0', transform: 'translateY(12px)' }, to: { opacity: '1', transform: 'none' } },
         'z-rise-scale': { from: { opacity: '0', transform: 'translateY(-12px) scale(0.98)' }, to: { opacity: '1', transform: 'none' } },
         'z-pulse-ring': { '0%': { transform: 'scale(1)', opacity: '0.5' }, '70%,100%': { transform: 'scale(2.4)', opacity: '0' } },
-        // Signature — the Pulse Spine glint (additive)
+        // Signature — the Pulse Spine glint (additive): horizontal (hero) + vertical (live cards)
         'z-spine-glint': { '0%': { left: '0', opacity: '0' }, '12%': { opacity: '1' }, '80%': { opacity: '1' }, '100%': { left: '100%', opacity: '0' } },
+        'z-spine-glint-y': { '0%': { top: '0%', opacity: '0' }, '15%': { opacity: '1' }, '85%': { opacity: '1' }, '100%': { top: '100%', opacity: '0' } },
       },
       animation: {
         'z-rise': 'z-rise 360ms cubic-bezier(0.2,0.7,0.2,1) both',
         'z-rise-scale': 'z-rise-scale 360ms cubic-bezier(0.16,0.84,0.24,1) both',
         'z-pulse-ring': 'z-pulse-ring 2s cubic-bezier(0.2,0.7,0.2,1) infinite',
         'z-spine-glint': 'z-spine-glint 4.4s cubic-bezier(0.45,0,0.25,1) infinite',
+        'z-spine-glint-y': 'z-spine-glint-y 3.4s cubic-bezier(0.45,0,0.25,1) infinite',
       },
     },
   },

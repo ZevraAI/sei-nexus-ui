@@ -22,10 +22,12 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   flat?: boolean;
   /** Adds the Pulse Spine (a lit status thread) on the leading edge. */
   accent?: StatusKind | 'primary';
+  /** When the card is "alive," a glint travels down the spine (needs `accent`). Reduced-motion hides it. */
+  live?: boolean;
   children?: ReactNode;
 }
 
-export function Card({ interactive, flat, accent, className, style, children, ...rest }: CardProps) {
+export function Card({ interactive, flat, accent, live, className, style, children, ...rest }: CardProps) {
   const accentStyle: CSSProperties | undefined = accent
     ? { ...style, ['--z-card-accent' as string]: accentVar[accent] }
     : style;
@@ -46,6 +48,13 @@ export function Card({ interactive, flat, accent, className, style, children, ..
       )}
       {...rest}
     >
+      {/* Signature: the travelling glint marks a card whose intelligence is live. */}
+      {accent && live && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-0 z-[2] h-[5px] w-[3px] rounded-full bg-[var(--z-card-accent)] shadow-[0_0_12px_var(--z-spine-glow)] animate-z-spine-glint-y motion-reduce:hidden"
+        />
+      )}
       {children}
     </div>
   );
