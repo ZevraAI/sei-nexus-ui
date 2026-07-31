@@ -48,7 +48,7 @@ export function buildDemoViewModel(input: HomeInput = {}): HomepageViewModel {
       ],
     },
     kpis: [
-      { id: 'investigations', label: 'Active investigations', value: 4, format: (n) => `${Math.round(n)}`, trend: 'up' },
+      { id: 'investigations', label: 'Active reasoning', value: 4, format: (n) => `${Math.round(n)}`, trend: 'up' },
       { id: 'alerts', label: 'Open alerts', value: 2, format: (n) => `${Math.round(n)}`, trend: 'flat' },
       { id: 'sources', label: 'Connected sources', value: 24, format: (n) => `${Math.round(n)}`, trend: 'up' },
       { id: 'findings', label: 'Open findings', value: 7, format: (n) => `${Math.round(n)}`, trend: 'flat' },

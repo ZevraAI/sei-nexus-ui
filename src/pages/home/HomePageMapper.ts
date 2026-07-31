@@ -69,7 +69,7 @@ function mapExecutiveSummary(brief: any, base: HomepageViewModel['executiveSumma
     narrative,
     actions: [
       { label: 'Read the full brief', to: '/brief', primary: true },
-      { label: 'Open investigations', to: '/reasoning' },
+      { label: 'Open reasoning', to: '/reasoning' },
     ],
   };
 }
@@ -189,7 +189,7 @@ function mapWorkforce(agents: any[]): HomepageViewModel['workforce'] {
 function computeKpis(counts: { investigations: number; alerts: number; sources: number; findings: number }): HomepageViewModel['kpis'] {
   const n = (v: number) => `${v}`;
   return [
-    { id: 'investigations', label: 'Active investigations', value: counts.investigations, format: n },
+    { id: 'investigations', label: 'Active reasoning', value: counts.investigations, format: n },
     { id: 'alerts', label: 'Open alerts', value: counts.alerts, format: n },
     { id: 'sources', label: 'Connected sources', value: counts.sources, format: n },
     { id: 'findings', label: 'Open findings', value: counts.findings, format: n },

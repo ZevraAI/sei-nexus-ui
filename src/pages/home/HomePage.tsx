@@ -12,9 +12,11 @@
  *  → active investigations → Enterprise activity (ledger + AI workforce).
  *  ============================================================================ */
 import { RevealGroup } from '../../experience';
-import { SectionLabel, Grid, PageContainer, ErrorState } from '../../ds';
+import { SectionLabel, Grid, ErrorState } from '../../ds';
+import { IntelligencePage } from '../../ds/intelligence';
 import { useHomepageViewModel } from './HomePageAdapter';
 import { ExecutiveHeader } from './HomePageSections/ExecutiveHeader';
+import { SuggestedQuestions } from './HomePageSections/SuggestedQuestions';
 import { KPISection } from './HomePageSections/KPISection';
 import { Recommendations } from './HomePageSections/Recommendations';
 import { BusinessSignals } from './HomePageSections/BusinessSignals';
@@ -39,13 +41,15 @@ export default function HomePage({ user }: HomePageProps) {
   const { capturedAt, executiveSummary, kpis, signals, recommendations, investigations, workforce, recentActivity } = vm;
 
   return (
-    <PageContainer width="wide" className="pt-6 pb-28">
+    <IntelligencePage measure="wide" className="pt-6 pb-28">
       <RevealGroup>
         <ExecutiveHeader
           vm={executiveSummary}
           loading={loading}
           kpiSlot={loading ? <StripSkeleton /> : <KPISection kpis={kpis} capturedAt={capturedAt} />}
         />
+
+        {!loading && <SuggestedQuestions />}
 
         {error && <ErrorState message={error} className="mt-6" />}
 
@@ -68,6 +72,6 @@ export default function HomePage({ user }: HomePageProps) {
           </>
         )}
       </RevealGroup>
-    </PageContainer>
+    </IntelligencePage>
   );
 }

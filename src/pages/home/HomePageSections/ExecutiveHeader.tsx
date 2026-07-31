@@ -3,7 +3,8 @@
  *  brief is still loading it shows a skeleton; when the tenant has no brief yet it shows an honest
  *  "ready" state inviting the first step — never a fabricated verdict. Signature rhythm unchanged. */
 import type { ReactNode } from 'react';
-import { Display, Button, PulseSpine, Skeleton } from '../../../ds';
+import { Button, PulseSpine, Skeleton } from '../../../ds';
+import { Verdict } from '../../../ds/intelligence';
 import { EnterprisePulse, Reveal, RevealPriority } from '../../../experience';
 import type { ExecutiveSummaryVM, Segment } from '../HomePageViewModel';
 
@@ -41,9 +42,9 @@ export function ExecutiveHeader({ vm, kpiSlot, loading }: { vm: ExecutiveSummary
             <Skeleton className="h-9 w-[55%]" />
           </div>
         ) : hasVerdict ? (
-          <Display id="home-verdict" size="xl" className="max-w-[20ch]">{renderSegments(vm.headline)}</Display>
+          <Verdict id="home-verdict" size="xl" className="max-w-[20ch]">{renderSegments(vm.headline)}</Verdict>
         ) : (
-          <Display id="home-verdict" size="xl" className="max-w-[22ch]">Zevra is ready.</Display>
+          <Verdict id="home-verdict" size="xl" className="max-w-[22ch]">Zevra is ready.</Verdict>
         )}
 
         {kpiSlot}
@@ -70,10 +71,7 @@ export function ExecutiveHeader({ vm, kpiSlot, loading }: { vm: ExecutiveSummary
                 <Button key={a.label} variant={a.primary ? 'primary' : 'ghost'} onClick={() => go(a.to)}>{a.label}</Button>
               ))
             ) : (
-              <>
-                <Button variant="primary" onClick={() => go('/connections')}>Connect a data source</Button>
-                <Button variant="ghost" onClick={() => go('/chat')}>Ask Zevra</Button>
-              </>
+              <Button variant="primary" onClick={() => go('/connections')}>Connect a data source</Button>
             )}
           </div>
         )}

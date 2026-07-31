@@ -10,17 +10,17 @@ export function Investigations({ investigations }: { investigations: Investigati
   if (!investigations.length) {
     return (
       <EmptyState
-        label="Active investigations"
-        title="No investigations yet"
-        hint="Ask Zevra a question or commission an investigation, and its reasoning will appear here as it works."
+        label="Active reasoning"
+        title="No active reasoning yet"
+        hint="Ask Zevra a question and its reasoning sessions will appear here as it works. Resume past investigations from the workspace history."
         ctaLabel="Start an investigation"
         ctaTo="/chat"
       />
     );
   }
   return (
-    <section aria-label="Active investigations">
-      <SectionLabel>Active investigations</SectionLabel>
+    <section aria-label="Active reasoning">
+      <SectionLabel>Active reasoning</SectionLabel>
       <Grid cols={2}>
         {investigations.map((inv) => {
           const card = (
