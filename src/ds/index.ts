@@ -47,6 +47,7 @@ export type { CommandBarProps, CommandItem } from './components/CommandBar';
 export {
   AppShell, TopBar, Brand, Nav, NavItem, Avatar, Stage, Grid, SectionLabel, Reveal, PulseSpine,
 } from './components/AppShell';
+export { Spine } from './components/Spine';
 export type { NavItemProps } from './components/AppShell';
 
 // Shared page primitives + UI states (the homepage-derived enterprise scaffold)

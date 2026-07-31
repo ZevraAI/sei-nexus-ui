@@ -2,7 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './styles.css';
-import './ds/tokens.css'; // Zevra Design Language token layer
+import './ds/tokens.css'; // Zevra Design Language token layer (base --z-*)
+import './ds/intelligence/tokens.css'; // Intelligence Experience material layer (--z-ai-*)
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 const params = new URLSearchParams(window.location.search);

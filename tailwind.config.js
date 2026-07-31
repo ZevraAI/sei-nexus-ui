@@ -8,6 +8,8 @@ export default {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         // Signature — the verdict voice (additive; falls back to system serifs).
         'z-serif': ['var(--z-font-serif)', 'Georgia', 'serif'],
+        // Signature — the micro-label / meta voice (mono).
+        'z-mono': ['var(--z-font-mono)', 'ui-monospace', 'monospace'],
       },
       colors: {
         // ── Legacy tokens (existing pages — migrate incrementally) ──────────
@@ -83,6 +85,12 @@ export default {
         'z-spine': 'var(--z-spine)',
         'z-spine-strong': 'var(--z-spine-strong)',
         'z-brass': 'var(--z-brass)',
+        // ── Intelligence Experience layer (--z-ai-*) — consumed only by ds/intelligence ──
+        'z-ai-surface': 'var(--z-ai-surface)',
+        'z-ai-surface-2': 'var(--z-ai-surface-2)',
+        'z-ai-edge': 'var(--z-ai-edge)',
+        'z-ai-edge-top': 'var(--z-ai-edge-top)',
+        'z-ai-edge-em': 'var(--z-ai-edge-em)',
       },
       boxShadow: {
         // Legacy
@@ -93,6 +101,8 @@ export default {
         'z-2': 'var(--z-elev-2)',
         'z-3': 'var(--z-elev-3)',
         'z-4': 'var(--z-elev-4)',
+        // Intelligence Experience lift
+        'z-ai-lift': 'var(--z-ai-lift)',
       },
       borderRadius: {
         xs: '6px',
@@ -120,6 +130,10 @@ export default {
         'z-stage': '1120px',
         'z-narrow': '900px',
         'z-read': '66ch',
+        // Intelligence Experience reading measures
+        'z-ai-column': '800px',
+        'z-ai-read': '62ch',
+        'z-ai-verdict': '30ch',
       },
       fontSize: {
         // Legacy scale
@@ -143,6 +157,8 @@ export default {
         'z-label': ['12px', { lineHeight: '1.3', letterSpacing: '0.06em', fontWeight: '600' }],
         'z-kpi': ['30px', { lineHeight: '1', letterSpacing: '-0.025em', fontWeight: '600' }],
         'z-kpi-lg': ['44px', { lineHeight: '1', letterSpacing: '-0.025em', fontWeight: '600' }],
+        // Intelligence Experience — the editorial verdict voice (serif, light weight)
+        'z-ai-verdict': ['28px', { lineHeight: '1.24', letterSpacing: '-0.015em', fontWeight: '400' }],
       },
       transitionTimingFunction: {
         'z-standard': 'cubic-bezier(0.2, 0.7, 0.2, 1)',
