@@ -2,7 +2,7 @@
  *  Phase 3.5: LivingRecommendationCard (Reveal + accent + preview/shared seams) with the runtime
  *  ConfidenceAnimator. The page declares intent + data only — no timing, no scheduling. */
 import { SectionLabel, Grid, CardTitle, CardBody, Button } from '../../../ds';
-import { LivingRecommendationCard, ConfidenceAnimator, RevealPriority } from '../../../experience';
+import { LivingRecommendationCard, RevealPriority } from '../../../experience';
 import { EmptyState } from '../../../ds';
 import type { RecommendationVM } from '../HomePageViewModel';
 
@@ -21,8 +21,8 @@ export function Recommendations({ recommendations }: { recommendations: Recommen
     );
   }
   return (
-    <section aria-label="Recommended actions">
-      <SectionLabel>Recommended actions</SectionLabel>
+    <section aria-label="Decisions for your review">
+      <SectionLabel>Requires your decision</SectionLabel>
       <Grid cols={2}>
         {recommendations.map((r) => (
           <LivingRecommendationCard
@@ -30,18 +30,18 @@ export function Recommendations({ recommendations }: { recommendations: Recommen
             priority={RevealPriority.HIGH}
             sharedId={r.id}
             previewEntity={{ kind: 'recommendation', id: r.id }}
+            className="flex h-full flex-col"
           >
-            <div className="flex items-center gap-2 text-z-label uppercase text-z-primary">
-              <span aria-hidden className="text-[8px] leading-none">◆</span>Recommended action
-            </div>
-            <CardTitle className="font-z-serif font-medium">{r.summary}</CardTitle>
-            <CardBody>{r.rationale}</CardBody>
-            <p className="mt-3 text-z-body text-z-text">
-              <span className="font-semibold">Expected impact:</span> {r.impact}
-            </p>
-            <ConfidenceAnimator value={r.confidence} className="mt-4" />
-            <div className="mt-5">
-              <Button size="sm" onClick={() => go(r.to)}>{r.actionLabel}</Button>
+            <div className="text-z-label uppercase tracking-[0.09em] text-z-primary">{r.state ?? 'Decision Required'}</div>
+            <CardTitle className="mt-2.5 font-z-serif font-medium">{r.summary}</CardTitle>
+            <CardBody className="mt-2 text-z-text-2">{r.rationale}</CardBody>
+            {r.impact && (
+              <p className="mt-3 text-z-body text-z-text-2">
+                <span className="font-medium text-z-text">Zevra recommends</span> — {r.impact}
+              </p>
+            )}
+            <div className="mt-auto pt-6">
+              <Button variant="link" size="sm" onClick={() => go(r.to)}>{r.actionLabel} →</Button>
             </div>
           </LivingRecommendationCard>
         ))}

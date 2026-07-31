@@ -5,7 +5,7 @@
 import type { ReactNode } from 'react';
 import { Button, PulseSpine, Skeleton } from '../../../ds';
 import { Verdict } from '../../../ds/intelligence';
-import { EnterprisePulse, Reveal, RevealPriority } from '../../../experience';
+import { Reveal, RevealPriority } from '../../../experience';
 import type { ExecutiveSummaryVM, Segment } from '../HomePageViewModel';
 
 const toneClass: Record<NonNullable<Segment['tone']>, string> = {
@@ -32,7 +32,6 @@ export function ExecutiveHeader({ vm, kpiSlot, loading }: { vm: ExecutiveSummary
   return (
     <Reveal priority={RevealPriority.CRITICAL}>
       <section aria-labelledby="home-verdict">
-        <EnterprisePulse className="mb-4" />
         <PulseSpine className="mb-8" />
         <p className="mb-3 font-z-serif italic text-z-body-lg text-z-text-2">{vm.greeting}</p>
 
@@ -47,13 +46,11 @@ export function ExecutiveHeader({ vm, kpiSlot, loading }: { vm: ExecutiveSummary
           <Verdict id="home-verdict" size="xl" className="max-w-[22ch]">Zevra is ready.</Verdict>
         )}
 
-        {kpiSlot}
-
         {!loading && (
-          <div className="mt-10 max-w-z-read space-y-4">
+          <div className="mt-8 max-w-z-read space-y-3">
             {hasVerdict ? (
               vm.narrative.map((para, i) => (
-                <p key={i} className="font-z-serif text-z-body-lg leading-[1.62] text-z-text-2">{renderSegments(para)}</p>
+                <p key={i} className="font-z-serif text-z-body-lg leading-[1.6] text-z-text-2">{renderSegments(para)}</p>
               ))
             ) : (
               <p className="font-z-serif text-z-body-lg leading-[1.62] text-z-text-2">
@@ -63,6 +60,12 @@ export function ExecutiveHeader({ vm, kpiSlot, loading }: { vm: ExecutiveSummary
             )}
           </div>
         )}
+
+        {!loading && hasVerdict && vm.eyebrow && (
+          <p className="mt-6 text-z-caption uppercase tracking-[0.08em] text-z-text-3">{vm.eyebrow}</p>
+        )}
+
+        {kpiSlot}
 
         {!loading && (
           <div className="mt-10 flex flex-wrap gap-3">

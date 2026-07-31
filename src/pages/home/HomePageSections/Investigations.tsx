@@ -2,15 +2,21 @@
  *  Phase 3.5: LivingInvestigationCard supplies Reveal + animated confidence + preview/shared seams.
  *  Navigation only. No animation code on the page. */
 import { SectionLabel, Grid, CardTitle } from '../../../ds';
-import { LivingInvestigationCard, LivingBadge, RevealPriority } from '../../../experience';
+import { LivingInvestigationCard, RevealPriority } from '../../../experience';
 import { EmptyState } from '../../../ds';
 import type { InvestigationVM } from '../HomePageViewModel';
+import type { StatusKind } from '../../../ds';
+
+function stateTone(k: StatusKind) {
+  return k === 'critical' ? 'text-z-down' : k === 'warning' ? 'text-z-warning'
+    : k === 'resolved' ? 'text-z-up' : 'text-z-text-3';
+}
 
 export function Investigations({ investigations }: { investigations: InvestigationVM[] }) {
   if (!investigations.length) {
     return (
       <EmptyState
-        label="Active reasoning"
+        label="Supporting analysis"
         title="No active reasoning yet"
         hint="Ask Zevra a question and its reasoning sessions will appear here as it works. Resume past investigations from the workspace history."
         ctaLabel="Start an investigation"
@@ -19,14 +25,13 @@ export function Investigations({ investigations }: { investigations: Investigati
     );
   }
   return (
-    <section aria-label="Active reasoning">
-      <SectionLabel>Active reasoning</SectionLabel>
+    <section aria-label="Supporting analysis">
+      <SectionLabel>Supporting analysis</SectionLabel>
       <Grid cols={2}>
         {investigations.map((inv) => {
           const card = (
             <LivingInvestigationCard
               priority={RevealPriority.NORMAL}
-              confidence={inv.confidence}
               accent={inv.status}
               live={inv.live}
               sharedId={inv.id}
@@ -34,7 +39,7 @@ export function Investigations({ investigations }: { investigations: Investigati
               className="h-full"
             >
               <div className="flex items-center justify-between">
-                <LivingBadge status={inv.status} dot live={inv.live}>{inv.phase}</LivingBadge>
+                <span className={`text-z-label uppercase tracking-[0.09em] ${stateTone(inv.status)}`}>{inv.phase}</span>
                 <span className="text-z-caption text-z-text-3">{inv.updatedAt}</span>
               </div>
               <CardTitle className="font-z-serif font-medium">{inv.title}</CardTitle>

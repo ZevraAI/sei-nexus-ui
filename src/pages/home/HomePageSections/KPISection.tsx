@@ -15,7 +15,7 @@ export function KPISection({ kpis, capturedAt }: { kpis: KpiVM[]; capturedAt: Ho
   return (
     <Reveal priority={RevealPriority.HIGH}>
       <Card accent="primary" aria-label="Enterprise KPIs"
-        className="mt-9 flex flex-col overflow-hidden p-0 shadow-z-2 sm:flex-row">
+        className="mt-7 flex flex-col overflow-hidden p-0 shadow-z-1 sm:flex-row">
         {kpis.map((k, i) => (
           <div key={k.id} className={cn('flex-1 px-6 py-5', i > 0 && 'border-t border-z-border sm:border-l sm:border-t-0')}>
             <div className={cn('text-z-kpi tabular-nums',

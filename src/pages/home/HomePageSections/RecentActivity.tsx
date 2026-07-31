@@ -19,8 +19,8 @@ export function RecentActivity({ items }: { items: ActivityVM[] }) {
   return (
     <LivingCard priority={RevealPriority.LOW} className="h-full">
       <div className="mb-4 flex items-baseline justify-between">
-        <h4 className="font-z-serif text-z-h3 font-medium text-z-text">What changed overnight</h4>
-        <span className="text-z-caption tabular-nums text-z-text-3">{items.length} events</span>
+        <h4 className="font-z-serif text-z-h3 font-medium text-z-text">Completed analyses</h4>
+        <span className="text-z-caption tabular-nums text-z-text-3">{items.length} completed</span>
       </div>
       <ul className="divide-y divide-z-border">
         {items.map((it) => (
