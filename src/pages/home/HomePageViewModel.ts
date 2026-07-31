@@ -60,6 +60,8 @@ export interface RecommendationVM {
   confidence: number;     // 0–100
   actionLabel: string;
   to?: string;
+  /** Executive sign-off shown as the card's eyebrow (e.g. "Decision Required"). */
+  state?: string;
 }
 
 export interface InvestigationVM {
