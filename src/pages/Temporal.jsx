@@ -358,7 +358,7 @@ export default function Temporal() {
   ];
 
   return (
-    <div className="flex-1 overflow-auto p-7 bg-transparent">
+    <div className="h-full overflow-auto p-7 bg-transparent">
       <PageHeader
         title="Temporal Intelligence"
         subtitle="Baselines, anomaly detection, and proactive alert rules"

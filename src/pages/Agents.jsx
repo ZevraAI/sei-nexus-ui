@@ -135,7 +135,7 @@ export default function Agents() {
   const handleSaved = () => { setShowModal(false); setEditing(null); load(); };
 
   return (
-    <div className="flex-1 overflow-auto p-7 bg-transparent">
+    <div className="h-full overflow-auto p-7 bg-transparent">
 
       {/* Header */}
       <div className="flex items-start justify-between mb-7">

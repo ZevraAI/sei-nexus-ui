@@ -900,7 +900,7 @@ export default function KnowledgeGraph() {
   }, [entities, allEdges]);
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-transparent">
+    <div className="h-full flex flex-col overflow-hidden bg-transparent">
 
       {/* Page header */}
       <div className="flex-shrink-0 px-7 pt-6 pb-4 bg-white/40 backdrop-blur-sm

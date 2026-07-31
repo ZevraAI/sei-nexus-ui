@@ -305,7 +305,7 @@ export default function EnterpriseMap() {
   };
 
   return (
-    <div className="flex-1 overflow-auto p-7 bg-transparent">
+    <div className="h-full overflow-auto p-7 bg-transparent">
       <PageHeader
         title="Enterprise Map"
         subtitle="Approved data objects, columns, and operational notes"
