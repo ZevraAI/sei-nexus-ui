@@ -5,8 +5,9 @@ import { ZevraLogo } from './ZevraLogo.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { useTenant } from '../context/TenantContext.jsx';
 import { api } from '../api.js';
+import InvestigationComposer from './InvestigationComposer.jsx';
 import {
-  Building2, ChevronDown, LogOut, Moon, Sun, ArrowLeftRight, X, Sparkles,
+  Building2, ChevronDown, LogOut, Moon, Sun, ArrowLeftRight, X,
 } from 'lucide-react';
 
 // ── helpers ───────────────────────────────────────────────────────────────
@@ -334,12 +335,28 @@ export default function Layout({ children, currentPath }) {
     return false;
   };
 
-  // ⌘K / Ctrl+K opens the command bar's flow (ask the enterprise / commission an investigation).
+  // ── Shell Investigation Composer — the application-level launch point ─────────
+  // The same InvestigationComposer used inside the workspace. Typing here starts a NEW
+  // investigation and hands off to the workspace via the existing prefill plumbing.
+  const [shellQuery, setShellQuery] = useState('');
+  const shellComposerRef = useRef(null);
+  const showShellComposer = !currentPath.startsWith('/chat');
+
+  const launchFromShell = () => {
+    const q = shellQuery.trim();
+    if (!q) return;
+    localStorage.setItem('zevra_chat_prefill', q); // Chat auto-fires it as a new investigation
+    setShellQuery('');
+    navigate('/chat');
+  };
+
+  // ⌘K / Ctrl+K focuses the shell composer (or opens the workspace if it isn't shown).
   useEffect(() => {
     const onKey = (e) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault();
-        navigate('/chat');
+        if (shellComposerRef.current) shellComposerRef.current.focus();
+        else navigate('/chat');
       }
     };
     window.addEventListener('keydown', onKey);
@@ -519,54 +536,25 @@ export default function Layout({ children, currentPath }) {
         </div>
       </header>
 
-      {/* ── Command Center band (Row 2) — the bridge between the shell and the enterprise
-           intelligence below. Compact, centered, and visually distinct from both the nav
-           row above and the page content beneath. This is Zevra's primary interaction. */}
-      <div className={`shrink-0 h-[54px] grid grid-cols-[1fr_minmax(0,940px)_1fr] items-center gap-4 px-6
-                       border-b transition-colors duration-200
-                       ${isDark
-                         ? 'bg-[#0F141C] border-[#20293A] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]'
-                         : 'bg-[#EEECE4] border-[#E4E2D9] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]'}`}>
-
-        {/* Area title — sits at the inner edge of its column so it reads as the caption of the
-            command surface it precedes (the bar stays perfectly centered). */}
-        <div className="justify-self-end flex items-center gap-2 min-w-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(52,211,160,0.6)] shrink-0" />
-          <span className={`text-[10px] font-semibold uppercase tracking-[0.18em] truncate
-                            ${isDark ? 'text-[#9AA7BA]' : 'text-[#5B6675]'}`}>Command Center</span>
+      {/* ── Shell Investigation Composer (Row 2) — the application-level launch point.
+           The shell owns initiation: the SAME InvestigationComposer used in the workspace,
+           available on every page EXCEPT the Investigations workspace (/chat), which owns
+           its own composer. ⌘K focuses it. */}
+      {showShellComposer && (
+        <div className="shrink-0 border-b border-z-border bg-z-bg px-6 py-2.5">
+          <div className="mx-auto max-w-[940px]">
+            <InvestigationComposer
+              inputRef={shellComposerRef}
+              value={shellQuery}
+              onChange={setShellQuery}
+              onSubmit={launchFromShell}
+              placeholder="Investigate anything about your business…"
+              disabled={!shellQuery.trim()}
+              align="center"
+            />
+          </div>
         </div>
-
-        <button
-          onClick={() => navigate('/chat')}
-          className={`group w-full flex items-center gap-3 h-[38px] pl-2 pr-3 rounded-[11px]
-                      border transition-all duration-200
-                      ${isDark
-                        ? 'border-[#3E4B62] bg-[#1B222F] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ' +
-                          'hover:border-emerald-500/55 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_0_3px_rgba(52,211,160,0.10)]'
-                        : 'border-gray-300 bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(16,24,40,0.04)] ' +
-                          'hover:border-emerald-400 hover:shadow-[0_0_0_3px_rgba(16,185,129,0.09)]'}`}
-        >
-          {/* Signature command mark — echoes the Zevra product logo. */}
-          <span className="grid place-items-center w-7 h-7 rounded-[8px] shrink-0 text-white
-                           bg-gradient-to-br from-emerald-400 to-emerald-600
-                           shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]
-                           transition-transform duration-200 group-hover:scale-[1.03]">
-            <Sparkles size={15} />
-          </span>
-          <span className={`flex-1 text-left truncate text-[13.5px]
-                            ${isDark ? 'text-[#8D9BB0]' : 'text-[#5B6675]'}`}>
-            Ask the enterprise, or commission an investigation…
-          </span>
-          <kbd className={`shrink-0 font-mono text-[11px] px-1.5 py-[2px] rounded border
-                           ${isDark
-                             ? 'border-[#3A465C] bg-[#12161F] text-[#8492A6]'
-                             : 'border-gray-300 bg-gray-50 text-gray-500'}`}>⌘K</kbd>
-        </button>
-
-        {/* Right column intentionally empty — the 1fr side columns keep the bar perfectly
-            centered without a decorative label. */}
-        <span aria-hidden />
-      </div>
+      )}
 
       {/* ── Page content ─────────────────────────────────────────────────── */}
       <main className="flex-1 min-h-0 overflow-hidden bg-transparent">
