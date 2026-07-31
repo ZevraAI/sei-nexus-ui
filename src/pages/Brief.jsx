@@ -3,9 +3,10 @@ import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
 import { cn } from '../utils/cn';
 import {
-  PageContainer, PulseSpine, Display, Text, Label, Card, MetricCard, StatusDot, Grid,
+  PulseSpine, Text, Label, Card, MetricCard, StatusDot, Grid,
   Dialog, Field, Input, Select, Button, EmptyState, Skeleton, Spinner, InlineAlert,
 } from '../ds';
+import { IntelligencePage, Verdict, NarrativeSurface } from '../ds/intelligence';
 import { RefreshCw, Clock, Check } from 'lucide-react';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -49,7 +50,7 @@ function BriefHero({ user, verdict, refreshing, onRefresh, canRefresh }) {
         )}
       </div>
 
-      {verdict && <Display size="xl" className="mt-6 max-w-[24ch]">{verdict}</Display>}
+      {verdict && <Verdict size="xl" className="mt-6 max-w-[24ch]">{verdict}</Verdict>}
 
       <Label as="p" className="mt-6">Prepared by your Zevra agents</Label>
     </header>
@@ -66,7 +67,7 @@ function BriefSection({ section }) {
   const metrics = section.metrics || [];
 
   return (
-    <Card accent={accent}>
+    <NarrativeSurface material="plain" accent={accent}>
       <Label>{section.title}</Label>
 
       {section.content && (
@@ -99,7 +100,7 @@ function BriefSection({ section }) {
           ))}
         </Grid>
       )}
-    </Card>
+    </NarrativeSurface>
   );
 }
 
@@ -299,7 +300,7 @@ export default function Brief() {
   // Initial loading
   if (brief === undefined) {
     return (
-      <PageContainer width="narrow">
+      <IntelligencePage measure="narrow">
         <div className="pt-10" role="status" aria-label="Loading your brief">
           <PulseSpine className="mb-8" />
           <Skeleton className="h-5 w-56" />
@@ -313,14 +314,14 @@ export default function Brief() {
             <Skeleton className="h-28" />
           </div>
         </div>
-      </PageContainer>
+      </IntelligencePage>
     );
   }
 
   // No config yet — setup
   if (!config) {
     return (
-      <PageContainer width="narrow">
+      <IntelligencePage measure="narrow">
         <div className="flex min-h-full items-center justify-center py-16">
           <Card className="w-full max-w-md">
             <h2 className="font-z-serif text-z-h2 font-medium text-z-text">Set up Morning Brief</h2>
@@ -333,14 +334,14 @@ export default function Brief() {
             </div>
           </Card>
         </div>
-      </PageContainer>
+      </IntelligencePage>
     );
   }
 
   // No brief for today yet — offer to generate one now
   if (!brief) {
     return (
-      <PageContainer width="narrow">
+      <IntelligencePage measure="narrow">
         <BriefHero user={user} verdict={null} canRefresh={false} />
         <div className="mt-10">
           <EmptyState
@@ -353,14 +354,14 @@ export default function Brief() {
             </Button>
           </div>
         </div>
-      </PageContainer>
+      </IntelligencePage>
     );
   }
 
   // Generating
   if (brief.status === 'GENERATING') {
     return (
-      <PageContainer width="narrow">
+      <IntelligencePage measure="narrow">
         <BriefHero user={user} verdict={null} canRefresh={false} />
         <div className="mt-10 space-y-4" role="status" aria-label="Generating your brief">
           <Skeleton className="h-28" />
@@ -370,14 +371,14 @@ export default function Brief() {
             Your agents are analysing the data… this takes about 30 seconds.
           </div>
         </div>
-      </PageContainer>
+      </IntelligencePage>
     );
   }
 
   // Failed
   if (brief.status === 'FAILED') {
     return (
-      <PageContainer width="narrow">
+      <IntelligencePage measure="narrow">
         <BriefHero user={user} verdict={null} canRefresh={false} />
         <div className="mt-10">
           <InlineAlert variant="error" title="This morning's brief encountered an error">
@@ -389,7 +390,7 @@ export default function Brief() {
             </Button>
           </div>
         </div>
-      </PageContainer>
+      </IntelligencePage>
     );
   }
 
@@ -406,7 +407,7 @@ export default function Brief() {
     : null;
 
   return (
-    <PageContainer width="narrow" className="pb-24">
+    <IntelligencePage measure="narrow" className="pb-24">
       <BriefHero
         user={user}
         verdict={brief.headline}
@@ -458,6 +459,6 @@ export default function Brief() {
           onCancel={() => setShowSettings(false)}
         />
       </Dialog>
-    </PageContainer>
+    </IntelligencePage>
   );
 }
