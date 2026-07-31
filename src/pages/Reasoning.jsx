@@ -140,7 +140,7 @@ export default function Reasoning() {
   };
 
   return (
-    <div className="flex-1 overflow-auto p-7 bg-transparent">
+    <div className="h-full overflow-auto p-7 bg-transparent">
       <PageHeader
         title="Reasoning"
         subtitle="Investigation sessions, hypotheses, and operational findings"
