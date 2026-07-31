@@ -1,23 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { marked } from 'marked';
 import {
-  ArrowLeft, Bot, CalendarClock, Clipboard, Clock, Database, Download, FileDown,
-  FileSpreadsheet, FileText, Layers, ListTree, MoreHorizontal, Network, Paperclip,
-  Printer, Search, Send, Sparkles, User, Users, X,
+  ArrowLeft, Bot, CalendarClock, Clipboard, Clock, Download, FileDown,
+  FileSpreadsheet, FileText, ListTree, Printer, Search, User, X,
 } from 'lucide-react';
 import { api } from '../api.js';
-import { useAuth, navigate } from '../App.jsx';
+import { useAuth } from '../App.jsx';
+import { cn } from '../utils/cn';
+import {
+  Button, IconButton, Field, Input, SegmentedControl, Dialog,
+  InlineAlert, Spinner, TableWrap, Table, THead, TBody, Th, Tr, Td,
+} from '../ds';
+import { IntelligencePage, ReadingColumn, NarrativeSurface, Eyebrow } from '../ds/intelligence';
+import InvestigationComposer from '../components/InvestigationComposer.jsx';
 
-// ── Quick access tiles shown on the home landing ──────────────────────────
-const QUICK_TILES = [
-  { label: 'Investigations', path: '/chat',        gradient: 'bg-gradient-to-br from-emerald-100 to-emerald-200', iconColor: '#059669', Icon: Sparkles   },
-  { label: 'Agents',         path: '/agents',      gradient: 'bg-gradient-to-br from-blue-100 to-blue-200',       iconColor: '#3B82F6', Icon: Users      },
-  { label: 'Knowledge Graph',path: '/graph',       gradient: 'bg-gradient-to-br from-violet-100 to-violet-200',   iconColor: '#7C3AED', Icon: Network    },
-  { label: 'Semantic Layer', path: '/semantic',    gradient: 'bg-gradient-to-br from-orange-100 to-orange-200',   iconColor: '#EA580C', Icon: Layers     },
-  { label: 'Connections',    path: '/connections', gradient: 'bg-gradient-to-br from-sky-100 to-sky-200',         iconColor: '#0284C7', Icon: Database   },
-  { label: 'AI Memory',      path: '/memory',      gradient: 'bg-gradient-to-br from-pink-100 to-pink-200',       iconColor: '#9333EA', Icon: FileText   },
-  { label: 'Reports',        path: '/reports',     gradient: 'bg-gradient-to-br from-indigo-100 to-indigo-200',   iconColor: '#4338CA', Icon: Users      },
-];
 import DataViz from '../components/DataViz.jsx';
 import ReasoningTrace from '../components/ReasoningTrace.jsx';
 import AgentStepTrace from '../components/agents/AgentStepTrace.jsx';
@@ -36,14 +32,6 @@ function MarkdownBody({ content }) {
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
-function displayName(user) {
-  return user?.display_name || user?.name || user?.email || 'there';
-}
-
-function firstName(user) {
-  return displayName(user).split(/[ @._-]+/).filter(Boolean)[0] || 'there';
-}
-
 function envLabel() {
   return import.meta.env.VITE_ENV_LABEL || import.meta.env.MODE || 'environment';
 }
@@ -275,27 +263,26 @@ function buildPowerPointHtml(title, messages) {
 function ExportMenu({ open, onToggle, disabled, actions, align = 'right' }) {
   return (
     <div className="relative">
-      <button
-        type="button"
-        onClick={onToggle}
-        disabled={disabled}
-        className="h-8 px-3 rounded-[7px] border border-[#DDE4E1] bg-white text-[12px] font-medium text-[#344054] flex items-center gap-2 hover:bg-[#F7FAF8] disabled:opacity-40 disabled:cursor-not-allowed"
-        aria-label="Export"
-      >
-        <Download size={14} />
+      <Button variant="ghost" size="sm" onClick={onToggle} disabled={disabled}
+        aria-haspopup="menu" aria-expanded={open} leadingIcon={<Download size={14} />}>
         Export
-      </button>
+      </Button>
       {open && (
-        <div className={`absolute top-9 ${align === 'left' ? 'left-0' : 'right-0'} z-20 w-56 rounded-[8px] border border-[#E6E2DD] bg-white shadow-lg py-1`}>
+        <div role="menu"
+          className={cn(
+            'absolute top-10 z-20 w-60 overflow-hidden rounded-z-md border border-z-border bg-z-card py-1 shadow-z-2',
+            align === 'left' ? 'left-0' : 'right-0',
+          )}>
           {actions.map((action) => (
             <button
               key={action.label}
               type="button"
+              role="menuitem"
               onClick={action.onClick}
               disabled={action.disabled}
-              className="w-full px-3 py-2 text-left text-[13px] text-[#253248] hover:bg-[#F7FAF8] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-z-caption text-z-text-2 transition-colors hover:bg-z-hover hover:text-z-text disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-z-focus-ring"
             >
-              <action.icon size={14} className="text-[#53647C]" />
+              <action.icon size={14} className="text-z-text-3" />
               {action.label}
             </button>
           ))}
@@ -334,58 +321,47 @@ function FloatingHistory({ conversations, loading, onOpen, onClose }) {
   return (
     <div
       ref={ref}
-      className="fixed top-[58px] right-4 z-50 w-[310px] max-h-[72vh] flex flex-col
-                 bg-white/88 backdrop-blur-xl rounded-[18px]
-                 border border-gray-200/60
-                 shadow-[0_24px_64px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.8)]
-                 overflow-hidden"
+      role="dialog"
+      aria-label="Conversation history"
+      className="fixed right-4 top-[58px] z-50 flex max-h-[72vh] w-[320px] flex-col overflow-hidden rounded-z-lg border border-z-border bg-z-card shadow-z-2"
     >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-100/80 flex items-center justify-between flex-shrink-0">
+      <div className="flex flex-shrink-0 items-center justify-between border-b border-z-border px-4 py-3">
         <div className="flex items-center gap-2">
-          <Clock size={13} className="text-emerald-500" />
-          <span className="text-[13px] font-semibold text-[#111827]">History</span>
+          <Clock size={13} className="text-z-primary" />
+          <span className="text-z-caption font-semibold text-z-text">History</span>
         </div>
-        <button
-          onClick={onClose}
-          className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400
-                     hover:text-gray-600 hover:bg-gray-100 transition-colors"
-        >
-          <X size={13} />
-        </button>
+        <IconButton label="Close history" onClick={onClose} className="h-7 w-7"><X size={14} /></IconButton>
       </div>
 
       {/* Search */}
-      <div className="px-3 py-2.5 border-b border-gray-100/60 flex-shrink-0">
+      <div className="flex-shrink-0 border-b border-z-border px-3 py-2.5">
         <div className="relative">
-          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300" />
-          <input
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-z-text-3" />
+          <Input
+            className="h-9 pl-8"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search conversations…"
-            className="w-full h-[30px] rounded-[8px] bg-gray-100/80 pl-7 pr-3
-                       text-[12.5px] text-[#111827] outline-none border border-transparent
-                       focus:border-emerald-400 focus:bg-white/80 transition-all
-                       placeholder:text-gray-300"
           />
         </div>
       </div>
 
       {/* List */}
-      <div className="overflow-y-auto flex-1 px-2 py-2">
+      <div className="flex-1 overflow-y-auto px-2 py-2">
         {loading && (
-          <div className="py-8 text-center text-[12px] text-gray-400">Loading…</div>
+          <div className="py-8 text-center text-z-caption text-z-text-3">Loading…</div>
         )}
         {!loading && filtered.length === 0 && (
           <div className="py-8 text-center">
-            <div className="text-[12px] text-gray-400">No conversations yet</div>
-            <div className="text-[11px] text-gray-300 mt-1">Ask your first question to start</div>
+            <div className="text-z-caption text-z-text-2">No conversations yet</div>
+            <div className="mt-1 text-z-caption text-z-text-3">Ask your first question to start</div>
           </div>
         )}
         {['Today', 'Yesterday', 'Earlier'].map((label) =>
           grouped[label]?.length ? (
             <div key={label} className="mb-3">
-              <div className="px-2 mb-1 text-[10px] font-semibold uppercase tracking-[0.07em] text-gray-300">
+              <div className="mb-1 px-2 font-z-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-z-text-3">
                 {label}
               </div>
               <div className="space-y-px">
@@ -394,19 +370,18 @@ function FloatingHistory({ conversations, loading, onOpen, onClose }) {
                     key={item.conversation_id}
                     type="button"
                     onClick={() => { onOpen(item.conversation_id); onClose(); }}
-                    className="w-full text-left rounded-[10px] px-3 py-2.5
-                               hover:bg-gray-100/70 active:bg-gray-200/60 transition-colors group"
+                    className="group w-full rounded-z-md px-3 py-2.5 text-left transition-colors hover:bg-z-hover focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-z-focus-ring"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-[12.5px] font-medium text-[#111827] line-clamp-1 leading-snug">
+                      <span className="line-clamp-1 text-z-caption font-medium leading-snug text-z-text">
                         {item.first_question || item.title || 'Investigation'}
                       </span>
-                      <span className="text-[10.5px] text-gray-400 shrink-0 mt-px">
+                      <span className="mt-px shrink-0 font-z-mono text-[10.5px] text-z-text-3">
                         {timeAgo(item.last_activity)}
                       </span>
                     </div>
                     {item.run_count > 0 && (
-                      <span className="text-[11px] text-gray-400 mt-0.5 block">
+                      <span className="mt-0.5 block text-[11px] text-z-text-3">
                         {item.run_count} {item.run_count === 1 ? 'run' : 'runs'}
                       </span>
                     )}
@@ -444,39 +419,33 @@ function DataTable({ rows }) {
   if (!rows?.length) return null;
   const cols = Object.keys(rows[0]);
   return (
-    <div className="mt-4 rounded-xl border border-gray-200 overflow-hidden">
-      <div className="overflow-x-auto">
-        <div className="max-h-[260px] overflow-y-auto">
-          <table className="w-full text-[12px] border-collapse">
-            <thead className="sticky top-0 z-10">
-              <tr>
-                {cols.map(col => (
-                  <th key={col}
-                      className="bg-[#0C5847] px-3.5 py-2.5 text-left text-[11px] font-semibold text-white/90 tracking-wide whitespace-nowrap">
-                    {colLabel(col)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, i) => (
-                <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-[#f8faf9]'}>
-                  {cols.map(col => (
-                    <td key={col}
-                        className="px-3.5 py-2 text-[#344054] border-t border-gray-100 whitespace-nowrap max-w-[220px] truncate">
-                      {fmtCell(row[col])}
-                    </td>
-                  ))}
-                </tr>
+    <TableWrap className="mt-4">
+      <div className="max-h-[260px] overflow-y-auto">
+        <Table>
+          <THead className="sticky top-0 z-10">
+            <tr>
+              {cols.map(col => (
+                <Th key={col} className="whitespace-nowrap">{colLabel(col)}</Th>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </tr>
+          </THead>
+          <TBody>
+            {rows.map((row, i) => (
+              <Tr key={i}>
+                {cols.map(col => (
+                  <Td key={col} className="max-w-[220px] truncate whitespace-nowrap">
+                    {fmtCell(row[col])}
+                  </Td>
+                ))}
+              </Tr>
+            ))}
+          </TBody>
+        </Table>
       </div>
-      <div className="px-3.5 py-1.5 bg-gray-50 border-t border-gray-200 text-[11px] text-gray-400">
+      <div className="border-t border-z-border bg-z-card-2 px-3.5 py-1.5 font-z-mono text-[11px] text-z-text-3">
         {rows.length.toLocaleString()} row{rows.length !== 1 ? 's' : ''}
       </div>
-    </div>
+    </TableWrap>
   );
 }
 
@@ -519,13 +488,13 @@ function SuggestedQuestions({ quickRefinements, queryData, onAsk }) {
   const chips = useMemo(() => buildSuggestions(quickRefinements, queryData), [quickRefinements, queryData]);
   if (!chips.length) return null;
   return (
-    <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-[#F0EDE8]">
-      <span className="text-[10px] font-semibold text-gray-300 uppercase tracking-wider self-center mr-0.5">
+    <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-z-border pt-4">
+      <span className="mr-0.5 self-center font-z-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-z-text-3">
         Ask next
       </span>
       {chips.map((c, i) => (
-        <button key={i} onClick={() => onAsk(c.prompt)}
-          className="px-2.5 py-1 text-[11px] font-medium rounded-full border border-[#D1E9E2] bg-[#f0faf5] text-[#0C5847] hover:bg-[#0C5847] hover:text-white hover:border-[#0C5847] transition-all">
+        <button key={i} type="button" onClick={() => onAsk(c.prompt)}
+          className="rounded-z-pill border border-z-border bg-transparent px-3.5 py-2 text-z-caption text-z-text-2 transition-colors hover:border-z-primary hover:text-z-text focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-z-focus-ring">
           {c.label}
         </button>
       ))}
@@ -536,28 +505,27 @@ function SuggestedQuestions({ quickRefinements, queryData, onAsk }) {
 // ── message bubbles ────────────────────────────────────────────────────────────
 // ── Attachment type icon + colour ─────────────────────────────────────────────
 const ATTACHMENT_STYLE = {
-  IMAGE:    { icon: '🖼️',  label: 'Image',    bg: 'bg-purple-50  border-purple-200',  text: 'text-purple-700' },
-  TABULAR:  { icon: '📊',  label: 'Spreadsheet', bg: 'bg-green-50  border-green-200',  text: 'text-green-700'  },
-  DOCUMENT: { icon: '📄',  label: 'Document', bg: 'bg-blue-50    border-blue-200',    text: 'text-blue-700'   },
-  TEXT:     { icon: '📝',  label: 'Text file',bg: 'bg-gray-50    border-gray-200',    text: 'text-gray-600'   },
+  IMAGE:    { icon: '🖼️', label: 'Image' },
+  TABULAR:  { icon: '📊', label: 'Spreadsheet' },
+  DOCUMENT: { icon: '📄', label: 'Document' },
+  TEXT:     { icon: '📝', label: 'Text file' },
 };
 
 function AttachmentChip({ attachment, onRemove }) {
   if (!attachment) return null;
   const s = ATTACHMENT_STYLE[attachment.type] ?? ATTACHMENT_STYLE.TEXT;
   return (
-    <div className={`flex items-center gap-2 px-3 py-2 rounded-[10px] border text-[12.5px]
-                     font-medium ${s.bg} ${s.text} max-w-[360px]`}>
+    <div className="flex max-w-[360px] items-center gap-2 rounded-z-md border border-z-border bg-z-card-2 px-3 py-2 text-z-caption font-medium text-z-text-2">
       {attachment.thumbnail ? (
         <img src={`data:image/jpeg;base64,${attachment.thumbnail}`}
-             alt="preview" className="w-8 h-8 rounded-[6px] object-cover flex-shrink-0" />
+             alt="preview" className="h-8 w-8 flex-shrink-0 rounded-z-sm object-cover" />
       ) : (
-        <span className="text-[16px] flex-shrink-0">{s.icon}</span>
+        <span className="flex-shrink-0 text-[16px]">{s.icon}</span>
       )}
-      <span className="truncate flex-1">{attachment.fileName}</span>
+      <span className="flex-1 truncate text-z-text">{attachment.fileName}</span>
       {onRemove && (
-        <button onClick={onRemove}
-          className="flex-shrink-0 ml-1 text-current opacity-50 hover:opacity-100 transition-opacity">
+        <button type="button" onClick={onRemove} aria-label="Remove attachment"
+          className="ml-1 flex-shrink-0 text-current opacity-50 transition-opacity hover:opacity-100">
           <X size={12} />
         </button>
       )}
@@ -567,17 +535,11 @@ function AttachmentChip({ attachment, onRemove }) {
 
 function UserMessage({ text, attachment }) {
   return (
-    <div className="flex justify-end">
-      <div className="flex flex-col items-end gap-1.5 max-w-[78%]">
-        {attachment && <AttachmentChip attachment={attachment} />}
-        <div className="flex items-start gap-2.5">
-          <div className="rounded-[12px] bg-[#0C5847] px-4 py-2.5 text-[13px] leading-[1.55] text-white">
-            {text}
-          </div>
-          <div className="mt-0.5 w-7 h-7 rounded-full bg-[#E8EBF0] flex items-center justify-center shrink-0">
-            <User size={13} className="text-[#415268]" />
-          </div>
-        </div>
+    <div className="mb-8">
+      <div className="mb-2 font-z-mono text-[10px] uppercase tracking-[0.14em] text-z-text-3">You · just now</div>
+      {attachment && <div className="mb-2"><AttachmentChip attachment={attachment} /></div>}
+      <div className="inline-block max-w-[80%] rounded-[16px_16px_16px_4px] border border-z-border bg-z-card-2 px-5 py-3.5 text-[17px] leading-[1.5] text-z-text">
+        {text}
       </div>
     </div>
   );
@@ -614,22 +576,21 @@ function AgentStepsToggle({ sessionId }) {
   return (
     <>
       <button
+        type="button"
         onClick={toggle}
         title="View the steps the agent executed"
-        className="inline-flex items-center gap-1.5 text-[10.5px] font-medium text-[#3B82F6]
-                   bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full
-                   hover:bg-blue-100 transition-colors cursor-pointer">
+        className="inline-flex cursor-pointer items-center gap-1.5 rounded-z-pill border border-z-border bg-z-card-2 px-2.5 py-0.5 text-[10.5px] font-medium text-z-text-2 transition-colors hover:border-z-primary hover:text-z-text focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-z-focus-ring">
         <ListTree size={10} />
         {open
           ? `Hide steps${toolCalls > 0 ? ` (${toolCalls} tool call${toolCalls !== 1 ? 's' : ''})` : ''}`
           : 'View steps'}
       </button>
       {open && (
-        <div className="w-full mt-1.5">
+        <div className="mt-1.5 w-full">
           {error ? (
-            <div className="text-[12px] text-red-600">{error}</div>
+            <div className="text-z-caption text-z-critical-on">{error}</div>
           ) : !session ? (
-            <div className="text-[12px] text-[#9CA3AF]">Loading steps…</div>
+            <div className="text-z-caption text-z-text-3">Loading steps…</div>
           ) : (
             <AgentStepTrace steps={steps} status={session.status} />
           )}
@@ -640,74 +601,68 @@ function AgentStepsToggle({ sessionId }) {
 }
 
 function AssistantMessage({ content, decisionType, agentName, loading, exportMenu, queryData, quickRefinements, onAsk, reasoningSteps, learningsApplied, streamingSteps, agentSessionId }) {
+  const stepCount = safeArray(streamingSteps).length;
   return (
-    <div className="flex justify-start">
-      <div className="flex items-start gap-2.5 w-full">
-        <div className="mt-0.5 w-7 h-7 rounded-full bg-[#0C5847]/10 flex items-center justify-center shrink-0">
-          <Bot size={13} className="text-[#0C5847]" />
-        </div>
-        <div className="flex-1 min-w-0 rounded-[12px] border border-[#E8EBF0] bg-white px-5 py-4 shadow-sm">
-          {loading ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-[12px] text-[#667085]">
-                <span className="flex gap-1">
-                  {[0,1,2].map(i => (
-                    <span key={i} className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce"
-                      style={{ animationDelay: `${i * 0.15}s` }} />
-                  ))}
-                </span>
-                <span className="text-[#667085]">
-                  {safeArray(streamingSteps).length > 0
-                    ? `Investigating… step ${safeArray(streamingSteps).length}`
-                    : 'Zevra is thinking…'}
-                </span>
-              </div>
-              {safeArray(streamingSteps).length > 0 && (
-                <ReasoningTrace steps={safeArray(streamingSteps)} loading={true} />
-              )}
-            </div>
+    <div className="mb-8">
+      <NarrativeSurface accent="primary" live={loading}>
+      {/* Role line — the mono Intelligence voice, emerald, with a live dot */}
+      <Eyebrow dot className="mb-3 text-z-primary">
+        Zevra
+        <span className="text-[11.5px] normal-case tracking-[0.04em] text-z-text-3">
+          {loading ? (stepCount > 0 ? 'thinking…' : 'understanding…') : 'answered'}
+        </span>
+      </Eyebrow>
+
+      {loading ? (
+        <div className="space-y-2">
+          {stepCount > 0 ? (
+            <ReasoningTrace steps={safeArray(streamingSteps)} loading={true} />
           ) : (
-            <>
-              <div className="mb-2 flex justify-end">
-                {exportMenu}
-              </div>
-              <MarkdownBody content={content} />
-              {queryData?.length > 0 && <DataTable rows={queryData} />}
-              {queryData?.length > 0 && <DataViz queryData={queryData} />}
-              <SuggestedQuestions quickRefinements={quickRefinements} queryData={queryData} onAsk={onAsk} />
-              <ReasoningTrace steps={reasoningSteps} loading={false} />
-              {(decisionType || agentName || reasoningSteps?.length > 0) && (
-                <div className="mt-2.5 pt-2.5 border-t border-[#F0EDE8] flex items-center gap-2 flex-wrap">
-                  {agentName && decisionType === 'ZEVRA_AGENT' ? (
-                    <>
-                      <span className="inline-flex items-center gap-1.5 text-[10.5px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                        <Bot size={10} className="text-emerald-600" />
-                        Answered by {agentName}
-                      </span>
-                      {agentSessionId && <AgentStepsToggle sessionId={agentSessionId} />}
-                    </>
-                  ) : decisionType && (
-                    <>
-                      <span className="text-[10px] text-[#8A96A6]">via</span>
-                      <span className="text-[10px] font-medium text-[#0C5847]">{decisionType}</span>
-                    </>
-                  )}
-                  {reasoningSteps?.length > 0 && (
-                    <span className="text-[10px] text-[#8A96A6]">· {reasoningSteps.length} step{reasoningSteps.length !== 1 ? 's' : ''}</span>
-                  )}
-                  {reasoningSteps?.length > 0 && <span className="text-[#8A96A6] text-[10px]">·</span>}
-                  {learningsApplied?.length > 0 && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full"
-                      title={`Learned terms applied: ${learningsApplied.join(', ')}`}>
-                      🧠 {learningsApplied.length} learned term{learningsApplied.length !== 1 ? 's' : ''} applied
-                    </span>
-                  )}
-                </div>
-              )}
-            </>
+            <div className="flex items-center gap-2 text-z-caption text-z-text-2">
+              <Spinner size="sm" />
+              Zevra is thinking…
+            </div>
           )}
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="mb-2 flex justify-end">
+            {exportMenu}
+          </div>
+          <MarkdownBody content={content} />
+          {queryData?.length > 0 && <DataTable rows={queryData} />}
+          {queryData?.length > 0 && <DataViz queryData={queryData} />}
+          <SuggestedQuestions quickRefinements={quickRefinements} queryData={queryData} onAsk={onAsk} />
+          <ReasoningTrace steps={reasoningSteps} loading={false} />
+          {(decisionType || agentName || reasoningSteps?.length > 0) && (
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-z-border pt-3">
+              {agentName && decisionType === 'ZEVRA_AGENT' ? (
+                <>
+                  <span className="inline-flex items-center gap-1.5 rounded-z-pill border border-z-border bg-z-primary-soft px-2.5 py-0.5 text-[10.5px] font-medium text-z-primary">
+                    <Bot size={10} />
+                    Answered by {agentName}
+                  </span>
+                  {agentSessionId && <AgentStepsToggle sessionId={agentSessionId} />}
+                </>
+              ) : decisionType && (
+                <span className="font-z-mono text-[10px] uppercase tracking-[0.1em] text-z-text-3">
+                  via <span className="font-medium text-z-primary">{decisionType}</span>
+                </span>
+              )}
+              {reasoningSteps?.length > 0 && (
+                <span className="text-[10px] text-z-text-3">· {reasoningSteps.length} step{reasoningSteps.length !== 1 ? 's' : ''}</span>
+              )}
+              {learningsApplied?.length > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-z-pill border border-z-border bg-z-primary-soft px-2 py-0.5 text-[10px] font-medium text-z-primary"
+                  title={`Learned terms applied: ${learningsApplied.join(', ')}`}>
+                  🧠 {learningsApplied.length} learned term{learningsApplied.length !== 1 ? 's' : ''} applied
+                </span>
+              )}
+            </div>
+          )}
+        </>
+      )}
+      </NarrativeSurface>
     </div>
   );
 }
@@ -730,8 +685,7 @@ function PinReportModal({ conversationTitle, messages, user, onClose }) {
 
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const submit = async () => {
     if (!name.trim() || questions.length === 0) return;
     setSaving(true);
     setError('');
@@ -759,181 +713,100 @@ function PinReportModal({ conversationTitle, messages, user, onClose }) {
   const needsSlack = channel === 'SLACK' || channel === 'BOTH';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
-         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="w-full max-w-[420px] mx-4 bg-white rounded-[20px] border border-gray-200/80
-                      shadow-[0_24px_64px_rgba(0,0,0,0.18)] overflow-hidden">
-
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-[10px] bg-emerald-50 flex items-center justify-center">
-              <CalendarClock size={15} className="text-emerald-600" />
-            </div>
-            <div>
-              <h2 className="text-[14px] font-semibold text-[#111827] leading-tight">Schedule as Report</h2>
-              <p className="text-[11px] text-gray-400 mt-0.5">
-                {questions.length} question{questions.length !== 1 ? 's' : ''} from this conversation
-              </p>
-            </div>
+    <Dialog
+      open
+      onClose={onClose}
+      title="Schedule as Report"
+      description={`${questions.length} question${questions.length !== 1 ? 's' : ''} from this conversation`}
+      size="sm"
+      footer={done ? null : (
+        <>
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button onClick={submit} loading={saving} disabled={!name.trim() || questions.length === 0}
+            leadingIcon={<CalendarClock size={13} />}>
+            Schedule Report
+          </Button>
+        </>
+      )}
+    >
+      {done ? (
+        <div className="py-10 text-center">
+          <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-z-round bg-z-primary-soft">
+            <CalendarClock size={22} className="text-z-primary" />
           </div>
-          <button onClick={onClose}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400
-                       hover:text-gray-600 hover:bg-gray-100 transition-colors">
-            <X size={14} />
-          </button>
+          <p className="text-z-body font-medium text-z-text">Report scheduled!</p>
+          <p className="mt-1 text-z-caption text-z-text-3">Manage it anytime from the Reports page.</p>
         </div>
+      ) : (
+        <div className="space-y-4">
+          <Field label="Report name">
+            <Input value={name} onChange={(e) => setName(e.target.value)} required />
+          </Field>
 
-        {done ? (
-          <div className="px-6 py-14 text-center">
-            <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-3">
-              <CalendarClock size={22} className="text-emerald-600" />
-            </div>
-            <p className="text-[14px] font-semibold text-[#111827]">Report scheduled!</p>
-            <p className="text-[12px] text-gray-400 mt-1">Manage it anytime from the Reports page.</p>
+          <Field label="Run">
+            <SegmentedControl
+              aria-label="Run frequency"
+              className="w-full"
+              value={scheduleType}
+              onChange={setScheduleType}
+              options={['DAILY', 'WEEKLY', 'MONTHLY'].map((t) => ({
+                value: t, label: t.charAt(0) + t.slice(1).toLowerCase(),
+              }))}
+            />
+          </Field>
+
+          <div className="flex items-end gap-3">
+            <Field label="At">
+              <Input type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} />
+            </Field>
+            <div className="pb-2.5 font-z-mono text-z-caption text-z-text-3">{tz}</div>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
 
-            {/* Name */}
-            <div>
-              <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                Report name
-              </label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="w-full h-9 rounded-[8px] border border-gray-200 px-3 text-[13px] text-[#111827]
-                           focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
-              />
+          <Field label="Deliver via">
+            <SegmentedControl
+              aria-label="Delivery channel"
+              className="w-full"
+              value={channel}
+              onChange={setChannel}
+              options={[
+                { value: 'EMAIL', label: 'Email' },
+                { value: 'SLACK', label: 'Slack' },
+                { value: 'BOTH', label: 'Both' },
+              ]}
+            />
+          </Field>
+
+          {needsEmail && (
+            <Field label="Email">
+              <Input type="email" value={emailTo} onChange={(e) => setEmailTo(e.target.value)}
+                placeholder="recipient@company.com" required={needsEmail} />
+            </Field>
+          )}
+
+          {needsSlack && (
+            <Field label="Slack webhook URL">
+              <Input value={slackWebhook} onChange={(e) => setSlackWebhook(e.target.value)}
+                placeholder="https://hooks.slack.com/services/…" required={needsSlack} />
+            </Field>
+          )}
+
+          <div className="rounded-z-md border border-z-border bg-z-card-2 px-3 py-2.5">
+            <p className="mb-1.5 font-z-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-z-text-3">
+              Questions to run
+            </p>
+            <div className="max-h-[72px] space-y-1 overflow-y-auto">
+              {questions.map((q, i) => (
+                <p key={i} className="line-clamp-1 text-z-caption text-z-text-2">
+                  <span className="mr-1.5 text-z-text-3">{i + 1}.</span>{q}
+                </p>
+              ))}
             </div>
+          </div>
 
-            {/* Frequency */}
-            <div>
-              <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                Run
-              </label>
-              <div className="flex gap-1.5">
-                {['DAILY', 'WEEKLY', 'MONTHLY'].map((t) => (
-                  <button key={t} type="button" onClick={() => setScheduleType(t)}
-                    className={`flex-1 h-8 rounded-[8px] text-[12px] font-medium border transition-all
-                      ${scheduleType === t
-                        ? 'bg-[#0C5847] text-white border-[#0C5847]'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}>
-                    {t.charAt(0) + t.slice(1).toLowerCase()}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Time */}
-            <div className="flex items-center gap-3">
-              <div>
-                <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                  At
-                </label>
-                <input
-                  type="time"
-                  value={scheduleTime}
-                  onChange={(e) => setScheduleTime(e.target.value)}
-                  className="h-9 rounded-[8px] border border-gray-200 px-3 text-[13px] text-[#111827]
-                             focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
-                />
-              </div>
-              <div className="mt-5 text-[12px] text-gray-400">{tz}</div>
-            </div>
-
-            {/* Channel */}
-            <div>
-              <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                Deliver via
-              </label>
-              <div className="flex gap-1.5">
-                {[['EMAIL', 'Email'], ['SLACK', 'Slack'], ['BOTH', 'Both']].map(([val, label]) => (
-                  <button key={val} type="button" onClick={() => setChannel(val)}
-                    className={`flex-1 h-8 rounded-[8px] text-[12px] font-medium border transition-all
-                      ${channel === val
-                        ? 'bg-[#0C5847] text-white border-[#0C5847]'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Email recipients */}
-            {needsEmail && (
-              <div>
-                <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={emailTo}
-                  onChange={(e) => setEmailTo(e.target.value)}
-                  placeholder="recipient@company.com"
-                  required={needsEmail}
-                  className="w-full h-9 rounded-[8px] border border-gray-200 px-3 text-[13px] text-[#111827]
-                             focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
-                />
-              </div>
-            )}
-
-            {/* Slack webhook */}
-            {needsSlack && (
-              <div>
-                <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                  Slack webhook URL
-                </label>
-                <input
-                  value={slackWebhook}
-                  onChange={(e) => setSlackWebhook(e.target.value)}
-                  placeholder="https://hooks.slack.com/services/…"
-                  required={needsSlack}
-                  className="w-full h-9 rounded-[8px] border border-gray-200 px-3 text-[13px] text-[#111827]
-                             focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
-                />
-              </div>
-            )}
-
-            {/* Questions preview */}
-            <div className="rounded-[8px] bg-gray-50 border border-gray-100 px-3 py-2.5">
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                Questions to run
-              </p>
-              <div className="space-y-1 max-h-[72px] overflow-y-auto">
-                {questions.map((q, i) => (
-                  <p key={i} className="text-[12px] text-gray-600 line-clamp-1">
-                    <span className="text-gray-300 mr-1.5">{i + 1}.</span>{q}
-                  </p>
-                ))}
-              </div>
-            </div>
-
-            {error && <p className="text-[12px] text-red-500">{error}</p>}
-
-            {/* Actions */}
-            <div className="flex gap-2.5 pt-0.5">
-              <button type="button" onClick={onClose}
-                className="flex-1 h-9 rounded-[8px] border border-gray-200 text-[13px] font-medium
-                           text-gray-600 hover:bg-gray-50 transition-colors">
-                Cancel
-              </button>
-              <button type="submit" disabled={saving || !name.trim() || questions.length === 0}
-                className="flex-1 h-9 rounded-[8px] bg-[#0C5847] text-white text-[13px] font-medium
-                           hover:bg-[#084B3D] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
-                {saving ? (
-                  <><span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full" />Scheduling…</>
-                ) : (
-                  <><CalendarClock size={13} />Schedule Report</>
-                )}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
+          {error && <InlineAlert variant="error">{error}</InlineAlert>}
+        </div>
+      )}
+    </Dialog>
   );
 }
 
@@ -941,10 +814,8 @@ function PinReportModal({ conversationTitle, messages, user, onClose }) {
 export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
   const { user } = useAuth();
 
-  // landing state
+  // blank-workspace composer value (a new investigation before its first question)
   const [landingQuery, setLandingQuery] = useState('');
-  const [metrics, setMetrics] = useState({ connections: null, documents: null, agents: null });
-  const [suggestedQuestions, setSuggestedQuestions] = useState([]);
 
   // history floating panel
   const [historyOpen,    setHistoryOpen]    = useState(false);
@@ -995,13 +866,6 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
     } finally {
       setConversationsLoading(false);
     }
-  }, []);
-
-  // Fetch suggested questions from onboarding status
-  useEffect(() => {
-    api.onboarding.status()
-      .then(s => { if (s.suggested_questions?.length) setSuggestedQuestions(s.suggested_questions); })
-      .catch(() => {});
   }, []);
 
   // ── Attachment helpers ─────────────────────────────────────────────────────
@@ -1057,32 +921,27 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
       sendQuestion(prefillQuestion, true);
       return;
     }
-    // Pick up cross-page prefill stored by Knowledge Graph "Ask Zevra" button
+    // Pick up cross-page prefill stored by the Home launchpad (or Knowledge Graph "Ask Zevra")
     const stored = localStorage.getItem('zevra_chat_prefill');
     if (stored && !prefillFiredRef.current) {
       prefillFiredRef.current = true;
       localStorage.removeItem('zevra_chat_prefill');
       sendQuestion(stored, true);
+      return;
+    }
+    // Pick up a "resume this investigation" request from the Home overlay's recent list
+    const openId = localStorage.getItem('zevra_chat_open');
+    if (openId && !prefillFiredRef.current) {
+      prefillFiredRef.current = true;
+      localStorage.removeItem('zevra_chat_open');
+      openConversation(openId);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Load conversations for the History panel.
   useEffect(() => {
     loadConversations();
-    (async () => {
-      try {
-        const [conns, agents, domains] = await Promise.allSettled([
-          api.connections.list(),
-          api.agents.list(),
-          api.domains.list(),
-        ]);
-        setMetrics({
-          connections: conns.status === 'fulfilled' ? safeArray(conns.value).length : 0,
-          documents: 0,
-          agents: agents.status === 'fulfilled' ? safeArray(agents.value).filter((a) => a.status !== 'ARCHIVED').length : 0,
-        });
-      } catch {}
-    })();
   }, [loadConversations]);
 
   // ── SSE reasoning stream ────────────────────────────────────────────────────
@@ -1250,16 +1109,16 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
     }
   };
 
-  const handleLandingSubmit = (e) => {
-    e.preventDefault();
+  // Submit handlers are invoked by InvestigationComposer, which already prevents the
+  // default form submit — so they take no event.
+  const handleLandingSubmit = () => {
     const q = landingQuery.trim() || (attachment ? 'Please analyse this attached file.' : '');
     if (!q) return;
     setLandingQuery('');
     sendQuestion(q, true);   // isNewConv=true: generate a fresh conversation ID
   };
 
-  const handleChatSubmit = (e) => {
-    e.preventDefault();
+  const handleChatSubmit = () => {
     const q = chatQuery.trim();
     if (!q) return;
     setChatQuery('');
@@ -1307,7 +1166,6 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
     setOpenExportMenu(null);
   };
 
-  const metricText = (val, noun) => val === null ? `Loading ${noun}` : `${val} ${noun}`;
   const conversationTitle = messages.find((m) => m.role === 'user')?.content?.slice(0, 60) || 'Investigation';
   const conversationFileBase = `${slugifyFileName(conversationTitle, 'zevra-investigation')}-${exportStamp()}`;
 
@@ -1421,191 +1279,71 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
 
   // ── render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="h-full flex overflow-hidden bg-transparent">
-      <section className="flex-1 min-w-0 flex flex-col overflow-hidden">
+    <div className="flex h-full overflow-hidden bg-z-bg">
+      <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
 
-        {/* ── LANDING VIEW ── */}
+        {/* ── BLANK WORKSPACE · a new investigation begins with the composer alone
+             (launchpad content — prompts, recents — now lives on Home) ── */}
         {!chatMode && (
-          <div className="flex-1 flex flex-col items-center justify-center px-6 overflow-y-auto">
-            {/* Greeting */}
-            <h1 className="text-[32px] font-bold text-[#111827] tracking-[-0.03em] text-center mb-2">
-              Good morning, {firstName(user)}.
-            </h1>
-            <p className="text-[15px] text-[#9CA3AF] text-center mb-8">
-              What would you like to investigate today?
-            </p>
-
-            {/* Search box */}
-            <form onSubmit={handleLandingSubmit} className="w-full max-w-[640px] mb-4">
-              {/* Attachment preview row */}
-              {(attachment || attachmentLoading || attachmentError) && (
-                <div className="mb-2 px-1">
-                  {attachmentLoading && (
-                    <div className="flex items-center gap-2 text-[12.5px] text-gray-400">
-                      <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full" />
-                      Uploading file…
-                    </div>
-                  )}
-                  {attachmentError && !attachmentLoading && (
-                    <div className="flex items-center gap-2 text-[12px] text-red-500">
-                      <X size={12} className="flex-shrink-0" />
-                      <span className="flex-1">{attachmentError}</span>
-                      <button type="button" onClick={() => setAttachmentError('')}
-                        className="underline text-red-400 hover:text-red-600">Dismiss</button>
-                    </div>
-                  )}
-                  {attachment && !attachmentLoading && (
-                    <AttachmentChip attachment={attachment} onRemove={clearAttachment} />
-                  )}
-                </div>
-              )}
-              <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-[16px]
-                              border border-gray-200/80 px-4 py-3.5
-                              shadow-[0_4px_24px_rgba(0,0,0,0.07)]
-                              focus-within:border-emerald-400
-                              focus-within:shadow-[0_4px_24px_rgba(0,0,0,0.07),0_0_0_3px_rgba(5,150,105,0.10)]
-                              transition-all">
-                <Sparkles size={18} className="text-emerald-500 flex-shrink-0" />
-                <input
-                  value={landingQuery}
-                  onChange={(e) => setLandingQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleLandingSubmit(e);
-                    }
-                  }}
-                  onPaste={handlePaste}
-                  placeholder="Ask anything about your business — sales, operations, finance, patients, bookings…"
-                  className="flex-1 bg-transparent text-[15px] text-[#111827] outline-none placeholder:text-[#C4C9D4]"
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={attachmentLoading}
-                  title="Attach a file or paste an image (PDF, Excel, CSV, image, text — up to 20 MB)"
-                  className="flex-shrink-0 text-gray-400 hover:text-emerald-600 transition-colors disabled:opacity-40"
-                >
-                  <Paperclip size={17} />
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting || (!landingQuery.trim() && !attachment)}
-                  className="w-[34px] h-[34px] bg-[#111827] rounded-[9px] flex items-center justify-center
-                             flex-shrink-0 hover:bg-[#1F2937] disabled:opacity-40
-                             disabled:cursor-not-allowed transition-colors"
-                >
-                  <Send size={13} className="text-white" />
-                </button>
-              </div>
-            </form>
-
-            {/* Suggestion chips — from onboarding */}
-            {suggestedQuestions.length > 0 && (
-              <div className="flex flex-wrap gap-2 justify-center max-w-[640px] mb-10">
-                {suggestedQuestions.map((q, i) => (
-                  <button key={i} onClick={() => setLandingQuery(q)}
-                    className="px-3.5 py-1.5 bg-white/70 backdrop-blur-sm border border-gray-200
-                               rounded-full text-[12.5px] text-gray-600
-                               hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700
-                               transition-all">
-                    {q}
-                  </button>
-                ))}
+          <IntelligencePage measure="column" atmosphere className="pb-16 pt-[13vh]">
+            {/* Attachment preview row */}
+            {(attachment || attachmentLoading || attachmentError) && (
+              <div className="mb-2 px-1">
+                {attachmentLoading && (
+                  <div className="flex items-center gap-2 text-z-caption text-z-text-3">
+                    <Spinner size="xs" /> Uploading file…
+                  </div>
+                )}
+                {attachmentError && !attachmentLoading && (
+                  <InlineAlert variant="error" onDismiss={() => setAttachmentError('')}>{attachmentError}</InlineAlert>
+                )}
+                {attachment && !attachmentLoading && (
+                  <AttachmentChip attachment={attachment} onRemove={clearAttachment} />
+                )}
               </div>
             )}
-
-            {/* Quick access tiles */}
-            <p className="text-[10.5px] font-semibold text-gray-300 uppercase tracking-[0.09em] mb-4">
-              Quick access
-            </p>
-            <div className="grid grid-cols-6 gap-2.5 w-full max-w-[640px]">
-              {QUICK_TILES.map(({ label, path, gradient, iconColor, Icon }) => (
-                <button
-                  key={path}
-                  onClick={() => navigate(path)}
-                  className="flex flex-col items-center gap-2 py-[18px] px-2
-                             bg-white/70 backdrop-blur-sm border border-gray-100/80
-                             rounded-[14px] hover:border-gray-200/80
-                             hover:shadow-[0_6px_20px_rgba(0,0,0,0.09)]
-                             hover:-translate-y-[2px] transition-all group"
-                >
-                  <div className={`w-[44px] h-[44px] rounded-[12px] flex items-center justify-center
-                                  group-hover:scale-[1.06] transition-transform ${gradient}`}>
-                    <Icon size={22} style={{ color: iconColor }} strokeWidth={1.6} />
-                  </div>
-                  <span className="text-[11.5px] font-medium text-gray-600 text-center leading-tight">
-                    {label}
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            {/* Status + history shortcut */}
-            <div className="flex items-center gap-4 mt-10 text-[11.5px] text-gray-300">
-              <span className="flex items-center gap-1.5">
-                <span className="w-[5px] h-[5px] bg-emerald-500 rounded-full" />
-                {metricText(metrics.connections, 'connections')}
-              </span>
-              <span>·</span>
-              <span>{metricText(metrics.agents, 'agents active')}</span>
-              <span>·</span>
-              <button
-                onClick={() => setHistoryOpen(o => !o)}
-                className="flex items-center gap-1 text-gray-400 hover:text-emerald-600 transition-colors"
-              >
-                <Clock size={12} /> Recent conversations
-              </button>
-            </div>
-          </div>
+            <InvestigationComposer
+              value={landingQuery}
+              onChange={setLandingQuery}
+              onSubmit={handleLandingSubmit}
+              placeholder="Investigate anything — sales, operations, finance, suppliers…"
+              autoFocus
+              disabled={submitting || (!landingQuery.trim() && !attachment)}
+              allowAttachments
+              onAttachClick={() => fileInputRef.current?.click()}
+              onPaste={handlePaste}
+              attachmentBusy={attachmentLoading}
+            />
+          </IntelligencePage>
         )}
 
         {/* ── CHAT VIEW ── */}
         {chatMode && (
           <>
-            {/* Chat header */}
-            <header className="h-[48px] shrink-0 border-b border-gray-200/70 bg-white/80 backdrop-blur-sm px-5 flex items-center gap-3">
-              <button
-                type="button"
-                onClick={startNewChat}
-                className="flex items-center gap-2 text-[13px] text-[#415268] hover:text-[#101828] transition-colors"
-              >
-                <ArrowLeft size={16} />
+            {/* Chat header — a slim conversation toolbar that blends with the thread
+                (the shell composer is hidden on this route; the workspace owns input). */}
+            <header className="flex h-12 shrink-0 items-center gap-3 border-b border-z-border bg-transparent px-6">
+              <Button variant="ghost" size="sm" onClick={startNewChat} leadingIcon={<ArrowLeft size={16} />}>
                 New chat
-              </button>
-              <div className="h-5 w-px bg-[#E0DBD5]" />
-              <span className="text-[13px] font-medium text-[#101828] truncate">
+              </Button>
+              <span className="min-w-0 flex-1 truncate px-2 text-center font-z-serif text-z-caption italic text-z-text-3">
                 {conversationTitle}
               </span>
-              <div className="ml-auto flex items-center gap-2">
-                {/* History button */}
-                <button
-                  type="button"
+              <div className="flex items-center gap-1">
+                <IconButton
+                  label="Conversation history"
                   onClick={() => setHistoryOpen(o => !o)}
-                  title="Conversation history"
-                  className={`h-7 px-2.5 rounded-[7px] flex items-center gap-1.5 text-[12px] font-medium
-                              border transition-all
-                              ${historyOpen
-                                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                                : 'bg-white/80 border-gray-200 text-gray-500 hover:text-gray-800 hover:border-gray-300'}`}
+                  className={cn('h-8 w-8', historyOpen && 'bg-z-hover text-z-text')}
                 >
-                  <Clock size={13} />
-                  History
-                </button>
-
-                {/* Pin as scheduled report */}
-                <button
-                  type="button"
+                  <Clock size={15} />
+                </IconButton>
+                <IconButton
+                  label="Schedule this conversation as a recurring report"
                   onClick={() => setPinReportOpen(true)}
-                  title="Schedule this conversation as a recurring report"
-                  className="h-7 px-2.5 rounded-[7px] flex items-center gap-1.5 text-[12px] font-medium
-                             border border-gray-200 bg-white/80 text-gray-500
-                             hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50 transition-all"
+                  className="h-8 w-8"
                 >
-                  <CalendarClock size={13} />
-                  Schedule
-                </button>
-
+                  <CalendarClock size={15} />
+                </IconButton>
                 <ExportMenu
                   open={openExportMenu === 'conversation'}
                   onToggle={() => setOpenExportMenu((current) => current === 'conversation' ? null : 'conversation')}
@@ -1616,8 +1354,11 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
             </header>
 
             {/* Messages */}
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              <div className="max-w-[1100px] mx-auto px-5 py-5 space-y-4">
+            <div className="min-h-0 flex-1 overflow-y-auto scroll-smooth">
+              <ReadingColumn measure="column" className="py-10">
+                <div className="mb-8 flex justify-center">
+                  <Eyebrow>Today</Eyebrow>
+                </div>
                 {messages.map((msg, i) =>
                   msg.role === 'user' ? (
                     <UserMessage key={i} text={msg.content} attachment={msg.attachment} />
@@ -1647,75 +1388,44 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                   )
                 )}
                 {submitError && (
-                  <p className="text-center text-[13px] text-red-600">{submitError}</p>
+                  <p className="text-center text-z-caption text-z-critical-on">{submitError}</p>
                 )}
                 <div ref={messagesEndRef} />
-              </div>
+              </ReadingColumn>
             </div>
 
-            {/* Chat input */}
-            <div className="shrink-0 border-t border-[#E7E2DD] bg-white px-6 py-4">
+            {/* Composer */}
+            <div className="shrink-0 border-t border-z-border bg-z-card px-6 py-4 backdrop-blur-sm">
               {/* Attachment preview / loading / error */}
               {(attachment || attachmentLoading || attachmentError) && (
-                <div className="max-w-[1100px] mx-auto mb-2">
+                <div className="mx-auto mb-2 max-w-[800px]">
                   {attachmentLoading && (
-                    <div className="flex items-center gap-2 text-[12.5px] text-gray-400">
-                      <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full" />
-                      Uploading file…
+                    <div className="flex items-center gap-2 text-z-caption text-z-text-3">
+                      <Spinner size="xs" /> Uploading file…
                     </div>
                   )}
                   {attachmentError && !attachmentLoading && (
-                    <div className="flex items-center gap-2 text-[12px] text-red-500">
-                      <X size={12} className="flex-shrink-0" />
-                      <span className="flex-1">{attachmentError}</span>
-                      <button type="button" onClick={() => setAttachmentError('')}
-                        className="underline text-red-400 hover:text-red-600">Dismiss</button>
-                    </div>
+                    <InlineAlert variant="error" onDismiss={() => setAttachmentError('')}>{attachmentError}</InlineAlert>
                   )}
                   {attachment && !attachmentLoading && (
                     <AttachmentChip attachment={attachment} onRemove={clearAttachment} />
                   )}
                 </div>
               )}
-              <form
+              <InvestigationComposer
+                className="mx-auto max-w-[800px]"
+                value={chatQuery}
+                onChange={setChatQuery}
                 onSubmit={handleChatSubmit}
-                className="max-w-[1100px] mx-auto flex items-end gap-3 rounded-[12px] border border-[#DDD8D2] bg-[#FAFAF9] px-5 py-3 focus-within:border-[#0C5847] transition-colors"
-              >
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={attachmentLoading}
-                  title="Attach a file or paste an image (PDF, Excel, CSV, image, text — up to 20 MB)"
-                  className="mb-0.5 flex-shrink-0 text-gray-400 hover:text-emerald-600 transition-colors disabled:opacity-40"
-                >
-                  <Paperclip size={16} />
-                </button>
-                <textarea
-                  ref={chatInputRef}
-                  value={chatQuery}
-                  onChange={(e) => setChatQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleChatSubmit(e);
-                    }
-                  }}
-                  onPaste={handlePaste}
-                  placeholder="Follow up or ask another question…"
-                  rows={1}
-                  className="flex-1 resize-none bg-transparent text-[14px] text-[#101828] outline-none placeholder:text-[#9AA6B5] max-h-32 overflow-y-auto"
-                  style={{ lineHeight: '1.6' }}
-                />
-                <button
-                  type="submit"
-                  disabled={submitting || (!chatQuery.trim() && !attachment)}
-                  className="mb-0.5 h-8 w-8 rounded-full bg-[#0C5847] text-white flex items-center justify-center hover:bg-[#084B3D] disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-                  aria-label="Send"
-                >
-                  <Send size={14} />
-                </button>
-              </form>
-              <p className="text-center mt-2 text-[11px] text-[#9AA6B5]">
+                placeholder="Ask a follow-up…"
+                disabled={submitting || (!chatQuery.trim() && !attachment)}
+                allowAttachments
+                onAttachClick={() => fileInputRef.current?.click()}
+                onPaste={handlePaste}
+                attachmentBusy={attachmentLoading}
+                inputRef={chatInputRef}
+              />
+              <p className="mt-2.5 text-center font-z-mono text-[11px] text-z-text-3">
                 Zevra queries approved data sources only · Results may require validation
               </p>
             </div>
@@ -1743,7 +1453,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
         />
       )}
 
-      {/* Hidden file input — triggered by paperclip buttons in both landing and chat views */}
+      {/* Hidden file input — triggered by the paperclip in the composer (blank + docked) */}
       <input
         ref={fileInputRef}
         type="file"
