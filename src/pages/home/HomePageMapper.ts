@@ -116,7 +116,7 @@ function mapRecommendations(findings: any[]): RecommendationVM[] {
       impact: f.evidenceSummary ?? 'Requires review.',
       confidence: pct(f.confidence) ?? 0,
       actionLabel: 'Review finding',
-      to: '/reasoning',
+      to: `/reasoning?tab=findings&finding=${encodeURIComponent(f.findingKey ?? '')}`,
     }));
 }
 
