@@ -75,8 +75,17 @@ function mapExecutiveSummary(brief: any, base: HomepageViewModel['executiveSumma
 }
 
 function mapInvestigations(sessions: any[], nowMs: number): InvestigationVM[] {
+  // Collapse repeated investigations of the same question (sessions arrive newest-first,
+  // so the most recent occurrence is kept) — the panel shows distinct investigations, not dupes.
+  const seen = new Set<string>();
   return sessions
     .filter((s) => s && (s.initialQuestion || s.conclusion))
+    .filter((s) => {
+      const key = String(s.initialQuestion ?? s.conclusion ?? '').trim().toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
     .slice(0, 4)
     .map((s) => {
       const st = sessionStatus(s.status);

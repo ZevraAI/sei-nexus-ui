@@ -35,6 +35,23 @@ async function safe<T>(fn: () => Promise<T>): Promise<T | null> {
   try { return await fn(); } catch { return null; }
 }
 
+/**
+ * The backend serializes responses in snake_case; the view-model mapper reads camelCase.
+ * Deep-convert keys so every field (metric_name → metricName, initial_question →
+ * initialQuestion, sections_json → sectionsJson, …) reaches the mapper as it expects.
+ * Values are untouched (a JSON string like sections_json stays a string for the mapper to parse).
+ */
+const toCamel = (s: string): string => s.replace(/_([a-z0-9])/g, (_m, c: string) => c.toUpperCase());
+function deepCamel<T = any>(x: any): T {
+  if (Array.isArray(x)) return x.map(deepCamel) as unknown as T;
+  if (x && typeof x === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const k of Object.keys(x)) out[toCamel(k)] = deepCamel((x as Record<string, unknown>)[k]);
+    return out as T;
+  }
+  return x as T;
+}
+
 /** Hook the page uses. Fetches production data on mount; empty baseline while loading. */
 export function useHomepageViewModel(input: HomepageAdapterInput = {}): HomepageResult {
   const { userName } = input;
@@ -62,8 +79,13 @@ export function useHomepageViewModel(input: HomepageAdapterInput = {}): Homepage
         [sessions, findings, anomalies, alerts, agents, connections].every((x) => x === null);
       if (allFailed) { setError('Zevra is unreachable. Retrying shortly.'); setLoading(false); return; }
       setVm(mapToViewModel({ userName }, {
-        brief, sessions: arr(sessions), findings: arr(findings), anomalies: arr(anomalies),
-        alerts: arr(alerts), agents: arr(agents), connections: arr(connections),
+        brief: deepCamel(brief),
+        sessions: deepCamel(arr(sessions)),
+        findings: deepCamel(arr(findings)),
+        anomalies: deepCamel(arr(anomalies)),
+        alerts: deepCamel(arr(alerts)),
+        agents: deepCamel(arr(agents)),
+        connections: deepCamel(arr(connections)),
       }));
       setLoading(false);
     })();
