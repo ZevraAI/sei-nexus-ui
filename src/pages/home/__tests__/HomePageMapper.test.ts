@@ -37,8 +37,9 @@ describe('HomePageMapper — populated tenant', () => {
     expect(vm.investigations[0].title).toBe('Why did revenue dip?');
     expect(vm.investigations[0].live).toBe(true);
     expect(vm.investigations[0].confidence).toBe(82);
-    expect(vm.kpis.find((k) => k.id === 'investigations')!.value).toBe(1); // only ACTIVE counts
-    expect(vm.kpis.find((k) => k.id === 'sources')!.value).toBe(1);
+    // Executive-brief KPI: distinct completed analyses (both sessions), not infrastructure counts
+    expect(vm.kpis.find((k) => k.id === 'analyses')!.value).toBe(2);
+    expect(vm.kpis.map((k) => k.id)).toEqual(['decisions', 'areas', 'monitored', 'analyses']);
   });
 
   it('derives recommendations only from actionable (open) findings, highest confidence first', () => {
@@ -57,7 +58,10 @@ describe('HomePageMapper — populated tenant', () => {
     const vm = mapToViewModel({ now: NOW }, { ...emptyData, agents });
     expect(vm.workforce.agents).toHaveLength(1);
     expect(vm.workforce.agents[0].name).toBe('Finance Watcher');
-    expect(vm.workforce.agents[0].live).toBe(true);
+    // Business coverage, not agent health: no live/status; each covered area reads "Reviewed"
+    expect(vm.workforce.agents[0].live).toBe(false);
+    expect(vm.workforce.agents[0].statusLabel).toBe('Reviewed');
+    expect(vm.workforce.stats).toHaveLength(0);
   });
 });
 
