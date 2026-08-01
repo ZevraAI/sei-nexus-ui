@@ -96,13 +96,13 @@ function NavDropdown({ label, items, active, isDark }) {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className={`flex items-center gap-1 px-[11px] py-[6px] rounded-[7px] text-[13px] font-medium
-                    transition-all whitespace-nowrap ${
+        className={`flex items-center gap-1 px-3 py-1.5 text-[13px] font-medium whitespace-nowrap
+                    border-b-2 transition-colors ${
           isActive
-            ? isDark ? 'bg-[#1E2535] text-[#F0F4F8] font-semibold'
-                     : 'bg-[#F3F4F6] text-[#111827] font-semibold'
-            : isDark ? 'text-[#94A3B8] hover:bg-[#1E2535] hover:text-[#F0F4F8]'
-                     : 'text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827]'
+            ? isDark ? 'text-[#F0F4F8] border-emerald-400 font-semibold'
+                     : 'text-[#111827] border-emerald-500 font-semibold'
+            : isDark ? 'text-[#94A3B8] border-transparent hover:text-[#F0F4F8] hover:border-emerald-400/60'
+                     : 'text-[#6B7280] border-transparent hover:text-[#111827] hover:border-emerald-500/60'
         }`}
       >
         {label}
@@ -292,8 +292,8 @@ function WorkspaceSwitcher({ user, isDark }) {
 
 // ── nav structure ─────────────────────────────────────────────────────────
 const FLAT_ITEMS = [
+  { path: '/',        label: 'Home' },
   { path: '/brief',   label: 'Brief' },
-  { path: '/chat',    label: 'Investigations' },
   { path: '/agents',  label: 'Agents' },
   { path: '/reports', label: 'Reports' },
 ];
@@ -350,6 +350,38 @@ export default function Layout({ children, currentPath }) {
     navigate('/chat');
   };
 
+  // Suggested questions — surfaced as a dropdown when the composer is focused (fetched once).
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const suggestLoadedRef = useRef(false);
+  const composerWrapRef = useRef(null);
+
+  const openSuggest = () => {
+    setSuggestOpen(true);
+    if (suggestLoadedRef.current) return;
+    suggestLoadedRef.current = true;
+    api.onboarding.status()
+      .then((s) => { if (s?.suggested_questions?.length) setSuggestions(s.suggested_questions.slice(0, 6)); })
+      .catch(() => {});
+  };
+
+  const launchSuggestion = (q) => {
+    localStorage.setItem('zevra_chat_prefill', q);
+    setSuggestOpen(false);
+    setShellQuery('');
+    navigate('/chat');
+  };
+
+  // Close the dropdown on Esc / click-outside.
+  useEffect(() => {
+    if (!suggestOpen) return;
+    const onKey = (e) => { if (e.key === 'Escape') setSuggestOpen(false); };
+    const onDown = (e) => { if (composerWrapRef.current && !composerWrapRef.current.contains(e.target)) setSuggestOpen(false); };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onDown);
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onDown); };
+  }, [suggestOpen]);
+
   // ⌘K / Ctrl+K focuses the shell composer (or opens the workspace if it isn't shown).
   useEffect(() => {
     const onKey = (e) => {
@@ -384,9 +416,12 @@ export default function Layout({ children, currentPath }) {
         </div>
       )}
 
-      {/* ── Top navigation bar (Row 1) ──────────────────────────── */}
-      <header className={`h-[52px] shrink-0 flex items-center px-6 gap-4 z-50
+      {/* ── Top bar (single line) — logo · global composer · navigation ───────
+           Signature brass hairline under the bar (the mockup's golden edge-light). */}
+      <header className={`relative h-16 shrink-0 flex items-center px-6 gap-4 z-50
                           backdrop-blur-md border-b transition-colors duration-200
+                          after:pointer-events-none after:absolute after:inset-x-0 after:-bottom-px after:h-px after:opacity-40
+                          after:[background-image:linear-gradient(90deg,transparent,var(--z-brass),transparent)]
                           ${isDark
                             ? 'bg-[#13171F]/90 border-[#252E3F]/80'
                             : 'bg-white/75 border-gray-200/70'}`}>
@@ -404,20 +439,65 @@ export default function Layout({ children, currentPath }) {
           </span>
         </button>
 
+        {/* Global composer — the single, first-class launch point, inline in the bar
+            (hidden on the workspace, which owns its own input). Focus reveals suggestions. */}
+        <div ref={composerWrapRef} className="relative flex min-w-0 flex-1 justify-center">
+          {showShellComposer && (
+            <div className="relative w-full max-w-[620px]">
+              <InvestigationComposer
+                inputRef={shellComposerRef}
+                value={shellQuery}
+                onChange={setShellQuery}
+                onSubmit={launchFromShell}
+                onFocus={openSuggest}
+                placeholder="Ask the enterprise, or commission an investigation…"
+                disabled={!shellQuery.trim()}
+                align="center"
+                compact
+                className={`w-full rounded-z-lg ${
+                  isDark
+                    ? 'shadow-[0_0_0_1px_rgba(255,255,255,0.07),0_8px_20px_-10px_rgba(0,0,0,0.6)]'
+                    : 'shadow-[0_0_0_1px_rgba(16,24,40,0.06),0_6px_16px_-10px_rgba(16,24,40,0.18)]'
+                }`}
+              />
+              {suggestOpen && suggestions.length > 0 && (
+                <div className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-z-lg border border-z-border bg-z-card shadow-z-2">
+                  <div className="px-3 pb-1 pt-2.5 font-z-mono text-[10px] uppercase tracking-[0.14em] text-z-text-3">
+                    Suggested questions
+                  </div>
+                  <div className="pb-1.5">
+                    {suggestions.map((q, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => launchSuggestion(q)}
+                        className="block w-full px-3 py-2 text-left text-[13px] text-z-text-2 transition-colors hover:bg-z-hover hover:text-z-text"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Nav items */}
-        <nav className="flex items-center gap-0.5 flex-1">
+        <nav className="flex shrink-0 items-center gap-0.5">
           {/* Flat primary items */}
           {FLAT_ITEMS.map(({ path, label }) => (
             <button
               key={path}
               onClick={() => navigate(path)}
-              className={`px-[11px] py-[6px] rounded-[7px] text-[13px] font-medium
-                          transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 text-[13px] font-medium whitespace-nowrap
+                          border-b-2 transition-colors ${
                 active(path)
-                  ? isDark ? 'bg-[#1E2535] text-[#F0F4F8] font-semibold'
-                           : 'bg-[#F3F4F6] text-[#111827] font-semibold'
-                  : isDark ? 'text-[#94A3B8] hover:bg-[#1E2535] hover:text-[#F0F4F8]'
-                           : 'text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827]'
+                  ? isDark ? 'text-[#F0F4F8] border-emerald-400 font-semibold'
+                           : 'text-[#111827] border-emerald-500 font-semibold'
+                  : isDark ? 'text-[#94A3B8] border-transparent hover:text-[#F0F4F8] hover:border-emerald-400/60'
+                           : 'text-[#6B7280] border-transparent hover:text-[#111827] hover:border-emerald-500/60'
               }`}
             >
               {label}
@@ -535,26 +615,6 @@ export default function Layout({ children, currentPath }) {
           </div>
         </div>
       </header>
-
-      {/* ── Shell Investigation Composer (Row 2) — the application-level launch point.
-           The shell owns initiation: the SAME InvestigationComposer used in the workspace,
-           available on every page EXCEPT the Investigations workspace (/chat), which owns
-           its own composer. ⌘K focuses it. */}
-      {showShellComposer && (
-        <div className="shrink-0 border-b border-z-border bg-z-bg px-6 py-2.5">
-          <div className="mx-auto max-w-[940px]">
-            <InvestigationComposer
-              inputRef={shellComposerRef}
-              value={shellQuery}
-              onChange={setShellQuery}
-              onSubmit={launchFromShell}
-              placeholder="Investigate anything about your business…"
-              disabled={!shellQuery.trim()}
-              align="center"
-            />
-          </div>
-        </div>
-      )}
 
       {/* ── Page content ─────────────────────────────────────────────────── */}
       <main className="flex-1 min-h-0 overflow-hidden bg-transparent">

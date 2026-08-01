@@ -25,6 +25,7 @@ export default function InvestigationComposer({
   onAttachClick,
   attachmentBusy = false,
   align = 'end',
+  compact = false,   // slim, single-line bar composer (the shell)
   inputRef,
   className,
 }) {
@@ -35,7 +36,7 @@ export default function InvestigationComposer({
 
   return (
     <form onSubmit={submit} className={className}>
-      <ComposerSurface align={align}>
+      <ComposerSurface align={align} size={compact ? 'sm' : 'md'}>
         {allowAttachments && (
           <button
             type="button"
@@ -63,16 +64,16 @@ export default function InvestigationComposer({
           autoFocus={autoFocus}
           placeholder={placeholder}
           rows={1}
-          className="max-h-32 flex-1 resize-none overflow-y-auto bg-transparent text-[16px] text-z-text outline-none placeholder:text-z-text-3"
-          style={{ lineHeight: '1.6' }}
+          className={`max-h-32 flex-1 resize-none overflow-y-auto bg-transparent text-z-text outline-none placeholder:text-z-text-3 ${compact ? 'text-[14px]' : 'text-[16px]'}`}
+          style={{ lineHeight: compact ? '1.4' : '1.6' }}
         />
         <button
           type="submit"
           disabled={disabled}
           aria-label="Send"
-          className="mb-0.5 grid h-9 w-9 flex-none place-items-center rounded-z-md bg-z-primary text-z-on-accent shadow-z-1 transition-all hover:bg-z-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
+          className={`grid flex-none place-items-center rounded-z-md bg-z-primary text-z-on-accent shadow-z-1 transition-all hover:bg-z-primary-hover disabled:cursor-not-allowed disabled:opacity-40 ${compact ? 'h-7 w-7' : 'mb-0.5 h-9 w-9'}`}
         >
-          <Send size={15} />
+          <Send size={compact ? 13 : 15} />
         </button>
       </ComposerSurface>
     </form>

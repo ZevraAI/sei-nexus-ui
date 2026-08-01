@@ -16,7 +16,6 @@ import { SectionLabel, Grid, ErrorState } from '../../ds';
 import { IntelligencePage } from '../../ds/intelligence';
 import { useHomepageViewModel } from './HomePageAdapter';
 import { ExecutiveHeader } from './HomePageSections/ExecutiveHeader';
-import { SuggestedQuestions } from './HomePageSections/SuggestedQuestions';
 import { KPISection } from './HomePageSections/KPISection';
 import { Recommendations } from './HomePageSections/Recommendations';
 import { BusinessSignals } from './HomePageSections/BusinessSignals';
@@ -48,8 +47,6 @@ export default function HomePage({ user }: HomePageProps) {
           loading={loading}
           kpiSlot={loading ? <StripSkeleton /> : <KPISection kpis={kpis} capturedAt={capturedAt} />}
         />
-
-        {!loading && <SuggestedQuestions />}
 
         {error && <ErrorState message={error} className="mt-6" />}
 

@@ -10,14 +10,17 @@ export interface ComposerSurfaceProps extends HTMLAttributes<HTMLDivElement> {
   pulse?: boolean;
   /** Vertically align actions to the end (for multi-line composers). */
   align?: 'center' | 'end';
+  /** `md` — the full workspace composer. `sm` — a slim bar composer (the shell). */
+  size?: 'sm' | 'md';
   children?: ReactNode;
 }
 
-export function ComposerSurface({ pulse = true, align = 'center', className, children, ...rest }: ComposerSurfaceProps) {
+export function ComposerSurface({ pulse = true, align = 'center', size = 'md', className, children, ...rest }: ComposerSurfaceProps) {
   return (
     <div
       className={cn(
-        'flex gap-3 rounded-z-lg border bg-z-ai-surface px-4 py-3.5 shadow-z-ai-lift backdrop-blur-[var(--z-ai-blur)]',
+        'flex gap-3 rounded-z-lg border bg-z-ai-surface shadow-z-ai-lift backdrop-blur-[var(--z-ai-blur)]',
+        size === 'sm' ? 'px-3 py-1.5' : 'px-4 py-3.5',
         '[border-color:var(--z-ai-edge)] [border-top-color:var(--z-ai-edge-em)]',
         'transition-colors duration-z-fast ease-z-standard focus-within:[border-color:var(--z-primary)]',
         align === 'end' ? 'items-end' : 'items-center',

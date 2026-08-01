@@ -185,7 +185,12 @@ function mapRecommendations(findings: any[]): RecommendationVM[] {
       confidence: pct(f.confidence) ?? 0,
       state: 'Decision Required',
       actionLabel: 'Review the analysis',
-      to: `/reasoning?tab=findings&finding=${encodeURIComponent(f.findingKey ?? '')}`,
+      // Open the exact investigation that produced this finding, in Report Mode. Lineage
+      // (the conversation) is carried on the finding; fall back to the findings tab if a
+      // legacy finding predates lineage capture.
+      to: f.relatedEntityKeys
+        ? `/chat?report=${encodeURIComponent(f.relatedEntityKeys)}&finding=${encodeURIComponent(f.findingKey ?? '')}`
+        : `/reasoning?tab=findings&finding=${encodeURIComponent(f.findingKey ?? '')}`,
     }));
 }
 

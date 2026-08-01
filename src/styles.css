@@ -32,14 +32,14 @@ body {
    Signature answer voice — retargeted to Design Language tokens (theme-aware,
    one definition serves both light and dark). Rhythm matches the Signature
    ".abody": 15px / 1.7, secondary ink, emphasis in primary ink. */
-.prose-nexus { font-size: 15px; line-height: 1.7; color: var(--z-text-2); }
-.prose-nexus h1, .prose-nexus h2, .prose-nexus h3 { font-weight: 500; margin: 1rem 0 0.4rem; color: var(--z-text); font-family: var(--z-font-serif); letter-spacing: -0.01em; }
-.prose-nexus h1 { font-size: 1.3rem; }
-.prose-nexus h2 { font-size: 1.12rem; border-bottom: 1px solid var(--z-border); padding-bottom: 0.3rem; }
-.prose-nexus h3 { font-size: 1rem; }
-.prose-nexus p { margin: 0.55rem 0; }
-.prose-nexus ul, .prose-nexus ol { margin: 0.55rem 0 0.55rem 1.3rem; }
-.prose-nexus li { margin: 0.28rem 0; }
+.prose-nexus { font-size: 13.5px; line-height: 1.6; color: var(--z-text-2); font-family: var(--z-font-sans); }
+.prose-nexus h1, .prose-nexus h2, .prose-nexus h3 { font-weight: 500; margin: 0.85rem 0 0.3rem; color: var(--z-text); font-family: var(--z-font-serif); letter-spacing: -0.01em; }
+.prose-nexus h1 { font-size: 1.15rem; }
+.prose-nexus h2 { font-size: 1.05rem; border-bottom: 1px solid var(--z-border); padding-bottom: 0.25rem; }
+.prose-nexus h3 { font-size: 0.95rem; }
+.prose-nexus p { margin: 0.45rem 0; }
+.prose-nexus ul, .prose-nexus ol { margin: 0.45rem 0 0.45rem 1.2rem; }
+.prose-nexus li { margin: 0.2rem 0; }
 .prose-nexus li > ul, .prose-nexus li > ol { margin: 0.2rem 0 0.2rem 1rem; }
 .prose-nexus strong { font-weight: 600; color: var(--z-text); }
 .prose-nexus em { font-style: italic; color: var(--z-text-2); }

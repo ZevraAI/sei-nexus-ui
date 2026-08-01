@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { marked } from 'marked';
 import {
-  ArrowLeft, Bot, CalendarClock, Clipboard, Clock, Download, FileDown,
+  ArrowLeft, Bot, CalendarClock, Check, Clipboard, Clock, Download, FileDown,
   FileSpreadsheet, FileText, ListTree, Printer, Search, User, X,
 } from 'lucide-react';
 import { api } from '../api.js';
@@ -9,9 +9,9 @@ import { useAuth } from '../App.jsx';
 import { cn } from '../utils/cn';
 import {
   Button, IconButton, Field, Input, SegmentedControl, Dialog,
-  InlineAlert, Spinner, TableWrap, Table, THead, TBody, Th, Tr, Td,
+  InlineAlert, Spinner, Spine, TableWrap, Table, THead, TBody, Th, Tr, Td,
 } from '../ds';
-import { IntelligencePage, ReadingColumn, NarrativeSurface, Eyebrow } from '../ds/intelligence';
+import { IntelligencePage, ReadingColumn, Eyebrow, Verdict } from '../ds/intelligence';
 import InvestigationComposer from '../components/InvestigationComposer.jsx';
 
 import DataViz from '../components/DataViz.jsx';
@@ -535,10 +535,10 @@ function AttachmentChip({ attachment, onRemove }) {
 
 function UserMessage({ text, attachment }) {
   return (
-    <div className="mb-8">
-      <div className="mb-2 font-z-mono text-[10px] uppercase tracking-[0.14em] text-z-text-3">You · just now</div>
+    <div className="mb-6 animate-z-rise">
+      <div className="mb-1.5 font-z-mono text-[10px] uppercase tracking-[0.14em] text-z-text-3">You · just now</div>
       {attachment && <div className="mb-2"><AttachmentChip attachment={attachment} /></div>}
-      <div className="inline-block max-w-[80%] rounded-[16px_16px_16px_4px] border border-z-border bg-z-card-2 px-5 py-3.5 text-[17px] leading-[1.5] text-z-text">
+      <div className="inline-block max-w-[80%] rounded-[14px_14px_14px_4px] border border-z-border bg-z-card-2 px-4 py-2.5 text-[14.5px] leading-[1.5] text-z-text">
         {text}
       </div>
     </div>
@@ -600,11 +600,65 @@ function AgentStepsToggle({ sessionId }) {
   );
 }
 
+// Lift the answer's lead sentence into a serif "verdict" headline (the mockup's wow),
+// with **bold** phrases picked out in emerald — but only when the answer genuinely opens
+// with a short, plain sentence. Otherwise the whole answer stays as prose (safe fallback).
+function splitVerdict(md) {
+  const text = (md || '').trim();
+  const nl = text.indexOf('\n\n');
+  const head = (nl === -1 ? text : text.slice(0, nl)).trim();
+  const rest = nl === -1 ? '' : text.slice(nl + 2).trim();
+  // Only a genuine one-line conclusion becomes a verdict: a plain declarative sentence
+  // (ends in a period, not a colon preamble) with real body beneath it.
+  const isVerdict = head
+    && !head.includes('\n')
+    && head.length >= 20 && head.length <= 200
+    && !/^[#>\-*|`]|^\d+\./.test(head)
+    && /[.!?]$/.test(head) && !head.endsWith(':')
+    && rest.length > 40;
+  return isVerdict ? { verdict: head, body: rest } : { verdict: null, body: text };
+}
+
+function renderVerdict(s) {
+  return s.split(/(\*\*[^*]+\*\*)/g).map((part, i) => {
+    const m = part.match(/^\*\*([^*]+)\*\*$/);
+    return m
+      ? <b key={i} className="font-medium text-z-primary">{m[1]}</b>
+      : <span key={i}>{part}</span>;
+  });
+}
+
+// Live reasoning — the mockup's behaviour: steps thread onto the spine one at a time,
+// each a spinning dot while busy, a filled check when done, with a mono meta on the right.
+function LiveReasoningSteps({ steps }) {
+  return (
+    <div className="flex flex-col gap-3">
+      {steps.map((s, i) => {
+        const done = s.rowCount != null || s.evaluatorDecision != null;
+        const meta = s.rowSummary ?? (s.rowCount != null ? `${s.rowCount.toLocaleString()} row${s.rowCount !== 1 ? 's' : ''}` : null);
+        return (
+          <div key={s.stepNo ?? i} className="flex animate-z-rise items-center gap-3 text-[13.5px]">
+            <span className={cn(
+              'grid h-[15px] w-[15px] flex-none place-items-center rounded-full border-[1.5px]',
+              done ? 'border-z-primary bg-z-primary text-z-on-accent'
+                   : 'animate-spin border-z-primary border-t-transparent',
+            )}>
+              {done && <Check size={9} strokeWidth={3} />}
+            </span>
+            <span className={done ? 'text-z-text-3' : 'text-z-text-2'}>{s.description}</span>
+            {meta && <span className="ml-auto font-z-mono text-[11px] text-z-text-3">{meta}</span>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function AssistantMessage({ content, decisionType, agentName, loading, exportMenu, queryData, quickRefinements, onAsk, reasoningSteps, learningsApplied, streamingSteps, agentSessionId }) {
   const stepCount = safeArray(streamingSteps).length;
   return (
-    <div className="mb-8">
-      <NarrativeSurface accent="primary" live={loading}>
+    <div className="relative mb-8 animate-z-rise pl-7">
+      <Spine live={loading} />
       {/* Role line — the mono Intelligence voice, emerald, with a live dot */}
       <Eyebrow dot className="mb-3 text-z-primary">
         Zevra
@@ -614,22 +668,26 @@ function AssistantMessage({ content, decisionType, agentName, loading, exportMen
       </Eyebrow>
 
       {loading ? (
-        <div className="space-y-2">
-          {stepCount > 0 ? (
-            <ReasoningTrace steps={safeArray(streamingSteps)} loading={true} />
-          ) : (
-            <div className="flex items-center gap-2 text-z-caption text-z-text-2">
-              <Spinner size="sm" />
-              Zevra is thinking…
-            </div>
-          )}
-        </div>
+        stepCount > 0 ? (
+          <LiveReasoningSteps steps={safeArray(streamingSteps)} />
+        ) : (
+          <p className="font-z-serif text-z-body italic leading-[1.5] text-z-text-2">
+            Understanding your question…
+          </p>
+        )
       ) : (
         <>
-          <div className="mb-2 flex justify-end">
-            {exportMenu}
-          </div>
-          <MarkdownBody content={content} />
+          {(() => {
+            const { verdict, body } = splitVerdict(content);
+            return (
+              <div className="max-w-[68ch]">
+                {verdict && (
+                  <Verdict as="p" size="md" className="mb-3 animate-z-rise">{renderVerdict(verdict)}</Verdict>
+                )}
+                <MarkdownBody content={verdict ? body : content} />
+              </div>
+            );
+          })()}
           {queryData?.length > 0 && <DataTable rows={queryData} />}
           {queryData?.length > 0 && <DataViz queryData={queryData} />}
           <SuggestedQuestions quickRefinements={quickRefinements} queryData={queryData} onAsk={onAsk} />
@@ -662,7 +720,6 @@ function AssistantMessage({ content, decisionType, agentName, loading, exportMen
           )}
         </>
       )}
-      </NarrativeSurface>
     </div>
   );
 }
@@ -811,6 +868,167 @@ function PinReportModal({ conversationTitle, messages, user, onClose }) {
 }
 
 // ── main component ────────────────────────────────────────────────────────────
+// ── Report Mode presentation ────────────────────────────────────────────────
+// The Investigation Workspace presented as a completed executive report — a finished
+// document, not a chat transcript. The finding supplies the summary; the investigation's
+// own answer supplies evidence + reasoning; the conversation is an appendix at the very
+// bottom. Reuses the same components as Live Mode — one investigation, two presentations.
+function ReportLabel({ children }) {
+  return <div className="mb-3 text-z-label uppercase tracking-[0.14em] text-z-text-3">{children}</div>;
+}
+function reportStatus(s) {
+  const v = String(s || 'OPEN').toUpperCase();
+  return (v.includes('RESOLV') || v.includes('CLOSED')) ? 'Resolved' : 'Decision Required';
+}
+// Pull one sentence matching a pattern out of the conclusion — presentation only, never
+// fabricated: returns '' when the investigation didn't state impact / a recommendation.
+// List intros ("Here are…:", sentences ending in ":") are excluded — they aren't statements.
+const isListItem  = (s) => /^(\d+[.)]|[-*•])\s+/.test(s);
+const isListIntro = (s) => /[:;]$/.test(s)
+  || /^(here (are|is)|the most critical|these are|below (are|is)|following)/i.test(s);
+
+// Split on line breaks first so list items stay separate from the prose around them
+// (collapsing every whitespace run would glue "…840 units at risk" onto the next
+// sentence). A list-item line is kept whole — sentence-splitting it would divorce its
+// "1." marker and defeat isListItem — otherwise split on sentence boundaries.
+function toSentences(text) {
+  return String(text || '')
+    .replace(/[ \t]+/g, ' ')
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .flatMap((line) => (isListItem(line) ? [line] : line.split(/(?<=[.!?])\s+/)))
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function pickSentence(text, re) {
+  const hit = toSentences(text).find((t) => {
+    if (!re.test(t) || t.length < 24) return false;
+    if (isListItem(t) || isListIntro(t)) return false;   // items live in Supporting Evidence
+    return true;
+  });
+  return hit ? hit.trim() : '';
+}
+const RE_RECO = /\b(recommend|prioriti[sz]e|consider|suggest|advis|renegotiat|you should|should be)\b/i;
+// Genuine quantified impact only: a dollar amount, a percentage change, or explicit loss.
+const RE_IMPACT = /\$[\d,]{3,}|\b\d+(\.\d+)?%\s*(rise|increase|drop|decrease|decline|deviation|surge|higher|lower)|\blost sales\b|\bpotential (stockout|loss)\b/i;
+
+function ReportView({ finding, messages, onAsk }) {
+  const primary = messages.find((m) => m.role === 'assistant' && !m.loading);
+  const pIdx = primary ? messages.indexOf(primary) : -1;
+  const followups = pIdx >= 0 ? messages.slice(pIdx + 1) : [];
+  const queryData = safeArray(primary?.queryData);
+  const reasoningSteps = safeArray(primary?.reasoningSteps);
+  const agentSessionId = primary?.agentSessionId || null;
+  const firstQuestion = messages.find((m) => m.role === 'user')?.content;
+  const title = finding?.title || firstQuestion || 'Investigation';
+  const full = finding?.description || primary?.content || '';
+  const recommendation = pickSentence(full, RE_RECO);
+  const impact = pickSentence(full, RE_IMPACT);
+  // Executive summary = the narrative prose only. The per-item list is dropped (it appears
+  // verbatim in Supporting Evidence), as are dangling list intros and the sentences promoted
+  // to Recommendation / Business impact — so nothing repeats. Fall back to the full text if
+  // trimming would gut it.
+  const pulled = [recommendation, impact].filter(Boolean);
+  let summary = toSentences(full)
+    .filter((s) => !isListItem(s) && !isListIntro(s))
+    .filter((s) => !pulled.some((p) => s === p || p.includes(s) || s.includes(p)))
+    .join(' ')
+    .trim();
+  if (summary.length < 40) summary = full;
+
+  return (
+    <article className="mx-auto max-w-[70ch] pb-4">
+      {/* Document masthead — instantly reads as a completed report, not a conversation */}
+      <header className="mb-11 border-b border-z-border pb-7">
+        <div className="text-z-label uppercase tracking-[0.18em] text-z-primary">Investigation report</div>
+        <h1 className="mt-4 font-z-serif text-[30px] font-medium leading-[1.14] tracking-[-0.01em] text-z-text sm:text-[35px]">{title}</h1>
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-z-caption text-z-text-3">
+          <span className="uppercase tracking-[0.08em] text-z-primary">{reportStatus(finding?.status)}</span>
+          <span aria-hidden>·</span>
+          <span>Prepared by Zevra</span>
+          <span aria-hidden>·</span>
+          <span>Complete</span>
+        </div>
+      </header>
+
+      {summary && (
+        <section className="mb-11">
+          <ReportLabel>Executive summary</ReportLabel>
+          <MarkdownBody content={summary} />
+        </section>
+      )}
+
+      {impact && (
+        <section className="mb-11">
+          <ReportLabel>Business impact</ReportLabel>
+          <p className="font-z-serif text-z-body-lg leading-[1.55] text-z-text">{impact}</p>
+        </section>
+      )}
+
+      {recommendation && (
+        <section className="mb-11">
+          <ReportLabel>Recommendation</ReportLabel>
+          <p className="border-l-2 border-z-primary pl-5 font-z-serif text-z-body-lg italic leading-[1.5] text-z-text">{recommendation}</p>
+        </section>
+      )}
+
+      {queryData.length > 0 && (
+        <section className="mb-11">
+          <ReportLabel>Supporting evidence</ReportLabel>
+          <DataTable rows={queryData} />
+          <DataViz queryData={queryData} />
+        </section>
+      )}
+
+      <section className="mb-2">
+        <ReportLabel>Detailed reasoning</ReportLabel>
+        {reasoningSteps.length > 0 ? (
+          <ReasoningTrace steps={reasoningSteps} loading={false} />
+        ) : agentSessionId ? (
+          <AgentStepsToggle sessionId={agentSessionId} />
+        ) : (
+          <p className="text-z-caption text-z-text-3">
+            Zevra's step-by-step reasoning is captured while the investigation runs — ask a follow-up below to see it live.
+          </p>
+        )}
+      </section>
+
+      {/* Appendix boundary — the conversation is clearly secondary, below the report */}
+      <div className="mt-16 mb-9 flex items-center gap-4" aria-hidden>
+        <span className="h-px flex-1 bg-z-border" />
+        <span className="text-z-label uppercase tracking-[0.18em] text-z-text-3">Follow-up</span>
+        <span className="h-px flex-1 bg-z-border" />
+      </div>
+      <section>
+        <p className="mb-8 max-w-[60ch] font-z-serif italic text-z-body-lg leading-[1.55] text-z-text-3">
+          This investigation is complete. Ask a follow-up below to explore it further — your questions continue the same investigation.
+        </p>
+        {followups.map((m, i) =>
+          m.role === 'user' ? (
+            <UserMessage key={i} text={m.content} attachment={m.attachment} />
+          ) : (
+            <AssistantMessage
+              key={i}
+              content={m.content}
+              decisionType={m.decisionType}
+              agentName={m.agentName}
+              loading={m.loading}
+              queryData={m.queryData}
+              quickRefinements={m.quickRefinements}
+              reasoningSteps={m.reasoningSteps || []}
+              streamingSteps={m.streamingSteps || []}
+              agentSessionId={m.agentSessionId || null}
+              onAsk={onAsk}
+            />
+          ),
+        )}
+      </section>
+    </article>
+  );
+}
+
 export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
   const { user } = useAuth();
 
@@ -835,6 +1053,12 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [openExportMenu, setOpenExportMenu] = useState(null);
+
+  // Presentation mode of the Investigation Workspace: 'live' (conversational, work in
+  // progress) or 'report' (completed investigation opened from the Executive Brief —
+  // Summary → Evidence → Reasoning → Conversation). Same investigation, same data.
+  const [presentationMode, setPresentationMode] = useState('live');
+  const [reportFinding, setReportFinding] = useState(null);
 
   // history
   const [conversations, setConversations] = useState([]);
@@ -929,6 +1153,15 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
       sendQuestion(stored, true);
       return;
     }
+    // Executive Brief → "Review the analysis": open the exact investigation that produced
+    // the recommendation, in Report Mode. Lineage comes from the finding (deterministic).
+    const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+    const reportConv = params.get('report');
+    if (reportConv && !prefillFiredRef.current) {
+      prefillFiredRef.current = true;
+      openInvestigationReport(reportConv, params.get('finding'));
+      return;
+    }
     // Pick up a "resume this investigation" request from the Home overlay's recent list
     const openId = localStorage.getItem('zevra_chat_open');
     if (openId && !prefillFiredRef.current) {
@@ -938,6 +1171,20 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Open a completed investigation in Report Mode: the finding supplies the executive
+  // summary; the conversation supplies the evidence; the workspace presents them as a
+  // report with the conversation as its final section.
+  const openInvestigationReport = async (conversationId, findingKey) => {
+    setPresentationMode('report');
+    if (findingKey) {
+      try {
+        const f = await api.reasoning.finding(findingKey);
+        if (f) setReportFinding(f);
+      } catch { /* summary falls back to the investigation's own answer */ }
+    }
+    await openConversation(conversationId);
+  };
 
   // Load conversations for the History panel.
   useEffect(() => {
@@ -1156,14 +1403,17 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
     }
   };
 
+  // A fresh conversation opens in place — clear the thread but stay in the workspace,
+  // rather than bouncing back to a blank page.
   const startNewChat = () => {
     setMessages([]);
     conversationIdRef.current = null;
-    setChatMode(false);
-    setLandingQuery('');
     setChatQuery('');
     setSubmitError('');
     setOpenExportMenu(null);
+    setPresentationMode('live');
+    setReportFinding(null);
+    requestAnimationFrame(() => chatInputRef.current?.focus());
   };
 
   const conversationTitle = messages.find((m) => m.role === 'user')?.content?.slice(0, 60) || 'Investigation';
@@ -1323,8 +1573,10 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
             {/* Chat header — a slim conversation toolbar that blends with the thread
                 (the shell composer is hidden on this route; the workspace owns input). */}
             <header className="flex h-12 shrink-0 items-center gap-3 border-b border-z-border bg-transparent px-6">
-              <Button variant="ghost" size="sm" onClick={startNewChat} leadingIcon={<ArrowLeft size={16} />}>
-                New chat
+              <Button variant="ghost" size="sm"
+                onClick={presentationMode === 'report' ? () => { window.location.hash = '/'; } : startNewChat}
+                leadingIcon={<ArrowLeft size={16} />}>
+                {presentationMode === 'report' ? 'Executive Brief' : 'New chat'}
               </Button>
               <span className="min-w-0 flex-1 truncate px-2 text-center font-z-serif text-z-caption italic text-z-text-3">
                 {conversationTitle}
@@ -1356,6 +1608,10 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
             {/* Messages */}
             <div className="min-h-0 flex-1 overflow-y-auto scroll-smooth">
               <ReadingColumn measure="column" className="py-10">
+                {presentationMode === 'report' ? (
+                  <ReportView finding={reportFinding} messages={messages} onAsk={q => sendQuestion(q)} />
+                ) : (
+                <>
                 <div className="mb-8 flex justify-center">
                   <Eyebrow>Today</Eyebrow>
                 </div>
@@ -1387,6 +1643,8 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                     />
                   )
                 )}
+                </>
+                )}
                 {submitError && (
                   <p className="text-center text-z-caption text-z-critical-on">{submitError}</p>
                 )}
@@ -1417,7 +1675,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                 value={chatQuery}
                 onChange={setChatQuery}
                 onSubmit={handleChatSubmit}
-                placeholder="Ask a follow-up…"
+                placeholder={presentationMode === 'report' ? 'Ask a follow-up about this analysis…' : 'Ask a follow-up…'}
                 disabled={submitting || (!chatQuery.trim() && !attachment)}
                 allowAttachments
                 onAttachClick={() => fileInputRef.current?.click()}
