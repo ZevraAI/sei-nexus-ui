@@ -272,10 +272,10 @@ export const api = {
 
   // ── Temporal ───────────────────────────────────────────────────────────────
   temporal: {
-    baselines:       ()             => get('/temporal/baselines'),
+    baselines:       (domainKey)    => get(`/temporal/baselines${domainKey ? `?domainKey=${encodeURIComponent(domainKey)}` : ''}`),
     createBaseline:  (body)         => post('/temporal/baselines', body),
     refreshBaseline: (key)          => post(`/temporal/baselines/${key}/refresh`),
-    anomalies:       ()             => get('/temporal/anomalies'),
+    anomalies:       (domainKey)    => get(`/temporal/anomalies${domainKey ? `?domainKey=${encodeURIComponent(domainKey)}` : ''}`),
     anomaly:         (key)          => get(`/temporal/anomalies/${key}`),
     patchAnomaly:    (key, body)    => patch(`/temporal/anomalies/${key}`, body),
   },
