@@ -1,0 +1,138 @@
+/* ============================================================================
+   ZEVRA DESIGN LANGUAGE v3.0 — SIGNATURE (token VALUES only)
+   The visual evolution of v2.0 into the approved Signature Motif. Component APIs,
+   layout, typography SCALE, spacing, radius, and motion are UNCHANGED. Only color +
+   elevation VALUES evolved, plus purely ADDITIVE tokens (serif face, Pulse Spine).
+   Every existing token name is stable, so the whole platform re-skins with no
+   component or layout edits — exactly as v2.0 proved.
+     :root                 → Executive Porcelain (light, canonical)
+     [data-theme="dark"]   → Signature Graphite (premium dark)
+   Signature identity = warm-graphite / porcelain material · emerald intelligence
+   light · machined edge-highlight · the Pulse Spine.
+   ============================================================================ */
+
+:root {
+  /* Fonts — sans + mono UNCHANGED; serif is additive (the verdict voice). */
+  --z-font-sans: -apple-system, "SF Pro Display", "SF Pro Text", "Segoe UI Variable",
+                 "Inter", "Segoe UI", system-ui, sans-serif;
+  --z-font-mono: "SF Mono", "JetBrains Mono", "Cascadia Code", ui-monospace, monospace;
+  --z-font-serif: "Newsreader", "Iowan Old Style", "Palatino Linotype", "Book Antiqua",
+                  Palatino, Georgia, "Times New Roman", serif;
+
+  /* Radius (unchanged) */
+  --z-radius-xs: 6px; --z-radius-sm: 8px; --z-radius-md: 10px; --z-radius-lg: 14px;
+  --z-radius-xl: 20px; --z-radius-pill: 980px; --z-radius-round: 50%;
+
+  /* Motion (unchanged) */
+  --z-dur-instant: 80ms; --z-dur-fast: 140ms; --z-dur-base: 220ms;
+  --z-dur-slow: 360ms; --z-dur-deliberate: 560ms;
+  --z-ease-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --z-ease-entrance: cubic-bezier(0.16, 0.84, 0.24, 1);
+  --z-ease-exit: cubic-bezier(0.4, 0, 0.9, 0.5);
+
+  /* ── EXECUTIVE PORCELAIN (light, canonical) ─────────────────────────────────
+     Warm ivory canvas (never pure white); porcelain surfaces lift on a machined
+     edge-highlight + soft warm layered shadow. Brand = deep emerald; intelligence
+     = sapphire. Depth comes from material, not from darkness. */
+  --z-bg: #f4f0e7; --z-surface: #fbf9f3; --z-card: #fbf9f3; --z-card-2: #f5f1e8;
+  --z-border: #e7e0d2; --z-border-strong: #d8cfbd; --z-overlay: rgba(38, 30, 16, 0.34);
+
+  --z-text: #221f18; --z-text-2: #5f5949; --z-text-3: #6d6656;   /* text-3 → AA on porcelain */
+  --z-text-muted: #948c79; --z-text-disabled: #c3bca9; --z-text-on-accent: #ffffff;
+
+  /* Deep Emerald — brand / primary actions / positive intelligence */
+  --z-primary: #0f7a58; --z-primary-hover: #12946b; --z-primary-press: #0b5f45;
+  --z-primary-soft: #e2f1ea; --z-primary-on: #ffffff;
+
+  --z-secondary: #fbf9f3; --z-secondary-hover: #f3ece0; --z-secondary-border: #d8cfbd;
+
+  --z-hover: rgba(38, 30, 16, 0.045); --z-pressed: rgba(38, 30, 16, 0.075);
+  --z-selected: #e2f1ea; --z-focus: #0f7a58; --z-focus-ring: rgba(15, 122, 88, 0.30);
+
+  /* Semantic — richer, enterprise, AA-legible on porcelain */
+  --z-healthy: #0f7a58; --z-healthy-soft: #e2f1ea; --z-healthy-on: #0a5a3f;
+  /* Sapphire — the intelligence accent (reasoning / live / links-of-intelligence) */
+  --z-investigating: #2a5bd7; --z-investigating-soft: #e7edfb; --z-investigating-on: #1b3f9e;
+  --z-warning: #a9772a; --z-warning-soft: #f7edda; --z-warning-on: #7a520f;
+  --z-critical: #b3324a; --z-critical-soft: #f7e3e3; --z-critical-on: #8f2436;
+  --z-resolved: #0f7a58; --z-resolved-soft: #e2f1ea; --z-resolved-on: #0a5a3f;
+  --z-info: #2a5bd7; --z-info-soft: #e7edfb; --z-info-on: #17429e;
+  --z-running: #2a5bd7; --z-running-soft: #e7edfb; --z-running-on: #1b3f9e;
+  --z-waiting: #837c6c; --z-waiting-soft: #efeadf; --z-waiting-on: #56503f;
+  --z-neutral: #6d6656; --z-neutral-soft: #efeadf; --z-neutral-on: #47423a;
+
+  --z-up: #0f7a58; --z-down: #b3324a; --z-flat: #837c6c;
+
+  /* Elevation — machined: a bright inset top-highlight + soft warm layered shadow. */
+  --z-elev-0: none;
+  --z-elev-1: inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 2px rgba(80,64,40,0.05);
+  --z-elev-2: inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 6px rgba(80,64,40,0.06), 0 14px 30px -16px rgba(80,64,40,0.18);
+  --z-elev-3: inset 0 1px 0 rgba(255,255,255,0.9), 0 10px 24px -10px rgba(80,64,40,0.20), 0 2px 8px rgba(80,64,40,0.06);
+  --z-elev-4: inset 0 1px 0 rgba(255,255,255,0.9), 0 28px 60px -22px rgba(80,64,40,0.26), 0 10px 24px -14px rgba(80,64,40,0.14);
+
+  /* ── Pulse Spine (additive) — the signature thread of intelligence. ────────── */
+  --z-spine: rgba(15, 122, 88, 0.22);        /* resting hairline */
+  --z-spine-strong: #0f7a58;                  /* active / lit */
+  --z-spine-glow: rgba(15, 122, 88, 0.28);    /* glint halo */
+  --z-brass: #9a7b3f;                          /* premium warm micro-accent */
+}
+
+/* ── SIGNATURE GRAPHITE (premium dark) ───────────────────────────────────────
+   Warm graphite (not blue-black); surfaces rise by lightness + a hairline top
+   highlight; emerald reads as light on glass; a whisper of brass. */
+[data-theme="dark"] {
+  --z-bg: #10161c; --z-surface: #141b23; --z-card: #161d26; --z-card-2: #1b232d;
+  --z-border: #26303c; --z-border-strong: #33404e; --z-overlay: rgba(4, 7, 11, 0.66);
+
+  --z-text: #f2efe8; --z-text-2: #a9b0aa; --z-text-3: #7c857d;   /* text-3 → AA on graphite */
+  --z-text-muted: #5b635c; --z-text-disabled: #414a44; --z-text-on-accent: #06140e;
+
+  --z-primary: #34d3a0; --z-primary-hover: #43e0ad; --z-primary-press: #22b083;
+  --z-primary-soft: #0e2a20; --z-primary-on: #06140e;
+
+  --z-secondary: #1b232d; --z-secondary-hover: #212b36; --z-secondary-border: #33404e;
+
+  --z-hover: rgba(255, 255, 255, 0.045); --z-pressed: rgba(255, 255, 255, 0.075);
+  --z-selected: #16241d; --z-focus: #34d3a0; --z-focus-ring: rgba(52, 211, 160, 0.40);
+
+  --z-healthy: #34d3a0; --z-healthy-soft: #0e2a20; --z-healthy-on: #7fe8c4;
+  --z-investigating: #5b8cff; --z-investigating-soft: #101d34; --z-investigating-on: #a8c4ff;
+  --z-warning: #e0b25e; --z-warning-soft: #2a2110; --z-warning-on: #f2cf8a;
+  --z-critical: #ef6f82; --z-critical-soft: #2e1620; --z-critical-on: #ff9eae;
+  --z-resolved: #34d3a0; --z-resolved-soft: #0e2a20; --z-resolved-on: #7fe8c4;
+  --z-info: #5b8cff; --z-info-soft: #101d34; --z-info-on: #a8c4ff;
+  --z-running: #5b8cff; --z-running-soft: #101d34; --z-running-on: #a8c4ff;
+  --z-waiting: #7c857d; --z-waiting-soft: #1b232d; --z-waiting-on: #a9b0aa;
+  --z-neutral: #8a938b; --z-neutral-soft: #1b232d; --z-neutral-on: #a9b0aa;
+
+  --z-up: #34d3a0; --z-down: #ef6f82; --z-flat: #7c857d;
+
+  --z-elev-0: none;
+  --z-elev-1: 0 1px 2px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+  --z-elev-2: 0 4px 14px -4px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+  --z-elev-3: 0 16px 36px -12px rgba(0,0,0,0.72), inset 0 1px 0 rgba(255,255,255,0.06);
+  --z-elev-4: 0 30px 70px -18px rgba(0,0,0,0.82), inset 0 1px 0 rgba(255,255,255,0.07);
+
+  --z-spine: rgba(52, 211, 160, 0.26);
+  --z-spine-strong: #34d3a0;
+  --z-spine-glow: rgba(52, 211, 160, 0.14);
+  --z-brass: #c9a86a;
+}
+
+/* Keyframes (existing unchanged; z-spine-glint is additive). */
+@keyframes z-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes z-rise-scale { from { opacity: 0; transform: translateY(-12px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes z-spin { to { transform: rotate(360deg); } }
+@keyframes z-pulse-ring { 0% { transform: scale(1); opacity: 0.5; } 70%, 100% { transform: scale(2.4); opacity: 0; } }
+@keyframes z-fill { from { width: 0 !important; } }
+/* The Pulse Spine glint — a single point of light travelling the hero spine. */
+@keyframes z-spine-glint {
+  0%   { left: 0;    opacity: 0; }
+  12%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --z-dur-instant:0ms; --z-dur-fast:0ms; --z-dur-base:0ms; --z-dur-slow:0ms; --z-dur-deliberate:0ms; }
+}

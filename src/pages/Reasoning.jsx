@@ -90,11 +90,25 @@ function SessionCard({ session }) {
   );
 }
 
+// The backend serializes responses in snake_case; these views read camelCase — normalize once.
+const toCamel = (s) => s.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
+function deepCamel(x) {
+  if (Array.isArray(x)) return x.map(deepCamel);
+  if (x && typeof x === 'object') {
+    const o = {};
+    for (const k of Object.keys(x)) o[toCamel(k)] = deepCamel(x[k]);
+    return o;
+  }
+  return x;
+}
+const hashParams = () => new URLSearchParams(window.location.hash.split('?')[1] || '');
+
 export default function Reasoning() {
   const [sessions, setSessions] = useState([]);
   const [findings, setFindings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('sessions');
+  const [tab, setTab] = useState(() => hashParams().get('tab') || 'sessions');
+  const [highlight, setHighlight] = useState(() => hashParams().get('finding') || null);
   const [resolveModal, setResolveModal] = useState(null);
   const [resolveNote, setResolveNote] = useState('');
 
@@ -102,9 +116,20 @@ export default function Reasoning() {
     Promise.all([
       api.reasoning.sessions().catch(() => []),
       api.reasoning.findings().catch(() => []),
-    ]).then(([s, f]) => { setSessions(s ?? []); setFindings(f ?? []); })
+    ]).then(([s, f]) => { setSessions(deepCamel(s ?? [])); setFindings(deepCamel(f ?? [])); })
       .finally(() => setLoading(false));
   }, []);
+
+  // Deep-linked finding (homepage "Review finding"): open the findings tab, scroll the
+  // finding into view and highlight it briefly.
+  useEffect(() => {
+    if (!highlight || loading) return;
+    setTab('findings');
+    const el = document.getElementById(`finding-${highlight}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const t = setTimeout(() => setHighlight(null), 2600);
+    return () => clearTimeout(t);
+  }, [highlight, loading]);
 
   const resolveFinding = async () => {
     if (!resolveModal) return;
@@ -115,7 +140,7 @@ export default function Reasoning() {
   };
 
   return (
-    <div className="flex-1 overflow-auto p-7 bg-transparent">
+    <div className="h-full overflow-auto p-7 bg-transparent">
       <PageHeader
         title="Reasoning"
         subtitle="Investigation sessions, hypotheses, and operational findings"
@@ -142,19 +167,19 @@ export default function Reasoning() {
           ? <EmptyState icon={CheckCircle} title="No findings" body="Operational findings appear when the reasoning engine concludes an investigation." />
           : <div className="space-y-2">
             {findings.map(f => (
-              <Card key={f.findingKey} className="p-4">
+              <div key={f.findingKey} id={`finding-${f.findingKey}`}>
+              <Card className={`p-4 transition-shadow ${f.findingKey === highlight ? 'ring-2 ring-indigo-500 ring-offset-2' : ''}`}>
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-gray-800">{f.title}</span>
                       <Badge label={f.status ?? 'OPEN'} color={STATUS_COLOR[f.status] ?? 'gray'} />
-                      <Badge label={f.severity ?? 'INFO'} color={f.severity === 'HIGH' ? 'red' : f.severity === 'MEDIUM' ? 'yellow' : 'gray'} />
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">{f.description}</p>
+                    <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{f.description}</p>
                     {f.recommendation && (
                       <p className="text-xs text-blue-600 mt-1">💡 {f.recommendation}</p>
                     )}
-                    <p className="text-xs text-gray-400 mt-1">{f.detectedAt?.split('T')[0]}</p>
+                    <p className="text-xs text-gray-400 mt-1">{(f.lastConfirmedAt ?? f.firstObservedAt)?.split('T')[0]}</p>
                   </div>
                   {f.status === 'OPEN' && (
                     <Btn variant="teal" size="sm" onClick={() => setResolveModal(f)}>
@@ -163,6 +188,7 @@ export default function Reasoning() {
                   )}
                 </div>
               </Card>
+              </div>
             ))}
           </div>
       )}

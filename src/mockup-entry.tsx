@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import './ds/tokens.css'; // Zevra Signature token layer (--z-* + Pulse Spine keyframes)
 import './styles.css';
 import { MockupShell } from './pages/mockup/MockupShell';
 import { HomePageMockup } from './pages/mockup/HomePageMockup';

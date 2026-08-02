@@ -35,8 +35,8 @@ export function MockupShell({ children }: Props) {
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center"
             style={{
-              background: 'linear-gradient(140deg, #075D61 0%, #2F8EDB 100%)',
-              boxShadow: '0 0 12px rgba(7,93,97,0.5)',
+              background: 'linear-gradient(135deg, #34d3a0 0%, #149a72 100%)',
+              boxShadow: '0 0 14px rgba(52,211,160,0.45)',
             }}
           >
             <Sparkles size={15} className="text-white" />
@@ -58,7 +58,7 @@ export function MockupShell({ children }: Props) {
             color: 'rgba(255,255,255,0.80)',
           }}
         >
-          <Globe size={13} style={{ color: '#0EA572' }} />
+          <Globe size={13} style={{ color: '#34d3a0' }} />
           Investigation Workspace
           <ChevronDown size={13} style={{ color: 'rgba(255,255,255,0.4)' }} />
         </button>
@@ -122,7 +122,7 @@ export function MockupShell({ children }: Props) {
           >
             <div
               className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
-              style={{ background: 'linear-gradient(140deg, #075D61 0%, #2F8EDB 100%)' }}
+              style={{ background: 'linear-gradient(135deg, #34d3a0 0%, #149a72 100%)' }}
             >
               M
             </div>

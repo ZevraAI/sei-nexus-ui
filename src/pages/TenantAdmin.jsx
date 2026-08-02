@@ -547,7 +547,7 @@ export default function TenantAdmin() {
   const selectedTenant = tenants.find(t => t.slug === selectedSlug) ?? null;
 
   return (
-    <div className="flex-1 overflow-auto p-5 bg-transparent">
+    <div className="h-full overflow-auto p-5 bg-transparent">
       <PageHeader
         title="Tenant Management"
         subtitle="Provision, configure, and manage isolated customer workspaces"

@@ -7,6 +7,7 @@ import Login from './pages/Login.jsx';
 import SetNewPassword from './pages/SetNewPassword.jsx';
 import OnboardingWizard from './pages/OnboardingWizard.jsx';
 import Layout from './components/Layout.jsx';
+import { TenantProvider } from './context/TenantContext.jsx';
 import Chat from './pages/Chat.jsx';
 import Memory from './pages/Memory.jsx';
 import Connections from './pages/Connections.jsx';
@@ -29,6 +30,15 @@ import Users from './pages/Users.jsx';
 import Brief from './pages/Brief.jsx';
 import Usage from './pages/Usage.jsx';
 import Templates from './pages/Templates.jsx';
+import HomePage from './pages/home/HomePage.tsx';
+import { ExperienceProvider } from './experience';
+import { DerivedPulseSource } from './pulse/DerivedPulseSource';
+import { EmptyPreviewResolver } from './preview/EmptyPreviewResolver';
+
+// Runtime data boundaries (Rule 2 / Rule 5) — REAL sources in BOTH dev and production, so local
+// development behaves exactly like production. No representative/mock data is ever injected.
+const enterprisePulseSource = new DerivedPulseSource();
+const enterprisePreviewResolver = new EmptyPreviewResolver();
 
 // ─── Auth context ─────────────────────────────────────────────────────────────
 export const AuthContext = createContext(null);
@@ -343,14 +353,20 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <AuthContext.Provider value={{ user, logout, impersonation, startImpersonation, exitImpersonation }}>
-        <Layout currentPath={hash}>
-          {hash === '/chat' || hash === '/'
-            ? React.cloneElement(<Chat />, { prefillQuestion: firstQuestion,
-                                             onPrefillUsed: () => setFirstQuestion(null) })
-            : page}
-        </Layout>
-      </AuthContext.Provider>
+      <ExperienceProvider pulseSource={enterprisePulseSource} previewResolver={enterprisePreviewResolver}>
+        <AuthContext.Provider value={{ user, logout, impersonation, startImpersonation, exitImpersonation }}>
+          <TenantProvider>
+            <Layout currentPath={hash}>
+              {hash === '/'
+                ? <HomePage user={user} />
+                : hash === '/chat'
+                ? React.cloneElement(<Chat />, { prefillQuestion: firstQuestion,
+                                                 onPrefillUsed: () => setFirstQuestion(null) })
+                : page}
+            </Layout>
+          </TenantProvider>
+        </AuthContext.Provider>
+      </ExperienceProvider>
     </ThemeProvider>
   );
 }

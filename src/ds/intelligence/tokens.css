@@ -1,0 +1,50 @@
+/* ============================================================================
+   ZEVRA INTELLIGENCE EXPERIENCE — token VALUES (--z-ai-*)
+   The material layer for Zevra's Intelligence Experiences (Home, Brief,
+   Investigations, future Reasoning/Findings). Additive and namespaced: every
+   token here is `--z-ai-*` and is consumed ONLY by src/ds/intelligence/*.
+   Enterprise CSS never references these; the dependency direction is one-way
+   (Intelligence → Base, never Base → Intelligence).
+
+   Depends on ds/tokens.css (imported first in main.jsx) — Intelligence tokens
+   may reference base `--z-*` values but base tokens never reference `--z-ai-*`.
+     :root                 → Executive Porcelain (light)
+     [data-theme="dark"]   → Signature Graphite (dark)
+   ============================================================================ */
+
+:root {
+  /* Translucent porcelain material — surfaces read as material, not filled boxes. */
+  --z-ai-surface:   rgba(251, 249, 243, 0.75);
+  --z-ai-surface-2: rgba(245, 241, 232, 0.70);
+  --z-ai-blur:      6px;
+
+  /* Machined edges — a whisper hairline, a bright top highlight, an emerald
+     top-edge that marks an "intelligent" surface. */
+  --z-ai-edge:      rgba(60, 48, 28, 0.10);
+  --z-ai-edge-top:  rgba(255, 255, 255, 0.92);
+  --z-ai-edge-em:   rgba(15, 122, 88, 0.30);
+
+  /* Elevated Intelligence lift — inset top highlight + one soft warm shadow. */
+  --z-ai-lift: inset 0 1px 0 rgba(255, 255, 255, 0.92), 0 18px 40px -26px rgba(80, 64, 40, 0.22);
+
+  /* Page atmosphere — emerald intelligence light + a whisper of brass. */
+  --z-ai-atmo:
+    radial-gradient(46% 42% at 10% -8%, rgba(15, 122, 88, 0.10), transparent 60%),
+    radial-gradient(30% 30% at 96% -6%, rgba(154, 123, 63, 0.10), transparent 62%);
+}
+
+[data-theme="dark"] {
+  --z-ai-surface:   rgba(26, 34, 32, 0.50);
+  --z-ai-surface-2: rgba(20, 27, 25, 0.50);
+  --z-ai-blur:      16px;
+
+  --z-ai-edge:      rgba(255, 255, 255, 0.07);
+  --z-ai-edge-top:  rgba(255, 255, 255, 0.09);
+  --z-ai-edge-em:   rgba(52, 211, 160, 0.30);
+
+  --z-ai-lift: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 22px 48px -26px rgba(0, 0, 0, 0.85);
+
+  --z-ai-atmo:
+    radial-gradient(42% 40% at 12% -8%, rgba(52, 211, 160, 0.12), transparent 60%),
+    radial-gradient(30% 30% at 96% -4%, rgba(201, 168, 106, 0.05), transparent 62%);
+}
