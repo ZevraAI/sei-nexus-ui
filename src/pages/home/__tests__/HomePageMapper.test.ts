@@ -17,6 +17,28 @@ describe('HomePageMapper — brand-new tenant (zero intelligence)', () => {
     // KPI strip = real platform counts, all zero for a new tenant
     expect(vm.kpis.map((k) => k.value)).toEqual([0, 0, 0, 0]);
   });
+
+  it('tells a truly unconnected tenant to connect a data source', () => {
+    const vm = mapToViewModel({ now: NOW }, emptyData); // connections: []
+    expect(vm.executiveSummary.emptyMessage).toMatch(/Connect a data source/);
+    expect(vm.executiveSummary.emptyAction).toEqual({ label: 'Connect a data source', to: '/connections' });
+  });
+});
+
+describe('HomePageMapper — connected tenant, brief not generated yet', () => {
+  it('does NOT tell an already-connected tenant to connect a data source', () => {
+    const vm = mapToViewModel({ now: NOW }, { ...emptyData, connections: [{ status: 'ACTIVE' }] });
+    expect(vm.executiveSummary.headline).toHaveLength(0);           // still no verdict — no brief yet
+    expect(vm.executiveSummary.emptyMessage).not.toMatch(/Connect a data source/);
+    expect(vm.executiveSummary.emptyMessage).toMatch(/reviewing your business/i);
+    expect(vm.executiveSummary.emptyAction).toEqual({ label: 'Review live activity', to: '/reasoning' });
+  });
+
+  it('prefers the real verdict over the empty-state copy once the brief IS ready', () => {
+    const brief = { status: 'READY', headline: 'Operations are stable.' };
+    const vm = mapToViewModel({ now: NOW }, { ...emptyData, connections: [{ status: 'ACTIVE' }], brief });
+    expect(vm.executiveSummary.headline[0].text).toBe('Operations are stable.');
+  });
 });
 
 describe('HomePageMapper — populated tenant', () => {

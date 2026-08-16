@@ -1,31 +1,27 @@
 import { useState } from 'react';
-import { CheckCircle2, Circle, Loader2, AlertCircle, ChevronDown, ChevronRight, Languages } from 'lucide-react';
+import { CheckCircle2, Circle, Loader2, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 
 /**
- * Collapsible panel that shows the iterative reasoning steps Zevra took
- * to answer a QUERY_LIVE_DATA question.
+ * Technical Investigation — the engineering-detail view of a QUERY_LIVE_DATA answer.
+ * Collapsed by default; the executive-facing summary is BusinessUnderstanding.jsx, which
+ * renders directly above this component from the same `steps` array. Business language
+ * resolutions render there, not here, so the two components never duplicate each other.
  *
  * Props:
  *   steps   — array from ChatResponse.reasoningSteps:
  *             [{stepNo, description, sql, rowCount, rowSummary,
  *               evaluatorDecision, evaluatorRationale, executionMs}]
- *             Entries with {type: 'resolution'} are Business Language
- *             Resolutions (PRO-31): {surface, kind, target, tier, source} —
- *             rendered as a "Business language" section above the steps so
- *             users can see exactly how their terms were interpreted.
+ *             Entries with {type: 'resolution'|'literal'} are Business Language
+ *             Resolutions (PRO-31/PRO-33) — excluded here, shown by BusinessUnderstanding.
  *   loading — true while the answer is still streaming in
  */
 export default function ReasoningTrace({ steps = [], loading = false }) {
   const [open,        setOpen]        = useState(false);
   const [expandedSql, setExpandedSql] = useState(null);
 
-  if (!loading && steps.length === 0) return null;
+  const querySteps = steps.filter(s => s.type !== 'resolution' && s.type !== 'literal');
 
-  // 'resolution' = deterministic BLR mapping; 'literal' = AI-chosen literal
-  // validated against a persisted value domain (PRO-33). Both render in the
-  // Business language section with their provenance badge.
-  const resolutions = steps.filter(s => s.type === 'resolution' || s.type === 'literal');
-  const querySteps  = steps.filter(s => s.type !== 'resolution' && s.type !== 'literal');
+  if (!loading && querySteps.length === 0) return null;
 
   const decisionIcon = (decision) => {
     if (!decision)                                                          return <Circle       size={12} className="text-gray-300" />;
@@ -65,33 +61,9 @@ export default function ReasoningTrace({ steps = [], loading = false }) {
         {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
         {loading
           ? <><Loader2 size={11} className="animate-spin text-blue-400" /> Investigating…</>
-          : <>How Zevra investigated this ({querySteps.length} {querySteps.length === 1 ? 'step' : 'steps'}{resolutions.length > 0 ? `, ${resolutions.length} term${resolutions.length !== 1 ? 's' : ''} resolved` : ''})</>
+          : <>Technical Investigation ({querySteps.length} {querySteps.length === 1 ? 'step' : 'steps'})</>
         }
       </button>
-
-      {/* Business language resolutions (PRO-31) — how the user's terms were
-          mapped to this tenant's canonical names/values, and from which tier */}
-      {open && resolutions.length > 0 && (
-        <div className="mt-3 p-2.5 bg-gray-50 border border-gray-100 rounded-lg space-y-1.5">
-          <div className="flex items-center gap-1.5 text-[10.5px] font-semibold text-gray-500 uppercase tracking-wide">
-            <Languages size={11} className="text-emerald-600" />
-            Business language
-          </div>
-          {resolutions.map((r, i) => (
-            <div key={`res-${i}`} className="flex items-center gap-2 flex-wrap text-[11.5px]">
-              <span className="font-semibold text-gray-700">"{r.surface}"</span>
-              <span className="text-gray-400">→</span>
-              <code className="px-1 py-0.5 bg-white border border-gray-100 rounded text-[10.5px] text-gray-600 font-mono">
-                {r.target}
-              </code>
-              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700"
-                    title={`Resolution kind: ${r.kind}`}>
-                {r.source || r.tier}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Step list */}
       {open && (

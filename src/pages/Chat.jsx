@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { marked } from 'marked';
 import {
-  ArrowLeft, Bot, CalendarClock, Check, Clipboard, Clock, Download, FileDown,
+  ArrowLeft, Bot, CalendarClock, Check, ChevronDown, Clipboard, Clock, Download, FileDown,
   FileSpreadsheet, FileText, ListTree, Printer, Search, User, X,
 } from 'lucide-react';
-import { api } from '../api.js';
+import { api, getAuthHeader } from '../api.js';
 import { useAuth } from '../App.jsx';
 import { cn } from '../utils/cn';
 import {
@@ -16,6 +16,7 @@ import InvestigationComposer from '../components/InvestigationComposer.jsx';
 
 import DataViz from '../components/DataViz.jsx';
 import ReasoningTrace from '../components/ReasoningTrace.jsx';
+import BusinessUnderstanding from '../components/BusinessUnderstanding.jsx';
 import AgentStepTrace from '../components/agents/AgentStepTrace.jsx';
 
 // ── markdown ──────────────────────────────────────────────────────────────────
@@ -628,6 +629,104 @@ function renderVerdict(s) {
   });
 }
 
+// ── Investigation milestones — the customer-facing presentation layer ──────────────────
+// Groups the backend's six ProgressPhase ids (see ChatService / ProgressPhase.java) into
+// the four business milestones a customer should actually see. The backend event model is
+// untouched: this is purely a frontend projection of the same phase_started / phase_completed
+// events already consumed above. A milestone's internal id/grouping is never rendered —
+// only its business label is ever shown.
+const MILESTONE_PHASES = {
+  understanding: ['understanding', 'metadata', 'retrieval'],
+  reviewing:      ['execution'],
+  judgment:       ['reasoning'],
+  preparing:      ['composition'],
+};
+const MILESTONE_LABEL = {
+  understanding: 'Understanding your business question...',
+  reviewing:      'Reviewing enterprise data...',
+  judgment:       'Forming business judgment...',
+  preparing:      'Preparing your answer...',
+};
+const PHASE_TO_MILESTONE = Object.fromEntries(
+  Object.entries(MILESTONE_PHASES).flatMap(([mid, phaseIds]) => phaseIds.map((pid) => [pid, mid])),
+);
+
+/** Pure projection: real backend phase events → the four customer-visible milestones.
+ *  A milestone only ever appears once one of its real phases has actually started (never
+ *  fabricated ahead of time), which is exactly what makes a genuinely-skipped phase (e.g.
+ *  EXECUTION on a memory-only answer) silently skip its milestone too — no phase, no row.
+ *  A milestone checks off only once its last constituent phase has actually completed. */
+function deriveMilestones(phaseSteps) {
+  const byMilestone = new Map(); // milestoneId -> ordered raw phase entries seen so far
+  for (const p of phaseSteps) {
+    const mid = PHASE_TO_MILESTONE[p.phase];
+    if (!mid) continue; // unknown/future phase id — ignore rather than guess
+    if (!byMilestone.has(mid)) byMilestone.set(mid, []);
+    byMilestone.get(mid).push(p);
+  }
+  return [...byMilestone.entries()].map(([mid, subPhases]) => {
+    const lastPhaseId = MILESTONE_PHASES[mid][MILESTONE_PHASES[mid].length - 1];
+    const lastPhase = subPhases.find((p) => p.phase === lastPhaseId);
+    return { phase: mid, label: MILESTONE_LABEL[mid], done: !!lastPhase?.done };
+  });
+}
+
+// Runtime Progress Projection — business-facing milestones streamed from real backend
+// orchestration phases (phase_started / phase_completed SSE events, see ChatService /
+// ProgressPhase). Every row reflects an actual runtime milestone; nothing here is a timer
+// or a simulated animation — a phase only appears once the backend has actually started it,
+// and only checks off once the backend has actually finished it. Labels are never hardcoded
+// here — they come verbatim from the backend event so ProgressPhase stays the single source
+// of truth for customer-facing wording.
+//
+// `renderDetail(phase)` is the foundation for future provenance (evidence sources, business
+// objects, confidence explanation, ...): pass it once that data exists on completed phases
+// and a completed row automatically gains an expand chevron — no restructuring needed here.
+// Omitted (as today), rows render exactly as before: no chevron, no expand affordance.
+function RuntimeProgress({ phases, renderDetail }) {
+  const [expanded, setExpanded] = useState(() => new Set());
+  const toggle = (phaseId) => setExpanded((prev) => {
+    const next = new Set(prev);
+    if (next.has(phaseId)) next.delete(phaseId); else next.add(phaseId);
+    return next;
+  });
+  return (
+    <div className="flex flex-col gap-3">
+      {phases.map((p, i) => {
+        const detail = p.done && renderDetail ? renderDetail(p) : null;
+        const isOpen = expanded.has(p.phase);
+        return (
+          <div key={p.phase ?? i} className="flex flex-col gap-2">
+            <div className="flex animate-z-rise items-center gap-3 text-[13.5px]">
+              <span className={cn(
+                'grid h-[15px] w-[15px] flex-none place-items-center rounded-full border-[1.5px]',
+                p.done ? 'border-z-primary bg-z-primary text-z-on-accent'
+                       : 'animate-spin border-z-primary border-t-transparent',
+              )}>
+                {p.done && <Check size={9} strokeWidth={3} />}
+              </span>
+              <span className={p.done ? 'text-z-text-3' : 'text-z-text-2'}>{p.label}</span>
+              {detail && (
+                <button
+                  type="button"
+                  onClick={() => toggle(p.phase)}
+                  aria-expanded={isOpen}
+                  className="ml-auto flex-none text-z-text-3 transition-colors hover:text-z-text-2"
+                >
+                  <ChevronDown size={13} className={cn('transition-transform', isOpen && 'rotate-180')} />
+                </button>
+              )}
+            </div>
+            {detail && isOpen && (
+              <div className="ml-[27px] text-[12.5px] text-z-text-3">{detail}</div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // Live reasoning — the mockup's behaviour: steps thread onto the spine one at a time,
 // each a spinning dot while busy, a filled check when done, with a mono meta on the right.
 function LiveReasoningSteps({ steps }) {
@@ -654,8 +753,13 @@ function LiveReasoningSteps({ steps }) {
   );
 }
 
-function AssistantMessage({ content, decisionType, agentName, loading, exportMenu, queryData, quickRefinements, onAsk, reasoningSteps, learningsApplied, streamingSteps, agentSessionId }) {
+function AssistantMessage({ content, decisionType, agentName, loading, exportMenu, queryData, quickRefinements, onAsk, reasoningSteps, learningsApplied, streamingSteps, phaseSteps, agentSessionId, runKey }) {
   const stepCount = safeArray(streamingSteps).length;
+  const milestones = useMemo(() => deriveMilestones(safeArray(phaseSteps)), [phaseSteps]);
+  // While Zevra is reviewing enterprise data, the governed-execution phase's own SQL
+  // sub-steps (streamingSteps) thread in beneath the "Reviewing enterprise data..." row.
+  const activeMilestone = milestones.find(m => !m.done);
+  const showSqlSubsteps = stepCount > 0 && (!activeMilestone || activeMilestone.phase === 'reviewing');
   return (
     <div className="relative mb-8 animate-z-rise pl-7">
       <Spine live={loading} />
@@ -663,13 +767,16 @@ function AssistantMessage({ content, decisionType, agentName, loading, exportMen
       <Eyebrow dot className="mb-3 text-z-primary">
         Zevra
         <span className="text-[11.5px] normal-case tracking-[0.04em] text-z-text-3">
-          {loading ? (stepCount > 0 ? 'thinking…' : 'understanding…') : 'answered'}
+          {loading ? (milestones.length > 0 || stepCount > 0 ? 'thinking…' : 'understanding…') : 'answered'}
         </span>
       </Eyebrow>
 
       {loading ? (
-        stepCount > 0 ? (
-          <LiveReasoningSteps steps={safeArray(streamingSteps)} />
+        milestones.length > 0 ? (
+          <div className="flex flex-col gap-3">
+            <RuntimeProgress phases={milestones} />
+            {showSqlSubsteps && <LiveReasoningSteps steps={safeArray(streamingSteps)} />}
+          </div>
         ) : (
           <p className="font-z-serif text-z-body italic leading-[1.5] text-z-text-2">
             Understanding your question…
@@ -691,6 +798,7 @@ function AssistantMessage({ content, decisionType, agentName, loading, exportMen
           {queryData?.length > 0 && <DataTable rows={queryData} />}
           {queryData?.length > 0 && <DataViz queryData={queryData} />}
           <SuggestedQuestions quickRefinements={quickRefinements} queryData={queryData} onAsk={onAsk} />
+          <BusinessUnderstanding steps={reasoningSteps} runKey={runKey} />
           <ReasoningTrace steps={reasoningSteps} loading={false} />
           {(decisionType || agentName || reasoningSteps?.length > 0) && (
             <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-z-border pt-3">
@@ -921,6 +1029,7 @@ function ReportView({ finding, messages, onAsk }) {
   const queryData = safeArray(primary?.queryData);
   const reasoningSteps = safeArray(primary?.reasoningSteps);
   const agentSessionId = primary?.agentSessionId || null;
+  const runKey = primary?.runKey || null;
   const firstQuestion = messages.find((m) => m.role === 'user')?.content;
   const title = finding?.title || firstQuestion || 'Investigation';
   const full = finding?.description || primary?.content || '';
@@ -955,7 +1064,7 @@ function ReportView({ finding, messages, onAsk }) {
 
       {summary && (
         <section className="mb-11">
-          <ReportLabel>Executive summary</ReportLabel>
+          <ReportLabel>Zevra's judgment</ReportLabel>
           <MarkdownBody content={summary} />
         </section>
       )}
@@ -985,7 +1094,10 @@ function ReportView({ finding, messages, onAsk }) {
       <section className="mb-2">
         <ReportLabel>Detailed reasoning</ReportLabel>
         {reasoningSteps.length > 0 ? (
-          <ReasoningTrace steps={reasoningSteps} loading={false} />
+          <>
+            <BusinessUnderstanding steps={reasoningSteps} runKey={runKey} />
+            <ReasoningTrace steps={reasoningSteps} loading={false} />
+          </>
         ) : agentSessionId ? (
           <AgentStepsToggle sessionId={agentSessionId} />
         ) : (
@@ -1019,7 +1131,9 @@ function ReportView({ finding, messages, onAsk }) {
               quickRefinements={m.quickRefinements}
               reasoningSteps={m.reasoningSteps || []}
               streamingSteps={m.streamingSteps || []}
+              phaseSteps={m.phaseSteps || []}
               agentSessionId={m.agentSessionId || null}
+              runKey={m.runKey || null}
               onAsk={onAsk}
             />
           ),
@@ -1193,18 +1307,18 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
 
   // ── SSE reasoning stream ────────────────────────────────────────────────────
   // Opens a fetch-based SSE connection to /chat/runs/{runKey}/stream.
-  // Uses fetch (not EventSource) so the X-Nexus-Token header can be included.
+  // Uses fetch (not EventSource) so an auth header can be included — same
+  // getAuthHeader() every other request in api.js uses (Supabase JWT, falling
+  // back to the legacy X-Nexus-Token only for pre-Supabase sessions).
   // Calls onEvent for each parsed SSE data line; returns a cancel function.
   const openReasoningStream = (runKey, onEvent) => {
     const BASE  = import.meta.env.VITE_API_BASE ?? '';
-    const token = localStorage.getItem('nexus_token') ||
-                  (() => { try { return JSON.parse(localStorage.getItem('nexus_user'))?.token ?? ''; } catch { return ''; } })();
     let cancelled = false;
 
     (async () => {
       try {
         const res = await fetch(`${BASE}/api/v1/chat/runs/${runKey}/stream`, {
-          headers: { 'X-Nexus-Token': token },
+          headers: getAuthHeader(),
         });
         if (!res.ok || !res.body) return;
         const reader  = res.body.getReader();
@@ -1259,13 +1373,35 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
     }]);
 
     // Add loading placeholder — streamingSteps accumulates via SSE while POST is in-flight
-    setMessages((prev) => [...prev, { role: 'assistant', content: '', loading: true, streamingSteps: [] }]);
+    setMessages((prev) => [...prev, { role: 'assistant', content: '', loading: true, streamingSteps: [], phaseSteps: [] }]);
 
     setSubmitting(true);
     setSubmitError('');
 
     // Open SSE stream before firing POST so no events are missed
     const cancelStream = openReasoningStream(clientRunKey, (event) => {
+      if (event.type === 'phase_started' || event.type === 'phase_completed') {
+        setMessages((prev) => {
+          const next = [...prev];
+          const last = next[next.length - 1];
+          if (!last?.loading) return prev; // already finalised
+          const existing = safeArray(last.phaseSteps);
+
+          if (event.type === 'phase_started') {
+            if (existing.some(p => p.phase === event.phase && !p.done)) return prev; // defensive: no dupes
+            return [...next.slice(0, -1), {
+              ...last,
+              phaseSteps: [...existing, { phase: event.phase, label: event.label, done: false }],
+            }];
+          }
+          // phase_completed
+          return [...next.slice(0, -1), {
+            ...last,
+            phaseSteps: existing.map(p => p.phase === event.phase ? { ...p, done: true } : p),
+          }];
+        });
+        return;
+      }
       if (event.type === 'step_started' || event.type === 'step_completed' || event.type === 'evaluation') {
         setMessages((prev) => {
           const next = [...prev];
@@ -1331,7 +1467,9 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
           reasoningSteps:  response.reasoning_steps  || response.reasoningSteps  || [],
           learningsApplied:response.learnings_applied || response.learningsApplied || [],
           agentSessionId:  response.agent_session_id  || response.agentSessionId  || null,
+          runKey:          response.run_key            || response.runKey          || null,
           streamingSteps:  [],   // cleared — final steps are in reasoningSteps
+          phaseSteps:      [],
           loading: false,
         };
         return next;
@@ -1347,6 +1485,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
           content: `**Error:** ${err.message || 'Unable to get a response.'}`,
           loading: false,
           streamingSteps: [],
+          phaseSteps: [],
         };
         return next;
       });
@@ -1607,7 +1746,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
 
             {/* Messages */}
             <div className="min-h-0 flex-1 overflow-y-auto scroll-smooth">
-              <ReadingColumn measure="column" className="py-10">
+              <ReadingColumn measure="wide" className="py-10">
                 {presentationMode === 'report' ? (
                   <ReportView finding={reportFinding} messages={messages} onAsk={q => sendQuestion(q)} />
                 ) : (
@@ -1630,7 +1769,9 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                       reasoningSteps={msg.reasoningSteps || []}
                       learningsApplied={msg.learningsApplied || []}
                       streamingSteps={msg.streamingSteps || []}
+                      phaseSteps={msg.phaseSteps || []}
                       agentSessionId={msg.agentSessionId || null}
+                      runKey={msg.runKey || null}
                       onAsk={q => sendQuestion(q)}
                       exportMenu={
                         <ExportMenu
@@ -1656,7 +1797,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
             <div className="shrink-0 border-t border-z-border bg-z-card px-6 py-4 backdrop-blur-sm">
               {/* Attachment preview / loading / error */}
               {(attachment || attachmentLoading || attachmentError) && (
-                <div className="mx-auto mb-2 max-w-[800px]">
+                <div className="mx-auto mb-2 max-w-[1280px]">
                   {attachmentLoading && (
                     <div className="flex items-center gap-2 text-z-caption text-z-text-3">
                       <Spinner size="xs" /> Uploading file…
@@ -1671,7 +1812,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                 </div>
               )}
               <InvestigationComposer
-                className="mx-auto max-w-[800px]"
+                className="mx-auto max-w-[1280px]"
                 value={chatQuery}
                 onChange={setChatQuery}
                 onSubmit={handleChatSubmit}

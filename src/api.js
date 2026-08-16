@@ -33,7 +33,7 @@ function authToken() {
   }
 }
 
-function getAuthHeader() {
+export function getAuthHeader() {
   // Use the module-level cached Supabase token — synchronous, no network call.
   // The cache is kept up-to-date by supabase.js onAuthStateChange listener.
   const jwt = supabase ? getCachedToken() : null;

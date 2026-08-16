@@ -4,6 +4,7 @@
 import { SectionLabel, Grid, CardTitle, CardBody, Button } from '../../../ds';
 import { LivingRecommendationCard, RevealPriority } from '../../../experience';
 import { EmptyState } from '../../../ds';
+import { confidenceBand } from '../../../utils/confidence';
 import type { RecommendationVM } from '../HomePageViewModel';
 
 function go(to?: string) {
@@ -41,6 +42,9 @@ export function Recommendations({ recommendations }: { recommendations: Recommen
               </p>
             )}
             <div className="mt-auto pt-6">
+              {r.confidence > 0 && (
+                <p className="mb-2 text-z-caption text-z-text-3">{confidenceBand(r.confidence)}</p>
+              )}
               <Button variant="link" size="sm" onClick={() => go(r.to)}>{r.actionLabel} →</Button>
             </div>
           </LivingRecommendationCard>

@@ -3,11 +3,17 @@ import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
 import { cn } from '../utils/cn';
 import {
-  PulseSpine, Text, Label, Card, MetricCard, StatusDot, Grid,
+  PulseSpine, Text, Label, Card, MetricCard, StatusDot, Grid, SectionLabel,
   Dialog, Field, Input, Select, Button, EmptyState, Skeleton, Spinner, InlineAlert,
 } from '../ds';
 import { IntelligencePage, Verdict, NarrativeSurface } from '../ds/intelligence';
 import { RefreshCw, Clock, Check } from 'lucide-react';
+import { useHomepageViewModel } from './home/HomePageAdapter';
+import { KPISection } from './home/HomePageSections/KPISection';
+import { Investigations } from './home/HomePageSections/Investigations';
+import { AIWorkforce } from './home/HomePageSections/AIWorkforce';
+import { RecentActivity } from './home/HomePageSections/RecentActivity';
+import { StripSkeleton, SectionsSkeleton } from './home/HomePageStates';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -256,6 +262,11 @@ export default function Brief() {
   const [regenerating, setRegenerating] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
+  // Coverage / supporting-analysis / activity / workforce — "what happened while you were
+  // away". Lives on the Brief (not Home) because none of it is next-action material.
+  const userName = user?.display_name || user?.email;
+  const { vm: homeVm, loading: homeLoading } = useHomepageViewModel({ userName });
+
   const load = useCallback(async () => {
     try {
       const [b, c] = await Promise.all([
@@ -422,6 +433,28 @@ export default function Brief() {
           <BriefSection key={i} section={section} />
         ))}
       </div>
+
+      {/* Coverage — what Zevra completed while you were away */}
+      {homeLoading ? (
+        <div className="mt-10">
+          <StripSkeleton />
+          <SectionsSkeleton />
+        </div>
+      ) : (
+        <>
+          <div className="mt-10"><KPISection kpis={homeVm.kpis} capturedAt={homeVm.capturedAt} /></div>
+          <div className="mt-10"><Investigations investigations={homeVm.investigations} /></div>
+          <div className="mt-10">
+            <section aria-label="Enterprise activity">
+              <SectionLabel>Enterprise activity</SectionLabel>
+              <Grid cols={2}>
+                <RecentActivity items={homeVm.recentActivity} />
+                <AIWorkforce workforce={homeVm.workforce} />
+              </Grid>
+            </section>
+          </div>
+        </>
+      )}
 
       {/* Footer */}
       <div className="mt-14 flex items-center justify-between border-t border-z-border pt-6">

@@ -27,6 +27,14 @@ export interface ExecutiveSummaryVM {
   narrative: Segment[][];
   /** Primary/secondary calls to action. */
   actions: { label: string; to: string; primary?: boolean }[];
+  /** Shown beneath the headline ONLY when there is no verdict yet (headline is empty).
+   *  Owned by the mapper, not the component, so the wording can honestly reflect WHY
+   *  there's no verdict (no connection yet, vs. connected but no brief generated yet)
+   *  instead of the component guessing from a single boolean. */
+  emptyMessage: string;
+  /** The call-to-action shown alongside emptyMessage. Absent when there's nothing
+   *  useful for the user to do right now (e.g. connected, just waiting on the brief). */
+  emptyAction?: { label: string; to: string };
 }
 
 export interface KpiVM {

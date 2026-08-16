@@ -4,6 +4,7 @@
 import { CardTitle, CardBody, SectionLabel, Grid } from '../../../ds';
 import { LivingCard, RevealPriority } from '../../../experience';
 import { EmptyState } from '../../../ds';
+import { confidenceBand } from '../../../utils/confidence';
 import type { SignalVM } from '../HomePageViewModel';
 import type { StatusKind } from '../../../ds';
 
@@ -47,7 +48,7 @@ export function BusinessSignals({ signals }: { signals: SignalVM[] }) {
               <CardBody className="min-h-[42px]">{s.description}</CardBody>
               <div className="mt-4 flex items-center justify-between">
                 {typeof s.confidence === 'number'
-                  ? <span className="text-z-caption text-z-text-3">Confidence {s.confidence}%</span>
+                  ? <span className="text-z-caption text-z-text-3">{confidenceBand(s.confidence)}</span>
                   : <span />}
                 {s.deltaLabel && <span className={`text-z-body font-semibold tabular-nums ${trendClass(s.deltaTrend)}`}>{s.deltaLabel}</span>}
               </div>

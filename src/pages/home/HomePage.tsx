@@ -7,22 +7,21 @@
  *  loading, empty, error, and populated states — a brand-new tenant renders honest
  *  empty states rather than simulated activity.
  *
- *  Signature layout (unchanged): hero (eyebrow → Pulse Spine → greeting → verdict →
- *  KPI strip → narrative → actions) → recommended actions → what needs your attention
- *  → active investigations → Enterprise activity (ledger + AI workforce).
+ *  Home answers exactly one question: "what should I spend my next 10 minutes on?"
+ *  Hero (Pulse Spine → greeting → briefing status line → verdict → actions) → recommended
+ *  actions (the decision queue — first viewport) → what needs your attention (active monitoring).
+ *  Coverage stats, supporting analysis, completed analyses, and AI workforce detail are NOT
+ *  next-action material — they live on the Brief page ("what happened while you were away"),
+ *  not here. See Brief.jsx.
  *  ============================================================================ */
 import { RevealGroup } from '../../experience';
-import { SectionLabel, Grid, ErrorState } from '../../ds';
+import { ErrorState } from '../../ds';
 import { IntelligencePage } from '../../ds/intelligence';
 import { useHomepageViewModel } from './HomePageAdapter';
 import { ExecutiveHeader } from './HomePageSections/ExecutiveHeader';
-import { KPISection } from './HomePageSections/KPISection';
 import { Recommendations } from './HomePageSections/Recommendations';
 import { BusinessSignals } from './HomePageSections/BusinessSignals';
-import { Investigations } from './HomePageSections/Investigations';
-import { AIWorkforce } from './HomePageSections/AIWorkforce';
-import { RecentActivity } from './HomePageSections/RecentActivity';
-import { StripSkeleton, SectionsSkeleton } from './HomePageStates';
+import { SectionsSkeleton } from './HomePageStates';
 
 export interface HomePageUser {
   full_name?: string;
@@ -37,16 +36,12 @@ export interface HomePageProps {
 export default function HomePage({ user }: HomePageProps) {
   const userName = user?.full_name || user?.name || user?.email?.split('@')[0] || undefined;
   const { vm, loading, error } = useHomepageViewModel({ userName });
-  const { capturedAt, executiveSummary, kpis, signals, recommendations, investigations, workforce, recentActivity } = vm;
+  const { executiveSummary, signals, recommendations } = vm;
 
   return (
     <IntelligencePage measure="wide" className="pt-6 pb-28">
       <RevealGroup>
-        <ExecutiveHeader
-          vm={executiveSummary}
-          loading={loading}
-          kpiSlot={loading ? <StripSkeleton /> : <KPISection kpis={kpis} capturedAt={capturedAt} />}
-        />
+        <ExecutiveHeader vm={executiveSummary} loading={loading} />
 
         {error && <ErrorState message={error} className="mt-6" />}
 
@@ -56,16 +51,6 @@ export default function HomePage({ user }: HomePageProps) {
           <>
             <div className="pt-6"><Recommendations recommendations={recommendations} /></div>
             <div className="pt-6"><BusinessSignals signals={signals} /></div>
-            <div className="pt-6"><Investigations investigations={investigations} /></div>
-            <div className="pt-6">
-              <section aria-label="Enterprise activity">
-                <SectionLabel>Enterprise activity</SectionLabel>
-                <Grid cols={2}>
-                  <RecentActivity items={recentActivity} />
-                  <AIWorkforce workforce={workforce} />
-                </Grid>
-              </section>
-            </div>
           </>
         )}
       </RevealGroup>

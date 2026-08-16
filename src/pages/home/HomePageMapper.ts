@@ -173,9 +173,21 @@ function mapInvestigations(sessions: any[], nowMs: number): InvestigationVM[] {
 
 // ── Decisions queue: the conclusions that need the executive ────────────────
 function mapRecommendations(findings: any[]): RecommendationVM[] {
+  const seenAgents = new Set<string>();
   return findings
     .filter((f) => f && f.title && isActionableFinding(f.status))
     .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0))
+    // One card per agent/area — the highest-confidence finding for that agent wins the
+    // slot. Without this, several reruns of the same investigation (same agent, same
+    // topic, all high confidence) can crowd the queue and hide genuinely different areas.
+    // Findings with no agentKey are never deduped against each other (fall back to the
+    // finding's own key so each stays distinct).
+    .filter((f) => {
+      const key = f.agentKey ?? f.findingKey ?? String(f.title);
+      if (seenAgents.has(key)) return false;
+      seenAgents.add(key);
+      return true;
+    })
     .slice(0, 4)
     .map((f) => ({
       id: f.findingKey ?? String(f.title),
@@ -184,7 +196,7 @@ function mapRecommendations(findings: any[]): RecommendationVM[] {
       impact: recommendationFrom(f.description),// what Zevra recommends (empty if none — never faked)
       confidence: pct(f.confidence) ?? 0,
       state: 'Decision Required',
-      actionLabel: 'Review the analysis',
+      actionLabel: 'Review supporting analysis',
       // Open the exact investigation that produced this finding, in Report Mode. Lineage
       // (the conversation) is carried on the finding; fall back to the findings tab if a
       // legacy finding predates lineage capture.
@@ -273,6 +285,19 @@ export interface RawHomeData {
   brief: any; sessions: any[]; findings: any[]; anomalies: any[]; alerts: any[]; agents: any[]; connections: any[];
 }
 
+/** A tenant that has already connected a data source but whose brief simply hasn't been
+ *  generated yet (no schedule due, or the first one hasn't run) is NOT the same state as a
+ *  brand-new tenant with nothing connected — the copy must tell them apart honestly instead
+ *  of pointing back at "/connections" for a step they've already completed. */
+function connectedEmptyState(): { emptyMessage: string; emptyAction?: { label: string; to: string } } {
+  return {
+    emptyMessage: 'Zevra is reviewing your business. Your enterprise brief, recommendations, and live '
+      + 'intelligence will appear here once the first review completes — usually within a few minutes '
+      + 'of connecting, or by tomorrow morning if this is a new connection.',
+    emptyAction: { label: 'Review live activity', to: '/reasoning' },
+  };
+}
+
 /** Pure: production records + identity → the Executive Brief view model. */
 export function mapToViewModel(
   input: { userName?: string; now?: Date },
@@ -284,6 +309,15 @@ export function mapToViewModel(
   const findings = arr(data.findings);
   const anomalies = arr(data.anomalies);
   const agents = arr(data.agents);
+  const connections = arr(data.connections);
+
+  // The empty-state copy must reflect WHY there's no verdict yet, not just THAT there isn't
+  // one. `/connections` (GET) already returns only ACTIVE connections server-side, so any
+  // row here means a data source really is connected — the default "connect one" copy from
+  // emptyViewModel() would be actively wrong for this tenant.
+  if (connections.length > 0) {
+    Object.assign(base.executiveSummary, connectedEmptyState());
+  }
 
   // Distinct completed investigations (dedupe repeated questions) → "analyses completed".
   const distinctSessions = new Set(

@@ -1,8 +1,10 @@
-/** Executive Header — greeting, verdict headline, KPI strip, narrative, actions.
- *  Phase 1: the verdict + narrative come from the production brief (via the adapter). When the
+/** Executive Header — greeting, briefing status line, verdict headline, actions.
+ *  Phase 1: the verdict comes from the production brief (via the adapter). When the
  *  brief is still loading it shows a skeleton; when the tenant has no brief yet it shows an honest
- *  "ready" state inviting the first step — never a fabricated verdict. Signature rhythm unchanged. */
-import type { ReactNode } from 'react';
+ *  "ready" state inviting the first step — never a fabricated verdict.
+ *  Executive Brief hierarchy: this section answers ONLY "what happened" (status + verdict) — no
+ *  narrative reading, no KPI strip. The decision queue and coverage strip render below it, in
+ *  HomePage.tsx, so the executive sees decisions before any supporting detail. */
 import { Button, PulseSpine, Skeleton } from '../../../ds';
 import { Verdict } from '../../../ds/intelligence';
 import { Reveal, RevealPriority } from '../../../experience';
@@ -27,13 +29,17 @@ function go(to: string) {
   window.location.hash = to;
 }
 
-export function ExecutiveHeader({ vm, kpiSlot, loading }: { vm: ExecutiveSummaryVM; kpiSlot?: ReactNode; loading?: boolean }) {
+export function ExecutiveHeader({ vm, loading }: { vm: ExecutiveSummaryVM; loading?: boolean }) {
   const hasVerdict = vm.headline.length > 0;
   return (
     <Reveal priority={RevealPriority.CRITICAL}>
       <section aria-labelledby="home-verdict">
         <PulseSpine className="mb-8" />
         <p className="mb-3 font-z-serif italic text-z-body-lg text-z-text-2">{vm.greeting}</p>
+
+        {!loading && hasVerdict && vm.eyebrow && (
+          <p className="mb-3 text-z-caption uppercase tracking-[0.08em] text-z-text-3">{vm.eyebrow}</p>
+        )}
 
         {loading ? (
           <div className="max-w-[20ch] space-y-3">
@@ -46,26 +52,11 @@ export function ExecutiveHeader({ vm, kpiSlot, loading }: { vm: ExecutiveSummary
           <Verdict id="home-verdict" size="xl" className="max-w-[22ch]">Zevra is ready.</Verdict>
         )}
 
-        {!loading && (
-          <div className="mt-8 max-w-z-read space-y-3">
-            {hasVerdict ? (
-              vm.narrative.map((para, i) => (
-                <p key={i} className="font-z-serif text-z-body-lg leading-[1.6] text-z-text-2">{renderSegments(para)}</p>
-              ))
-            ) : (
-              <p className="font-z-serif text-z-body-lg leading-[1.62] text-z-text-2">
-                Connect a data source and start your first investigation — your enterprise brief,
-                recommendations, and live intelligence will appear here as Zevra learns your business.
-              </p>
-            )}
-          </div>
+        {!loading && !hasVerdict && (
+          <p className="mt-8 max-w-z-read font-z-serif text-z-body-lg leading-[1.62] text-z-text-2">
+            {vm.emptyMessage}
+          </p>
         )}
-
-        {!loading && hasVerdict && vm.eyebrow && (
-          <p className="mt-6 text-z-caption uppercase tracking-[0.08em] text-z-text-3">{vm.eyebrow}</p>
-        )}
-
-        {kpiSlot}
 
         {!loading && (
           <div className="mt-10 flex flex-wrap gap-3">
@@ -73,9 +64,9 @@ export function ExecutiveHeader({ vm, kpiSlot, loading }: { vm: ExecutiveSummary
               vm.actions.map((a) => (
                 <Button key={a.label} variant={a.primary ? 'primary' : 'ghost'} onClick={() => go(a.to)}>{a.label}</Button>
               ))
-            ) : (
-              <Button variant="primary" onClick={() => go('/connections')}>Connect a data source</Button>
-            )}
+            ) : vm.emptyAction ? (
+              <Button variant="primary" onClick={() => go(vm.emptyAction!.to)}>{vm.emptyAction.label}</Button>
+            ) : null}
           </div>
         )}
       </section>

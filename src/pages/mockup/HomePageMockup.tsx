@@ -13,10 +13,10 @@ const USER_NAME = 'Murali';
 // ── KPI strip (real enterprise status) ──────────────────────────────────────────
 
 const KPIS = [
-  { label: 'Active investigations', value: '128',   trend: '↑ 18% vs last 7 days' },
-  { label: 'New alerts',            value: '32',     trend: '↑ 12% vs last 7 days' },
-  { label: 'Data sources',          value: '24',     trend: '4 new this week'      },
-  { label: 'Queries this week',     value: '1,842',  trend: '↑ 28% vs last week'   },
+  { label: 'Business areas reviewed', value: '17',  trend: 'across the enterprise'   },
+  { label: 'Decisions pending',       value: '6',   trend: 'require your input'      },
+  { label: 'Sources monitored',       value: '24',  trend: 'live, around the clock'  },
+  { label: 'Investigations analyzed', value: '128', trend: 'completed overnight'     },
 ];
 
 // ── Recommended actions — grounded in the two HIGH live alerts ──────────────────
@@ -139,12 +139,41 @@ export function HomePageMockup() {
             <PulseSpine className="mb-6" />
 
             <p className="text-z-text-2 text-base mb-3">{timeLabel}, <span className="text-z-text font-medium">{USER_NAME}</span>.</p>
-            <h1 className="font-z-serif font-normal text-[38px] md:text-[44px] leading-[1.08] tracking-[-0.02em] text-z-text max-w-[20ch]">
-              Two situations <span className="italic text-z-warning">need your attention</span> — the rest is nominal.
+            <h1 className="font-sans font-semibold text-[26px] md:text-[30px] leading-[1.3] tracking-[-0.01em] text-z-text max-w-[46ch]">
+              Two situations <span className="text-z-warning">need your attention</span> — the rest is nominal.
             </h1>
 
-            {/* KPI strip — machined, spine on the leading edge */}
-            <div className="relative mt-9 overflow-hidden flex flex-col sm:flex-row rounded-z-lg border border-z-border bg-z-card shadow-z-2
+            {/* ── Decision — the queue must clear the first viewport ──── */}
+            <div className="grid md:grid-cols-2 gap-z-gutter mt-9">
+              {RECOMMENDATIONS.map(r => {
+                const Icon = r.icon;
+                return (
+                  <div
+                    key={r.title}
+                    className="relative overflow-hidden bg-z-card border border-z-border rounded-z-lg p-z-card pl-7 shadow-z-1 hover:shadow-z-2 hover:-translate-y-[3px] transition-all
+                      before:pointer-events-none before:absolute before:left-0 before:top-4 before:bottom-4 before:w-[2px] before:rounded-full
+                      before:bg-[linear-gradient(180deg,transparent,var(--z-spine-strong)_18%,var(--z-spine-strong)_82%,transparent)] before:shadow-[0_0_12px_var(--z-spine-glow)]"
+                  >
+                    <div className="flex items-center gap-2.5 mb-2.5">
+                      <span className="w-7 h-7 rounded-z-sm bg-z-primary-soft flex items-center justify-center flex-none">
+                        <Icon size={14} className="text-z-primary" />
+                      </span>
+                      <span className="text-z-label uppercase text-z-primary">Recommended action</span>
+                    </div>
+                    <h3 className="font-z-serif text-z-h3 text-z-text mb-1.5">{r.title}</h3>
+                    <p className="text-z-body text-z-text-2 leading-[1.55]">{r.body}</p>
+                    <p className="mt-3 text-z-body text-z-text"><span className="font-medium">Expected impact:</span> {r.impact}</p>
+                    <button className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-z-primary hover:gap-2 transition-all">
+                      {r.action} <ArrowRight size={14} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* ── Coverage — proof the rest of the enterprise was reviewed ── */}
+            <SectionLabel>Enterprise coverage</SectionLabel>
+            <div className="relative overflow-hidden flex flex-col sm:flex-row rounded-z-lg border border-z-border bg-z-card shadow-z-2
               before:pointer-events-none before:absolute before:left-0 before:top-4 before:bottom-4 before:w-[2px] before:rounded-full
               before:bg-[linear-gradient(180deg,transparent,var(--z-spine-strong)_18%,var(--z-spine-strong)_82%,transparent)] before:shadow-[0_0_12px_var(--z-spine-glow)]">
               {KPIS.map((k, i) => (
@@ -156,15 +185,9 @@ export function HomePageMockup() {
               ))}
             </div>
 
-            {/* Narrative */}
-            <p className="mt-8 max-w-z-read text-z-body-lg leading-[1.6] text-z-text-2">
-              Zevra is watching <b className="text-z-text font-medium">24 connected sources</b> with <b className="text-z-text font-medium">128 investigations</b> in flight.
-              Overnight it raised <b className="text-z-text font-medium">4 live alerts</b> — two high-priority: a delay spike in the North Region and a
-              rising payment-failure rate. Everything else is running to plan.
-            </p>
-
-            {/* ── Ask Zevra ─────────────────────────────────────────── */}
-            <div className="mt-10">
+            {/* ── Explore — tools for follow-up, not the briefing itself ── */}
+            <SectionLabel>Ask Zevra</SectionLabel>
+            <div>
               <InputBox
                 query={query}
                 setQuery={setQuery}
@@ -194,35 +217,6 @@ export function HomePageMockup() {
                   })}
                 </div>
               </div>
-            </div>
-
-            {/* ── Recommended actions ───────────────────────────────── */}
-            <SectionLabel>Recommended actions</SectionLabel>
-            <div className="grid md:grid-cols-2 gap-z-gutter">
-              {RECOMMENDATIONS.map(r => {
-                const Icon = r.icon;
-                return (
-                  <div
-                    key={r.title}
-                    className="relative overflow-hidden bg-z-card border border-z-border rounded-z-lg p-z-card pl-7 shadow-z-1 hover:shadow-z-2 hover:-translate-y-[3px] transition-all
-                      before:pointer-events-none before:absolute before:left-0 before:top-4 before:bottom-4 before:w-[2px] before:rounded-full
-                      before:bg-[linear-gradient(180deg,transparent,var(--z-spine-strong)_18%,var(--z-spine-strong)_82%,transparent)] before:shadow-[0_0_12px_var(--z-spine-glow)]"
-                  >
-                    <div className="flex items-center gap-2.5 mb-2.5">
-                      <span className="w-7 h-7 rounded-z-sm bg-z-primary-soft flex items-center justify-center flex-none">
-                        <Icon size={14} className="text-z-primary" />
-                      </span>
-                      <span className="text-z-label uppercase text-z-primary">Recommended action</span>
-                    </div>
-                    <h3 className="font-z-serif text-z-h3 text-z-text mb-1.5">{r.title}</h3>
-                    <p className="text-z-body text-z-text-2 leading-[1.55]">{r.body}</p>
-                    <p className="mt-3 text-z-body text-z-text"><span className="font-medium">Expected impact:</span> {r.impact}</p>
-                    <button className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-z-primary hover:gap-2 transition-all">
-                      {r.action} <ArrowRight size={14} />
-                    </button>
-                  </div>
-                );
-              })}
             </div>
 
             {/* ── AI workforce — honest empty state ─────────────────── */}

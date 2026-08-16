@@ -37,6 +37,12 @@ export function emptyViewModel(input: HomeInput = {}): HomepageViewModel {
       headline: [],
       narrative: [],
       actions: [],
+      // Default (no connection yet known) — HomePageMapper overrides this once it knows
+      // whether the tenant actually has a connection, so a connected-but-briefless tenant
+      // never sees this "connect a data source" copy.
+      emptyMessage: 'Connect a data source and start your first investigation — your enterprise brief, '
+        + 'recommendations, and live intelligence will appear here as Zevra learns your business.',
+      emptyAction: { label: 'Connect a data source', to: '/connections' },
     },
     kpis: [],
     signals: [],

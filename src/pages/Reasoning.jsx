@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../api.js';
 import { Card, PageHeader, Badge, Btn, EmptyState, Modal, Spinner } from '../components/Card.jsx';
 import { BrainCircuit, CheckCircle, Clock, ChevronDown, ChevronRight } from 'lucide-react';
+import { confidenceBand } from '../utils/confidence';
 
 const STATUS_COLOR = {
   ACTIVE: 'blue', CONCLUDED: 'green', ABANDONED: 'gray',
@@ -68,7 +69,7 @@ function SessionCard({ session }) {
                     <div key={h.hypothesisKey} className="bg-blue-50 rounded-lg p-2">
                       <p className="text-xs text-blue-800">{h.hypothesisText}</p>
                       <p className="text-xs text-blue-500 mt-0.5">
-                        Confidence: {Math.round((h.confidence ?? 0) * 100)}% · {h.status}
+                        {confidenceBand(Math.round((h.confidence ?? 0) * 100))} · {h.status}
                       </p>
                     </div>
                   ))}
@@ -147,7 +148,7 @@ export default function Reasoning() {
       />
 
       <div className="flex gap-1 mb-4 border-b border-gray-200">
-        {[['sessions', 'Sessions'], ['findings', 'Findings']].map(([k, l]) => (
+        {[['sessions', 'Sessions'], ['findings', "Zevra's judgment"]].map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors
               ${tab === k ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
@@ -164,7 +165,7 @@ export default function Reasoning() {
           : <div className="space-y-2">{sessions.map(s => <SessionCard key={s.sessionKey} session={s} />)}</div>
       ) : (
         findings.length === 0
-          ? <EmptyState icon={CheckCircle} title="No findings" body="Operational findings appear when the reasoning engine concludes an investigation." />
+          ? <EmptyState icon={CheckCircle} title="No judgments yet" body="Zevra's judgment calls appear here once the reasoning engine concludes an investigation." />
           : <div className="space-y-2">
             {findings.map(f => (
               <div key={f.findingKey} id={`finding-${f.findingKey}`}>
@@ -193,7 +194,7 @@ export default function Reasoning() {
           </div>
       )}
 
-      <Modal open={!!resolveModal} onClose={() => setResolveModal(null)} title="Resolve Finding">
+      <Modal open={!!resolveModal} onClose={() => setResolveModal(null)} title="Resolve">
         <div className="space-y-3">
           <p className="text-sm text-gray-700">{resolveModal?.title}</p>
           <textarea
