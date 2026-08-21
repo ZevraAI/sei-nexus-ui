@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../api.js';
+import { openEventStream } from '../lib/sse.js';
 import { ZevraLogo } from '../components/ZevraLogo.jsx';
 import { useAuth, navigate } from '../App.jsx';
 import {
@@ -532,22 +533,95 @@ function StepSelectTables({ connectionKey, schemaName, onNext, onBack }) {
 
 // ── Step 4 — Analysing (auto-advance) ────────────────────────────────────────
 
-function StepAnalysing({ connectionKey, schemaName, domainKey, tableNames, onNext, onError }) {
-  const [current, setCurrent] = useState(0);
+/**
+ * Real, honest progress — no client-side timer standing in for backend work.
+ * POST /onboarding/analyze now returns a job id immediately; this component
+ * seeds authoritative state from GET /onboarding/analyze/{jobId} and refines
+ * it live via SSE, with the same GET as a self-terminating 3s poll backstop
+ * (mirrors Brief.jsx's polling pattern) so progress is correct even if the
+ * stream never connects. `resumeJobId` (persisted by the parent wizard)
+ * lets a page refresh mid-analysis reattach instead of restarting the job.
+ */
+function StepAnalysing({ connectionKey, schemaName, domainKey, tableNames,
+                          resumeJobId, onJobStarted, onNext, onError }) {
+  const [jobId, setJobId]           = useState(resumeJobId || null);
+  const [tablesDone, setTablesDone] = useState(0);
+  const [tablesTotal, setTablesTotal] = useState(tableNames.length);
+  const [inFlight, setInFlight]     = useState([]);
 
   useEffect(() => {
-    let timer = setInterval(() => {
-      setCurrent(c => Math.min(c + 1, tableNames.length - 1));
-    }, 1800);
+    let cancelled     = false;
+    let cancelStream   = () => {};
+    let pollTimer      = null;
 
-    api.onboarding.analyze({ connectionKey, schemaName, domainKey, tableNames })
-      .then(r => { clearInterval(timer); onNext(safeArray(r.tables)); })
-      .catch(e => { clearInterval(timer); onError(e.message); });
+    const cleanup = () => {
+      cancelled = true;
+      cancelStream();
+      if (pollTimer) clearInterval(pollTimer);
+    };
 
-    return () => clearInterval(timer);
-  }, []);
+    const seed = async (id) => {
+      try {
+        const status = await api.onboarding.analyzeStatus(id);
+        if (cancelled) return;
+        setTablesDone(status.tablesDone ?? 0);
+        setTablesTotal(status.tablesTotal ?? tableNames.length);
+        if (status.status === 'COMPLETE') {
+          cleanup();
+          onNext(safeArray(status.tables));
+        } else if (status.status === 'FAILED') {
+          cleanup();
+          onError('Analysis job failed');
+        }
+      } catch (e) {
+        if (!cancelled && e.status === 404) {
+          // Stale/purged job (e.g. a resumed session from long ago) — drop it
+          // and let the effect below start a fresh job with the same tables.
+          setJobId(null);
+        }
+      }
+    };
 
-  const pct = Math.round(((current + 1) / tableNames.length) * 100);
+    const watch = async (id) => {
+      await seed(id);
+      if (cancelled) return;
+
+      cancelStream = openEventStream(`/onboarding/analyze/${id}/stream`, event => {
+        if (cancelled) return;
+        if (event.type === 'table_started') {
+          setInFlight(prev => prev.includes(event.table) ? prev : [...prev, event.table]);
+        } else if (event.type === 'table_completed' || event.type === 'table_failed') {
+          setInFlight(prev => prev.filter(t => t !== event.table));
+          setTablesDone(d => d + 1);
+        } else if (event.type === 'job_complete') {
+          seed(id); // authoritative refetch — SSE payload has no `tables` field
+        } else if (event.type === 'job_failed') {
+          cleanup();
+          onError(event.error || 'Analysis job failed');
+        }
+      });
+
+      pollTimer = setInterval(() => seed(id), 3000);
+    };
+
+    if (jobId) {
+      watch(jobId);
+    } else {
+      api.onboarding.analyze({ connectionKey, schemaName, domainKey, tableNames })
+        .then(r => {
+          if (cancelled) return;
+          setJobId(r.jobId);
+          setTablesTotal(r.tablesTotal ?? tableNames.length);
+          onJobStarted(r.jobId);
+          watch(r.jobId);
+        })
+        .catch(e => { if (!cancelled) onError(e.message); });
+    }
+
+    return cleanup;
+  }, [jobId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const pct = tablesTotal > 0 ? Math.round((tablesDone / tablesTotal) * 100) : 0;
 
   return (
     <div className="max-w-sm mx-auto text-center">
@@ -557,19 +631,27 @@ function StepAnalysing({ connectionKey, schemaName, domainKey, tableNames, onNex
       </div>
       <h2 className="text-xl font-bold text-gray-900 mb-2">Zevra is reading your schema</h2>
       <p className="text-[14px] text-gray-500 mb-6">
-        Analysing {tableNames.length} table{tableNames.length !== 1 ? 's' : ''} —
+        Analysing {tablesTotal} table{tablesTotal !== 1 ? 's' : ''} —
         generating entity definitions, vocabulary, and suggested questions…
       </p>
 
-      <div className="text-xs font-mono text-emerald-600 bg-emerald-50 rounded-lg px-4 py-2 mb-5 inline-block">
-        {tableNames[current]}
-      </div>
+      {inFlight.length > 0 ? (
+        <div className="flex flex-wrap justify-center gap-2 mb-5">
+          {inFlight.map(t => (
+            <span key={t} className="text-xs font-mono text-emerald-600 bg-emerald-50 rounded-lg px-3 py-1.5">
+              {t}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div className="text-xs font-mono text-gray-400 mb-5">Starting…</div>
+      )}
 
       <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
         <div className="h-full bg-emerald-500 rounded-full transition-all duration-700"
           style={{ width: pct + '%' }} />
       </div>
-      <p className="text-xs text-gray-400 mt-2">{pct}% complete</p>
+      <p className="text-xs text-gray-400 mt-2">{tablesDone}/{tablesTotal} tables — {pct}% complete</p>
     </div>
   );
 }
@@ -867,6 +949,9 @@ export default function OnboardingWizard({ user, onComplete }) {
   const [analyseError, setAnalyseError]   = useState('');
   const [connForm, setConnForm]           = useState(saved?.connForm ?? null);
   const [packRec, setPackRec]             = useState(null);   // pack recommendation at completion
+  // The in-flight (or just-finished) analysis job id, persisted so a page
+  // refresh mid-analysis reattaches instead of re-POSTing and duplicating work.
+  const [analysisJobId, setAnalysisJobId] = useState(saved?.analysisJobId ?? null);
 
   const schemaName = connection?.schemaName || 'public';
   const domainKey  = 'PLATFORM';
@@ -882,8 +967,8 @@ export default function OnboardingWizard({ user, onComplete }) {
 
   // Persist state on every change so the user can resume after a refresh
   useEffect(() => {
-    saveProgress({ step, connection, selectedTables, suggestions, suggested, connForm });
-  }, [step, connection, selectedTables, suggestions, suggested, connForm]);
+    saveProgress({ step, connection, selectedTables, suggestions, suggested, connForm, analysisJobId });
+  }, [step, connection, selectedTables, suggestions, suggested, connForm, analysisJobId]);
 
   const handleComplete = (question) => {
     clearProgress();
@@ -926,7 +1011,7 @@ export default function OnboardingWizard({ user, onComplete }) {
           <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-800">
             <CheckCircle2 size={15} className="shrink-0" />
             <span>You have unfinished setup. <strong>Your progress has been saved.</strong></span>
-            <button onClick={() => { clearProgress(); setStep(0); setConnection(null); setSelectedTables([]); setSuggestions([]); setSuggested([]); setConnForm(null); }}
+            <button onClick={() => { clearProgress(); setStep(0); setConnection(null); setSelectedTables([]); setSuggestions([]); setSuggested([]); setConnForm(null); setAnalysisJobId(null); }}
               className="ml-auto text-xs text-emerald-600 underline hover:text-emerald-800">
               Start over
             </button>
@@ -970,8 +1055,10 @@ export default function OnboardingWizard({ user, onComplete }) {
                 schemaName={schemaName}
                 domainKey={domainKey}
                 tableNames={selectedTables}
-                onNext={results => { setSuggestions(results); setStep(4); }}
-                onError={msg => { setAnalyseError(msg); setStep(2); }}
+                resumeJobId={analysisJobId}
+                onJobStarted={setAnalysisJobId}
+                onNext={results => { setAnalysisJobId(null); setSuggestions(results); setStep(4); }}
+                onError={msg => { setAnalysisJobId(null); setAnalyseError(msg); setStep(2); }}
               />
             </div>
           )}

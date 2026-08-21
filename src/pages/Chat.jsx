@@ -4,7 +4,8 @@ import {
   ArrowLeft, Bot, CalendarClock, Check, ChevronDown, Clipboard, Clock, Download, FileDown,
   FileSpreadsheet, FileText, ListTree, Printer, Search, User, X,
 } from 'lucide-react';
-import { api, getAuthHeader } from '../api.js';
+import { api } from '../api.js';
+import { openEventStream } from '../lib/sse.js';
 import { useAuth } from '../App.jsx';
 import { cn } from '../utils/cn';
 import {
@@ -1306,41 +1307,12 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
   }, [loadConversations]);
 
   // ── SSE reasoning stream ────────────────────────────────────────────────────
-  // Opens a fetch-based SSE connection to /chat/runs/{runKey}/stream.
-  // Uses fetch (not EventSource) so an auth header can be included — same
-  // getAuthHeader() every other request in api.js uses (Supabase JWT, falling
-  // back to the legacy X-Nexus-Token only for pre-Supabase sessions).
-  // Calls onEvent for each parsed SSE data line; returns a cancel function.
-  const openReasoningStream = (runKey, onEvent) => {
-    const BASE  = import.meta.env.VITE_API_BASE ?? '';
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const res = await fetch(`${BASE}/api/v1/chat/runs/${runKey}/stream`, {
-          headers: getAuthHeader(),
-        });
-        if (!res.ok || !res.body) return;
-        const reader  = res.body.getReader();
-        const decoder = new TextDecoder();
-        let   buffer  = '';
-        while (!cancelled) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() ?? '';
-          for (const line of lines) {
-            if (!line.startsWith('data:')) continue;
-            try { onEvent(JSON.parse(line.slice(5).trim())); } catch {}
-          }
-        }
-        reader.cancel().catch(() => {});
-      } catch {}
-    })();
-
-    return () => { cancelled = true; };
-  };
+  // Opens a fetch-based SSE connection to /chat/runs/{runKey}/stream — see
+  // src/lib/sse.js for the shared implementation (also used by onboarding's
+  // job-progress stream). Calls onEvent for each parsed SSE data line;
+  // returns a cancel function.
+  const openReasoningStream = (runKey, onEvent) =>
+    openEventStream(`/chat/runs/${runKey}/stream`, onEvent);
 
   // ── submit question ─────────────────────────────────────────────────────────
   const sendQuestion = async (question, isNewConv = false) => {

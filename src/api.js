@@ -285,7 +285,10 @@ export const api = {
     status:    ()     => get('/onboarding/status'),
     recommend: (body) => post('/onboarding/recommend', body),
     scan:      (body) => post('/onboarding/scan', body),
-    analyze:   (body) => post('/onboarding/analyze', body),
+    // Starts an async analysis job — resolves to {jobId, status, tablesTotal}
+    // immediately, NOT the analyzed tables. Poll/stream for results.
+    analyze:       (body)  => post('/onboarding/analyze', body),
+    analyzeStatus: (jobId) => get(`/onboarding/analyze/${jobId}`),
     apply:     (body) => post('/onboarding/apply', body),
     complete:  ()     => post('/onboarding/complete'),
     reset:     ()     => post('/onboarding/reset'),
