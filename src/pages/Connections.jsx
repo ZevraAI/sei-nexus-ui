@@ -14,7 +14,7 @@ const JDBC_PLACEHOLDER = {
   REST_API: 'https://api.example.com/v1',
 };
 
-const EMPTY_FORM = { connectionKey: '', name: '', connectionType: 'POSTGRES', jdbcUrl: '', allowedSchemas: 'public', username: '', secret: '', domainKeys: '' };
+const EMPTY_FORM = { connectionKey: '', name: '', connectionType: 'POSTGRES', jdbcUrl: '', allowedSchemas: 'public', username: '', secret: '', domainKeys: '', packKey: '' };
 
 export default function Connections() {
   const [conns, setConns] = useState([]);
@@ -26,6 +26,14 @@ export default function Connections() {
   const [testingKey, setTestingKey] = useState(null);
   const [error, setError] = useState('');
   const [testErrors, setTestErrors] = useState({});
+  // Industry Pack Required At Connection Creation: every NEW connection must have an explicitly
+  // selected Industry Pack (editing an existing connection is unaffected — see the packKey field
+  // only being required/shown when !editingKey below). Reuses the existing GET /industry-packs
+  // list — no new Pack API, no hard-coded pack.
+  const [packs, setPacks] = useState([]);
+  useEffect(() => {
+    api.industryPacks.list().then(setPacks).catch(() => setPacks([]));
+  }, []);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -170,7 +178,7 @@ export default function Connections() {
         footer={
           <>
             <Button variant="secondary" onClick={closeModal}>Cancel</Button>
-            <Button onClick={save} disabled={saving || !form.connectionKey || !form.name || !form.jdbcUrl}>
+            <Button onClick={save} disabled={saving || !form.connectionKey || !form.name || !form.jdbcUrl || (!editingKey && !form.packKey)}>
               {saving ? <Spinner size="xs" /> : editingKey ? <Pencil size={13} /> : <Plus size={13} />}
               {editingKey ? 'Save Changes' : 'Add Connection'}
             </Button>
@@ -190,6 +198,14 @@ export default function Connections() {
               {CONN_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </Select>
           </Field>
+          {!editingKey && (
+            <Field label="Industry Pack (required)">
+              <Select value={form.packKey} onChange={e => set('packKey', e.target.value)}>
+                <option value="">Select an Industry Pack…</option>
+                {packs.map(p => <option key={p.pack_id} value={p.pack_id}>{p.display_name}</option>)}
+              </Select>
+            </Field>
+          )}
           <Field label={form.connectionType === 'REST_API' ? 'Base URL' : 'JDBC URL'}>
             <Input placeholder={JDBC_PLACEHOLDER[form.connectionType] ?? ''} value={form.jdbcUrl}
               onChange={e => set('jdbcUrl', e.target.value)} />

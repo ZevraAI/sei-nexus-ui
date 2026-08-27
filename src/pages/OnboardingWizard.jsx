@@ -193,12 +193,26 @@ const JDBC_HINT  = {
 };
 
 function StepConnect({ onNext, savedForm, onFormChange }) {
-  const [form, setForm] = useState(savedForm || { name: '', connectionType: 'POSTGRES', jdbcUrl: '', schemaName: 'public', username: '', secret: '' });
+  const [form, setForm] = useState(savedForm || { name: '', connectionType: 'POSTGRES', jdbcUrl: '', schemaName: 'public', username: '', secret: '', packKey: '' });
   const [testing, setTesting] = useState(false);
   const [tested, setTested]   = useState(null); // null | 'ok' | 'fail'
   const [testMsg, setTestMsg] = useState('');
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState('');
+  // Industry Pack Required At Connection Creation: every new connection must have an explicitly
+  // selected Industry Pack — see ConnectionService#createConnection (backend). Reuses the
+  // existing GET /industry-packs list (the same one the Packs settings screen already uses) —
+  // no new Pack API, no hard-coded pack.
+  const [packs, setPacks] = useState([]);
+  const [packsLoading, setPacksLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    api.industryPacks.list()
+      .then(list => { if (!cancelled) setPacks(Array.isArray(list) ? list : []); })
+      .catch(() => { if (!cancelled) setPacks([]); })
+      .finally(() => { if (!cancelled) setPacksLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
   const set = (k, v) => {
     setForm(f => {
       const next = { ...f, [k]: v };
@@ -209,7 +223,7 @@ function StepConnect({ onNext, savedForm, onFormChange }) {
   };
 
   const testConnection = async () => {
-    if (!form.jdbcUrl || !form.name) return;
+    if (!form.jdbcUrl || !form.name || !form.packKey) return;
     setTesting(true); setTested(null); setTestMsg('');
     try {
       // Create connection first, then test it
@@ -217,6 +231,7 @@ function StepConnect({ onNext, savedForm, onFormChange }) {
         name: form.name, connectionType: form.connectionType,
         jdbcUrl: form.jdbcUrl, username: form.username, secret: form.secret,
         allowedSchemas: form.schemaName || 'public',
+        packKey: form.packKey,
       });
       const connKey = created.connection_key;
       const result  = await api.connections.test(connKey);
@@ -280,6 +295,14 @@ function StepConnect({ onNext, savedForm, onFormChange }) {
           </Field>
         </div>
 
+        <Field label="Industry Pack (required)"
+               hint="Defines the canonical business concepts Zevra uses to understand your data — every connection must have one.">
+          <Select value={form.packKey} onChange={e => set('packKey', e.target.value)}>
+            <option value="">{packsLoading ? 'Loading…' : 'Select an Industry Pack…'}</option>
+            {packs.map(p => <option key={p.pack_id} value={p.pack_id}>{p.display_name}</option>)}
+          </Select>
+        </Field>
+
         {tested === 'ok' && (
           <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2.5 text-sm">
             <CheckCircle2 size={16} /> {testMsg}
@@ -294,7 +317,7 @@ function StepConnect({ onNext, savedForm, onFormChange }) {
 
         <button
           onClick={testConnection}
-          disabled={testing || !form.name || !form.jdbcUrl}
+          disabled={testing || !form.name || !form.jdbcUrl || !form.packKey}
           className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
         >
           {testing ? (
@@ -950,10 +973,13 @@ function StepReview({ suggestions, connectionKey, schemaName, domainKey, onNext,
 
 // ── Step 6 — Done ────────────────────────────────────────────────────────────
 
-function StepDone({ suggestedQuestions, onFinish, recommendedPack, domainKey }) {
-  const [applying, setApplying] = useState(false);
-  const [packApplied, setPackApplied] = useState(false);
-
+// Industry Pack Required At Connection Creation: this step used to recommend a SECOND Industry
+// Pack (based on discovered tables) and offer to apply it here, at the end of the wizard. That
+// is no longer a coherent operation — every connection now already has its one, explicitly
+// user-selected Pack from Step 2 (connection ↔ Pack is strictly 1:1; there is no Pack-switching
+// UI), so recommending and applying a different pack here would either fail outright or, if
+// "fixed", would effectively BE a switch-pack affordance — removed rather than adapted.
+function StepDone({ suggestedQuestions, onFinish }) {
   return (
     <div className="max-w-lg mx-auto text-center">
       <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 mb-6">
@@ -963,49 +989,6 @@ function StepDone({ suggestedQuestions, onFinish, recommendedPack, domainKey }) 
       <p className="text-[14px] text-gray-500 mb-6">
         Zevra has learnt your data. Start by asking one of these questions or type your own.
       </p>
-
-      {/* Pack recommendation card */}
-      {recommendedPack && !packApplied && (
-        <div className="mb-6 text-left bg-indigo-50 border border-indigo-200 rounded-2xl p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1">
-              <p className="text-[11px] font-bold text-indigo-500 uppercase tracking-wide mb-0.5">Recommended pack</p>
-              <p className="text-[14px] font-bold text-[#111827]">{recommendedPack.display_name}</p>
-              <p className="text-[12px] text-indigo-600 mt-1">
-                {Math.round(recommendedPack.coverage_score * 100)}% of pack entities match your discovered tables.
-                Applying adds pre-built entities, vocabulary, and example questions.
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-2 mt-3">
-            <button
-              disabled={applying}
-              onClick={async () => {
-                setApplying(true);
-                try {
-                  await api.industryPacks.apply(recommendedPack.pack_key, { domainKey: domainKey || 'PLATFORM' });
-                  setPackApplied(true);
-                } catch (e) { console.error(e); }
-                finally { setApplying(false); }
-              }}
-              className="px-4 py-2 text-[12.5px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all disabled:opacity-50"
-            >
-              {applying ? 'Applying…' : `Apply ${recommendedPack.display_name} pack`}
-            </button>
-            <button onClick={() => setPackApplied(true)}
-              className="px-4 py-2 text-[12.5px] font-medium text-gray-500 hover:text-gray-700 transition-colors">
-              Skip
-            </button>
-          </div>
-        </div>
-      )}
-      {packApplied && recommendedPack && (
-        <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-left">
-          <p className="text-[12.5px] font-semibold text-emerald-700">
-            ✓ {recommendedPack.display_name} pack applied — entities and vocabulary are ready in the Semantic Layer.
-          </p>
-        </div>
-      )}
 
       {safeArray(suggestedQuestions).length > 0 && (
         <div className="text-left space-y-2.5 mb-8">
@@ -1043,22 +1026,12 @@ export default function OnboardingWizard({ user, onComplete }) {
   const [suggested, setSuggested]         = useState(saved?.suggested ?? []);
   const [analyseError, setAnalyseError]   = useState('');
   const [connForm, setConnForm]           = useState(saved?.connForm ?? null);
-  const [packRec, setPackRec]             = useState(null);   // pack recommendation at completion
   // The in-flight (or just-finished) analysis job id, persisted so a page
   // refresh mid-analysis reattaches instead of re-POSTing and duplicating work.
   const [analysisJobId, setAnalysisJobId] = useState(saved?.analysisJobId ?? null);
 
   const schemaName = connection?.schemaName || 'public';
   const domainKey  = 'PLATFORM';
-
-  // Fetch pack recommendation when step 5 (Done) is reached
-  useEffect(() => {
-    if (step === 5 && !packRec) {
-      api.industryPacks.recommend(domainKey)
-        .then(r => { if (r.recommended) setPackRec(r); })
-        .catch(() => {});
-    }
-  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist state on every change so the user can resume after a refresh
   useEffect(() => {
@@ -1174,8 +1147,6 @@ export default function OnboardingWizard({ user, onComplete }) {
               <StepDone
                 suggestedQuestions={suggested}
                 onFinish={handleComplete}
-                recommendedPack={packRec}
-                domainKey={domainKey}
               />
             </div>
           )}
