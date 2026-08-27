@@ -166,6 +166,12 @@ function VocabCard({ term, onEdit, onDelete }) {
   );
 }
 
+// Multi-Table Analysis Hardening: mirrors the backend's authoritative cap —
+// BusinessObjectAnalysisContract.MAX_SELECTED_TABLES (sei-nexus-ai), shared with
+// Onboarding. UX convenience only; the backend enforces the real limit regardless
+// of what the frontend does or allows.
+const MAX_SELECTED_TABLES = 40;
+
 // ── Discovery Wizard ──────────────────────────────────────────────────────────
 
 /**
@@ -226,13 +232,18 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
 
   const toggleTable = (t) => setSelected(prev => {
     const next = new Set(prev);
-    next.has(t) ? next.delete(t) : next.add(t);
+    if (next.has(t)) {
+      next.delete(t);
+    } else if (next.size < MAX_SELECTED_TABLES) {
+      next.add(t);
+    }
+    // At the cap, further additions are silently ignored — deselecting is always allowed.
     return next;
   });
 
   const toggleAll = () => {
     if (selected.size === filteredTables.length) setSelected(new Set());
-    else setSelected(new Set(filteredTables));
+    else setSelected(new Set(filteredTables.slice(0, MAX_SELECTED_TABLES)));
   };
 
   // Step 1 → 2: run AI analysis
@@ -258,6 +269,11 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
           description: t.purpose || '',
           operationalMeaning: t.usageGuidance || '',
           investigationHints: t.filterGuidance || '',
+          // Business Object Analysis Contract convergence: the AI-generated business
+          // grouping — same field the Onboarding Wizard already threads through,
+          // now carried here too so a Discover-created entity's group_label persists
+          // the same way an Onboarding-created one does.
+          category: t.category || '',
           // Data-object fields from the AI analysis, passed through untouched to
           // the registration pipeline (consumed by EnterpriseMapService).
           businessName: t.businessName || '',
@@ -270,6 +286,11 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
           avoidGuidance: t.avoidGuidance || '',
           // PRO-22: AI reuse-vs-create decision, validated server-side
           entityResolution: t.entityResolution || null,
+          // Connection-Scoped Industry Pack Semantic Assignment: the LLM's own Pack-concept
+          // decision, already validated server-side against the connection's active pack
+          // (BusinessObjectBatchAnalyzer) — absent whenever the connection has no active pack
+          // or nothing resolved, exactly like entityResolution above.
+          conceptKey: t.conceptKey || null,
           vocab: safeArray(t.vocabularySuggestions).map((v, vi) => ({
             approved: true,
             termKey: slugify(v.term || `term-${vi}`),
@@ -306,6 +327,7 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
           purpose: item.description,
           operationalMeaning: item.operationalMeaning,
           investigationHints: item.investigationHints,
+          category: item.category,
           businessName: item.businessName,
           identifierColumns: item.identifierColumns,
           statusColumns: item.statusColumns,
@@ -315,6 +337,10 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
           filterGuidance: item.filterGuidance,
           avoidGuidance: item.avoidGuidance,
           entityResolution: item.entityResolution,
+          // Connection-Scoped Industry Pack Semantic Assignment: forwarded through to
+          // MetadataRegistrationService, which already reads and persists it (pack_key itself
+          // is resolved server-side from the connection, independent of this field).
+          conceptKey: item.conceptKey,
           vocabulary: safeArray(item.vocab).map(v => ({
             approved: v.approved,
             term: v.term,
@@ -460,23 +486,37 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
                         />
                       </div>
                       <div className="border border-gray-200 rounded-lg overflow-hidden max-h-56 overflow-y-auto">
-                        {filteredTables.map(t => (
-                          <label key={t} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0">
-                            <input
-                              type="checkbox"
-                              checked={selected.has(t)}
-                              onChange={() => toggleTable(t)}
-                              className="accent-indigo-600"
-                            />
-                            <span className="text-sm font-mono text-gray-700">{t}</span>
-                          </label>
-                        ))}
+                        {filteredTables.map(t => {
+                          const isChecked = selected.has(t);
+                          const atCap = !isChecked && selected.size >= MAX_SELECTED_TABLES;
+                          return (
+                            <label key={t}
+                              className={`flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 last:border-0 ${
+                                atCap ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50 cursor-pointer'
+                              }`}>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                disabled={atCap}
+                                onChange={() => toggleTable(t)}
+                                className="accent-indigo-600"
+                              />
+                              <span className="text-sm font-mono text-gray-700">{t}</span>
+                            </label>
+                          );
+                        })}
                       </div>
                     </>
                   )}
 
                   {!tablesLoading && !tablesError && tables.length === 0 && (
                     <p className="text-sm text-gray-400 py-3">No tables found in schema "{schema}".</p>
+                  )}
+
+                  {selected.size >= MAX_SELECTED_TABLES && (
+                    <p className="text-xs text-amber-600 font-medium mt-2">
+                      Maximum of {MAX_SELECTED_TABLES} tables reached — analyse this batch, then run Discover again for more.
+                    </p>
                   )}
                 </div>
               )}
@@ -949,6 +989,12 @@ export default function Semantic() {
   const [previewPack,  setPreviewPack]  = useState(null);
   const [previewData,  setPreviewData]  = useState(null);
   const [applyingPack, setApplyingPack] = useState('');
+  const [previewingPack, setPreviewingPack] = useState(false);
+  // Connection-Scoped Industry Pack Assignment: a Pack is assigned to one connection, not to
+  // the whole domain — reuses the same api.connections.list() the Discovery Wizard already
+  // calls; no new connection API or model.
+  const [connections,  setConnections]  = useState([]);
+  const [packConnection, setPackConnection] = useState('');
 
   // discovery wizard
   const [showWizard, setShowWizard] = useState(false);
@@ -1016,12 +1062,14 @@ export default function Semantic() {
   const loadPacks = useCallback(async () => {
     setPacksLoading(true);
     try {
-      const [all, applied] = await Promise.all([
+      const [all, applied, conns] = await Promise.all([
         api.industryPacks.list(),
         api.industryPacks.applied(),
+        api.connections.list().catch(() => []),
       ]);
       setAllPacks(all);
       setAppliedPacks(applied);
+      setConnections(safeArray(conns).filter(c => c.status !== 'ARCHIVED'));
     } catch { setAllPacks([]); setAppliedPacks([]); }
     finally { setPacksLoading(false); }
   }, []);
@@ -1295,7 +1343,7 @@ export default function Semantic() {
               const isApplied = appliedPacks.some(a => a.pack_key === p.pack_id && a.status === 'ACTIVE');
               return (
                 <div key={p.pack_id}
-                  onClick={() => setPreviewPack(p)}
+                  onClick={() => { setPreviewPack(p); setPreviewData(null); setPackConnection(''); }}
                   className={`px-4 py-3 cursor-pointer border-b border-gray-100/80 transition-colors
                     ${previewPack?.pack_id === p.pack_id
                       ? 'bg-emerald-50/80 border-l-2 border-l-emerald-500'
@@ -1435,10 +1483,15 @@ export default function Semantic() {
                         <p className="text-[13px] font-semibold text-emerald-800">{tp.display_name}</p>
                         <p className="text-[11.5px] text-emerald-600 mt-0.5">
                           Coverage: {Math.round((tp.coverage_score || 0) * 100)}% of pack entities matched
+                          {tp.connection_key && (
+                            <> · Connection: <span className="font-mono">
+                              {connections.find(c => c.connection_key === tp.connection_key)?.name || tp.connection_key}
+                            </span></>
+                          )}
                         </p>
                       </div>
                       <button onClick={async () => {
-                        if (!window.confirm(`Remove pack "${tp.display_name}"? This does not delete created entities or vocabulary.`)) return;
+                        if (!window.confirm(`Remove pack "${tp.display_name}"? Entities and vocabulary this pack created will be reverted; anything that existed independently before the pack is kept.`)) return;
                         await api.industryPacks.remove(tp.pack_key);
                         loadPacks();
                       }} className="text-[11px] text-emerald-600 hover:text-red-500 transition-colors ml-4">
@@ -1458,7 +1511,7 @@ export default function Semantic() {
                     <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{previewPack.industry}</p>
                     <h3 className="text-[17px] font-bold text-[#111827]">{previewPack.display_name}</h3>
                   </div>
-                  <button onClick={() => { setPreviewPack(null); setPreviewData(null); }}
+                  <button onClick={() => { setPreviewPack(null); setPreviewData(null); setPackConnection(''); }}
                     className="text-[12px] text-gray-400 hover:text-gray-700">← Back</button>
                 </div>
 
@@ -1476,6 +1529,28 @@ export default function Semantic() {
                       <p className="text-[11px] text-[#9CA3AF]">{label}</p>
                     </div>
                   ))}
+                </div>
+
+                {/* Connection-Scoped Industry Pack Assignment: a Pack is assigned to one
+                    connection, not the whole domain — see IndustryPackService.applyPack. */}
+                <div className="mb-5 max-w-xs">
+                  <Select
+                    label="Connection"
+                    value={packConnection}
+                    onChange={e => { setPackConnection(e.target.value); setPreviewData(null); }}
+                  >
+                    <option value="">— select a connection —</option>
+                    {connections.map(c => (
+                      <option key={c.connection_key} value={c.connection_key}>
+                        {c.name} ({c.connection_type})
+                      </option>
+                    ))}
+                  </Select>
+                  {connections.length === 0 && (
+                    <p className="text-[11.5px] text-amber-600 mt-1.5 flex items-center gap-1">
+                      <AlertCircle size={12} /> No connections available — add one first.
+                    </p>
+                  )}
                 </div>
 
                 {/* Preview data */}
@@ -1505,12 +1580,23 @@ export default function Semantic() {
                 )}
 
                 {/* Action buttons */}
-                <div className="flex gap-3 flex-wrap">
+                <div className="flex gap-3 flex-wrap items-center">
                   {!previewData && (
-                    <button onClick={async () => {
-                      setPreviewData(await api.industryPacks.preview(previewPack.pack_id, { domainKey: selectedDomain }));
-                    }} className="px-4 py-2 text-[13px] font-semibold bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all">
-                      Preview match
+                    <button
+                      disabled={!packConnection || previewingPack}
+                      onClick={async () => {
+                        setPreviewingPack(true);
+                        try {
+                          setPreviewData(await api.industryPacks.preview(previewPack.pack_id, {
+                            domainKey: selectedDomain, connectionKey: packConnection,
+                          }));
+                        } catch (e) { alert(e.message || 'Preview failed'); }
+                        finally { setPreviewingPack(false); }
+                      }}
+                      title={!packConnection ? 'Select a connection first' : undefined}
+                      className="px-4 py-2 text-[13px] font-semibold bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {previewingPack ? 'Previewing…' : 'Preview match'}
                     </button>
                   )}
                   {appliedPacks.some(a => a.pack_key === previewPack.pack_id && a.status === 'ACTIVE') ? (
@@ -1519,21 +1605,28 @@ export default function Semantic() {
                     </span>
                   ) : (
                     <button
-                      disabled={applyingPack === previewPack.pack_id}
+                      disabled={applyingPack === previewPack.pack_id || !packConnection}
+                      title={!packConnection ? 'Select a connection first' : undefined}
                       onClick={async () => {
                         if (!selectedDomain) { alert('Select a domain first.'); return; }
+                        if (!packConnection) { alert('Select a connection first.'); return; }
                         setApplyingPack(previewPack.pack_id);
                         try {
-                          await api.industryPacks.apply(previewPack.pack_id, { domainKey: selectedDomain });
+                          await api.industryPacks.apply(previewPack.pack_id, {
+                            domainKey: selectedDomain, connectionKey: packConnection,
+                          });
                           await loadPacks();
-                          alert(`Pack "${previewPack.display_name}" applied! Refresh the Entities and Vocabulary tabs to see what was added.`);
+                          alert(`Pack "${previewPack.display_name}" applied! This connection now uses it for semantic grounding as objects are discovered. Refresh the Vocabulary tab to see what was added.`);
                         } catch (e) { alert(e.message || 'Apply failed'); }
                         finally { setApplyingPack(''); }
                       }}
-                      className="px-5 py-2 text-[13px] font-semibold bg-[#0C5847] hover:bg-[#084B3D] text-white rounded-xl transition-all disabled:opacity-50"
+                      className="px-5 py-2 text-[13px] font-semibold bg-[#0C5847] hover:bg-[#084B3D] text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {applyingPack === previewPack.pack_id ? 'Applying…' : 'Apply Pack'}
                     </button>
+                  )}
+                  {!packConnection && (
+                    <span className="text-[11.5px] text-gray-400">Select a connection to preview or apply.</span>
                   )}
                 </div>
               </div>
@@ -1544,7 +1637,7 @@ export default function Semantic() {
                   {allPacks.map(p => {
                     const isApplied = appliedPacks.some(a => a.pack_key === p.pack_id && a.status === 'ACTIVE');
                     return (
-                      <button key={p.pack_id} onClick={() => { setPreviewPack(p); setPreviewData(null); }}
+                      <button key={p.pack_id} onClick={() => { setPreviewPack(p); setPreviewData(null); setPackConnection(''); }}
                         className="text-left bg-white border border-gray-100 rounded-2xl p-4 hover:border-indigo-200 hover:shadow-md transition-all group">
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <div>

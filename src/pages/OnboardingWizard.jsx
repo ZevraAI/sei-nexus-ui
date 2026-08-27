@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../api.js';
 import { openEventStream } from '../lib/sse.js';
 import { ZevraLogo } from '../components/ZevraLogo.jsx';
@@ -10,16 +10,39 @@ import {
 } from 'lucide-react';
 
 // ── Onboarding state persistence ─────────────────────────────────────────────
-const STORAGE_KEY = 'zevra_onboarding_progress';
+// Scoped per tenant: a fixed, tenant-agnostic key here let a stale connection
+// (and, previously, an in-flight analysis job id) from one tenant's wizard
+// silently leak into a different tenant's wizard in the same browser — the
+// same physical machine/session onboarding tenant A, then B, would carry A's
+// selected connectionKey straight into B's analysis, which fails everywhere
+// since that connection doesn't exist in B's own schema. Keying by tenant
+// schema makes each tenant's in-progress wizard state fully independent.
+//
+// LEGACY_STORAGE_KEY (the pre-fix, unscoped key) used to have a one-time
+// migration fallback here: any tenant with no scoped entry yet would resume
+// from it. That reopened the exact leak this scoping fixed — every genuinely
+// new tenant has no scoped entry, so it would silently inherit whatever
+// unrelated tenant's connectionKey/step happened to be sitting in that
+// browser's legacy key (confirmed live: a fresh tenant resumed straight into
+// Analysing against a connectionKey that didn't exist in any tenant schema).
+// The migration window is long past — removed rather than special-cased.
+const LEGACY_STORAGE_KEY = 'zevra_onboarding_progress'; // pre-fix, unscoped — cleared, never read
 
-function saveProgress(state) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
+function storageKey(tenantSchema) {
+  return `zevra_onboarding_progress_${tenantSchema || 'unknown'}`;
 }
-function loadProgress() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch (_) { return null; }
+function saveProgress(tenantSchema, state) {
+  try { localStorage.setItem(storageKey(tenantSchema), JSON.stringify(state)); } catch (_) {}
 }
-function clearProgress() {
-  localStorage.removeItem(STORAGE_KEY);
+function loadProgress(tenantSchema) {
+  try {
+    const scoped = localStorage.getItem(storageKey(tenantSchema));
+    return scoped ? JSON.parse(scoped) : null;
+  } catch (_) { return null; }
+}
+function clearProgress(tenantSchema) {
+  localStorage.removeItem(storageKey(tenantSchema));
+  localStorage.removeItem(LEGACY_STORAGE_KEY); // mop up any pre-fix browsers still carrying it
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -296,6 +319,12 @@ function StepConnect({ onNext, savedForm, onFormChange }) {
 
 const PAGE_SIZE = 50;
 
+// Multi-Table Analysis Hardening: mirrors the backend's authoritative cap —
+// BusinessObjectAnalysisContract.MAX_SELECTED_TABLES (sei-nexus-ai). This is a
+// UX convenience only; the backend enforces the real limit regardless of what
+// the frontend does or allows.
+const MAX_SELECTED_TABLES = 40;
+
 const CATEGORY_COLORS = {
   Customers:  'bg-blue-100 text-blue-700',
   Orders:     'bg-purple-100 text-purple-700',
@@ -317,17 +346,29 @@ function StepSelectTables({ connectionKey, schemaName, onNext, onBack }) {
   const [search, setSearch]           = useState('');
   const [page, setPage]               = useState(1);
   const [selected, setSelected]       = useState(new Set());
+  // Guards against React StrictMode's double-invoke firing this AI call twice
+  // concurrently (confirmed live: two identical recommend requests for the same
+  // connection/schema landed on the backend at the same instant) — doubling load
+  // on the shared OpenAI rate limit and doubling exposure to its retry backoff.
+  // Keyed by the effect's own deps so a genuine connection/schema change still
+  // re-fires, not just the very first call ever.
+  const recommendFiredForRef = useRef(null);
 
   // Load AI recommendations on mount — single DB query + single AI call
   useEffect(() => {
+    const depsKey = `${connectionKey}|${schemaName}`;
+    if (recommendFiredForRef.current === depsKey) return;
+    recommendFiredForRef.current = depsKey;
+
     setLoadingRec(true);
     api.onboarding.recommend({ connectionKey, schemaName })
       .then(r => {
         const recs = safeArray(r.recommended);
         setRecommended(recs);
         setTotalTables(r.total_tables ?? recs.length);
-        // Pre-select all recommended tables
-        setSelected(new Set(recs.map(t => t.table_name)));
+        // Pre-select all recommended tables, capped defensively (the AI recommender
+        // isn't expected to exceed the limit, but never trust it blindly).
+        setSelected(new Set(recs.slice(0, MAX_SELECTED_TABLES).map(t => t.table_name)));
       })
       .catch(e => setError(e.message || 'Could not load recommendations'))
       .finally(() => setLoadingRec(false));
@@ -345,7 +386,13 @@ function StepSelectTables({ connectionKey, schemaName, onNext, onBack }) {
 
   const toggle = (name) => setSelected(prev => {
     const next = new Set(prev);
-    next.has(name) ? next.delete(name) : next.add(name);
+    if (next.has(name)) {
+      next.delete(name);
+    } else if (next.size < MAX_SELECTED_TABLES) {
+      next.add(name);
+    }
+    // At the cap, further additions are silently ignored — the checkbox for an
+    // unselected table simply won't check. Deselecting is always allowed.
     return next;
   });
 
@@ -416,14 +463,16 @@ function StepSelectTables({ connectionKey, schemaName, onNext, onBack }) {
               {recommended.map((t, i) => {
                 const catColor = CATEGORY_COLORS[t.category] || CATEGORY_COLORS.Other;
                 const isSelected = selected.has(t.table_name);
+                const atCap = !isSelected && selected.size >= MAX_SELECTED_TABLES;
                 return (
                   <label key={t.table_name}
-                    className={`flex items-start gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${
+                    className={`flex items-start gap-3 px-4 py-3 rounded-xl border transition-all ${
+                      atCap ? 'opacity-40 cursor-not-allowed border-gray-200' :
                       isSelected
-                        ? 'border-emerald-200 bg-emerald-50/40'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-emerald-200 bg-emerald-50/40 cursor-pointer'
+                        : 'border-gray-200 hover:border-gray-300 cursor-pointer'
                     }`}>
-                    <input type="checkbox" checked={isSelected}
+                    <input type="checkbox" checked={isSelected} disabled={atCap}
                       onChange={() => toggle(t.table_name)}
                       className="accent-emerald-600 w-4 h-4 mt-0.5 shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -476,18 +525,24 @@ function StepSelectTables({ connectionKey, schemaName, onNext, onBack }) {
                 {pageSlice.length === 0 ? (
                   <p className="text-sm text-gray-400 text-center py-6">No tables match your search.</p>
                 ) : (
-                  pageSlice.map(t => (
-                    <label key={t.table_name}
-                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0">
-                      <input type="checkbox" checked={selected.has(t.table_name)}
-                        onChange={() => toggle(t.table_name)}
-                        className="accent-emerald-600 w-4 h-4 shrink-0" />
-                      <span className="text-sm font-mono text-gray-700 flex-1 truncate">
-                        {t.table_name}
-                      </span>
-                      <span className="text-xs text-gray-400 shrink-0">{t.column_count} cols</span>
-                    </label>
-                  ))
+                  pageSlice.map(t => {
+                    const isChecked = selected.has(t.table_name);
+                    const atCap = !isChecked && selected.size >= MAX_SELECTED_TABLES;
+                    return (
+                      <label key={t.table_name}
+                        className={`flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 last:border-0 ${
+                          atCap ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50 cursor-pointer'
+                        }`}>
+                        <input type="checkbox" checked={isChecked} disabled={atCap}
+                          onChange={() => toggle(t.table_name)}
+                          className="accent-emerald-600 w-4 h-4 shrink-0" />
+                        <span className="text-sm font-mono text-gray-700 flex-1 truncate">
+                          {t.table_name}
+                        </span>
+                        <span className="text-xs text-gray-400 shrink-0">{t.column_count} cols</span>
+                      </label>
+                    );
+                  })
                 )}
               </div>
 
@@ -512,7 +567,11 @@ function StepSelectTables({ connectionKey, schemaName, onNext, onBack }) {
       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
         <button onClick={onBack} className="text-sm text-gray-400 hover:text-gray-600">← Back</button>
         <div className="flex items-center gap-3">
-          {selected.size > 0 && (
+          {selected.size >= MAX_SELECTED_TABLES ? (
+            <span className="text-xs text-amber-600 font-medium">
+              Maximum of {MAX_SELECTED_TABLES} tables reached — analyse this batch, then add more from the Semantic Layer page
+            </span>
+          ) : selected.size > 0 && (
             <span className="text-xs text-gray-500">
               {selected.size} table{selected.size !== 1 ? 's' : ''} selected
             </span>
@@ -548,6 +607,18 @@ function StepAnalysing({ connectionKey, schemaName, domainKey, tableNames,
   const [tablesDone, setTablesDone] = useState(0);
   const [tablesTotal, setTablesTotal] = useState(tableNames.length);
   const [inFlight, setInFlight]     = useState([]);
+  // Guards against React StrictMode's double-invoke starting two REAL analysis
+  // jobs, while still letting the surviving effect instance apply the result.
+  // StrictMode runs this effect's body, then its cleanup (cancelled=true),
+  // then the body again — and it's the FIRST (torn-down) instance that ends up
+  // owning the fetch if the guard is a plain fired-flag: its own `.then()`
+  // later sees its own `cancelled === true` and silently discards the response,
+  // so `setJobId` never runs and the wizard freezes at 0% forever even though
+  // the backend job completes fine (this exact regression shipped once already).
+  // The fix: cache the PROMISE itself, not just a "did we fire" flag, so every
+  // effect instance — including the one that survives — attaches its own
+  // `.then()` (gated by its own `cancelled`) to that one shared request.
+  const analyzeCallRef = useRef(null);
 
   useEffect(() => {
     let cancelled     = false;
@@ -607,15 +678,23 @@ function StepAnalysing({ connectionKey, schemaName, domainKey, tableNames,
     if (jobId) {
       watch(jobId);
     } else {
-      api.onboarding.analyze({ connectionKey, schemaName, domainKey, tableNames })
+      if (!analyzeCallRef.current) {
+        analyzeCallRef.current =
+          api.onboarding.analyze({ connectionKey, schemaName, domainKey, tableNames });
+      }
+      analyzeCallRef.current
         .then(r => {
-          if (cancelled) return;
+          if (cancelled) return; // this instance was torn down — the surviving one's own .then() applies it
           setJobId(r.jobId);
           setTablesTotal(r.tablesTotal ?? tableNames.length);
           onJobStarted(r.jobId);
           watch(r.jobId);
         })
-        .catch(e => { if (!cancelled) onError(e.message); });
+        .catch(e => {
+          if (cancelled) return;
+          analyzeCallRef.current = null; // a real failure must be retryable
+          onError(e.message);
+        });
     }
 
     return cleanup;
@@ -801,6 +880,20 @@ function StepReview({ suggestions, connectionKey, schemaName, domainKey, onNext,
           vocabulary:           safeArray(e.vocabulary),
           // PRO-22: AI reuse-vs-create decision, validated server-side
           entityResolution:     e.entityResolution || null,
+          // Connection-Scoped Industry Pack Semantic Assignment: the LLM's own Pack-concept
+          // decision, already validated server-side against the connection's active pack
+          // (BusinessObjectBatchAnalyzer) — null whenever the connection has no active pack or
+          // nothing resolved, exactly like entityResolution above. `e` already carries this
+          // field via the `...s` spread in StepReview's initial `entities` state, so no other
+          // change is needed here.
+          conceptKey:           e.conceptKey || null,
+          // Onboarding performance fix: Analyze already fetched this table's live
+          // schema — send it so Apply reuses it instead of re-querying the source DB.
+          columns:              safeArray(e.columns),
+          // Grouping Foundation Fix: the AI-generated business grouping from Analyze —
+          // identical whether this table was AI-recommended or added via Browse All,
+          // since both pass through the same analysis step.
+          category:             e.category || '',
         })),
       };
       const result = await api.onboarding.apply(payload);
@@ -938,8 +1031,10 @@ function StepDone({ suggestedQuestions, onFinish, recommendedPack, domainKey }) 
 
 export default function OnboardingWizard({ user, onComplete }) {
   const { impersonation, exitImpersonation } = useAuth();
+  // Every persisted wizard state is scoped to this — see storageKey() above.
+  const tenantSchema = user?.tenant_schema || 'unknown';
   // Restore saved progress so users can resume where they left off
-  const saved = loadProgress();
+  const saved = loadProgress(tenantSchema);
 
   const [step, setStep]                   = useState(saved?.step ?? 0);
   const [connection, setConnection]       = useState(saved?.connection ?? null);
@@ -967,11 +1062,11 @@ export default function OnboardingWizard({ user, onComplete }) {
 
   // Persist state on every change so the user can resume after a refresh
   useEffect(() => {
-    saveProgress({ step, connection, selectedTables, suggestions, suggested, connForm, analysisJobId });
-  }, [step, connection, selectedTables, suggestions, suggested, connForm, analysisJobId]);
+    saveProgress(tenantSchema, { step, connection, selectedTables, suggestions, suggested, connForm, analysisJobId });
+  }, [tenantSchema, step, connection, selectedTables, suggestions, suggested, connForm, analysisJobId]);
 
   const handleComplete = (question) => {
-    clearProgress();
+    clearProgress(tenantSchema);
     onComplete(question);
   };
 
@@ -1011,7 +1106,7 @@ export default function OnboardingWizard({ user, onComplete }) {
           <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-800">
             <CheckCircle2 size={15} className="shrink-0" />
             <span>You have unfinished setup. <strong>Your progress has been saved.</strong></span>
-            <button onClick={() => { clearProgress(); setStep(0); setConnection(null); setSelectedTables([]); setSuggestions([]); setSuggested([]); setConnForm(null); setAnalysisJobId(null); }}
+            <button onClick={() => { clearProgress(tenantSchema); setStep(0); setConnection(null); setSelectedTables([]); setSuggestions([]); setSuggested([]); setConnForm(null); setAnalysisJobId(null); }}
               className="ml-auto text-xs text-emerald-600 underline hover:text-emerald-800">
               Start over
             </button>
