@@ -239,10 +239,18 @@ export const api = {
     discoverRelationships:(body)          => post('/semantic/discover-relationships', body),
     // ── Phase 3: Semantic Learning endpoints ─────────────────────────────────
     learnings: {
-      list:    (domainKey) => get(`/semantic/learnings${domainKey ? `?domainKey=${encodeURIComponent(domainKey)}` : ''}`),
-      update:  (key, body) => patch(`/semantic/learnings/${key}`, body),
-      promote: (key)       => post(`/semantic/learnings/${key}/promote`),
-      delete:  (key)       => del(`/semantic/learnings/${key}`),
+      list:    (domainKey)      => get(`/semantic/learnings${domainKey ? `?domainKey=${encodeURIComponent(domainKey)}` : ''}`),
+      update:  (key, body)      => patch(`/semantic/learnings/${key}`, body),
+      // conceptKey is optional — bundling it into the promote body classifies the learning at the
+      // same time it's promoted; omit it to promote without classifying (see assignConcept below).
+      promote: (key, conceptKey) => post(`/semantic/learnings/${key}/promote`, conceptKey ? { conceptKey } : {}),
+      assignConcept: (key, conceptKey) => post(`/semantic/learnings/${key}/concept`, { conceptKey }),
+      demote:  (key)             => post(`/semantic/learnings/${key}/demote`),
+      delete:  (key)             => del(`/semantic/learnings/${key}`),
+    },
+    // Read-only concept catalog — powers the Learnings panel's concept picker.
+    concepts: {
+      list: () => get('/semantic/concepts'),
     },
   },
 

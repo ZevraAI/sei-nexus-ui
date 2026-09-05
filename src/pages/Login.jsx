@@ -3,7 +3,9 @@ import { api } from '../api.js';
 import { supabase } from '../supabase.js';
 import { Spinner } from '../components/Card.jsx';
 import { ZevraLogo } from '../components/ZevraLogo.jsx';
-import { Building2, AlertCircle } from 'lucide-react';
+import { ThemeToggle } from '../components/ThemeToggle.jsx';
+import LoginIntelligencePanel from './login/LoginIntelligencePanel.jsx';
+import { Building2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 function GoogleIcon() {
   return (
@@ -72,6 +74,13 @@ export default function Login({ onLogin }) {
   const [ssoLoading, setSsoLoading] = useState(null); // 'google' | 'azure' | null
   const [error,      setError]      = useState('');
   const [resetSent,  setResetSent]  = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  // "Keep me signed in" is currently decorative: Supabase's client is configured with
+  // persistSession: true unconditionally (see supabase.js), so the session already
+  // survives a browser restart regardless of this checkbox. Wiring a real short-lived
+  // vs. long-lived session distinction would be an authentication-behavior change,
+  // which is out of scope for this visual refinement — flagged for product/eng follow-up.
+  const [rememberMe, setRememberMe] = useState(true);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -152,227 +161,313 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#07201A] via-[#0d2e24] to-[#09211C] p-4">
-      <div className="w-full max-w-[420px]">
+    <div
+      className="min-h-screen grid md:grid-cols-[1.16fr_0.84fr]"
+      style={{ background: 'var(--z-bg)', color: 'var(--z-text)' }}
+    >
+      <div className="fixed top-[18px] right-[18px] z-50">
+        <ThemeToggle />
+      </div>
 
-        {/* Logo */}
-        <div className="text-center mb-9">
-          <div className="inline-flex items-center justify-center mb-4">
-            <ZevraLogo size={56} style={{ borderRadius: '14px' }} />
+      <LoginIntelligencePanel logo={<ZevraLogo size={26} style={{ borderRadius: '7px' }} />} />
+
+      <main
+        className="relative flex items-center justify-center px-6 py-10 md:border-l"
+        style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border)' }}
+      >
+        <div className="w-full max-w-[374px]">
+
+          {/* Mobile-only compact brand row — the left panel is hidden below md */}
+          <div className="flex md:hidden items-center justify-center gap-2.5 mb-7">
+            <ZevraLogo size={28} style={{ borderRadius: '8px' }} />
+            <span className="text-[15px] font-semibold" style={{ color: 'var(--z-text)' }}>Zevra</span>
           </div>
-          <h1 className="text-[22px] font-bold text-white tracking-tight">Zevra</h1>
-          <p className="text-white/45 text-[13px] mt-1">Enterprise Operational Intelligence</p>
-        </div>
 
-        <div className="bg-white rounded-2xl shadow-[0_32px_80px_rgba(0,0,0,0.45)] overflow-hidden">
+          <div
+            className="rounded-[var(--z-radius-xl)] p-[2px]"
+            style={{
+              backgroundImage:
+                'linear-gradient(var(--z-card), var(--z-card)), linear-gradient(155deg, var(--z-border-strong), var(--z-border) 40%, var(--z-border-strong) 100%)',
+              backgroundOrigin: 'border-box',
+              backgroundClip: 'padding-box, border-box',
+              border: '1px solid transparent',
+              boxShadow: 'var(--z-elev-4)',
+            }}
+          >
+            <div className="p-[28px_30px_22px]">
 
-          {/* Password reset view */}
-          {mode === 'reset' && (
-            <div className="px-8 py-7">
-              {resetSent ? (
-                <div className="text-center space-y-4">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-50 mb-1">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-600"><polyline points="20 6 9 17 4 12"/></svg>
-                  </div>
-                  <p className="text-[14px] font-semibold text-gray-800">Check your inbox</p>
-                  <p className="text-[13px] text-gray-500">
-                    A password reset link has been sent to <span className="font-medium text-gray-700">{form.email}</span>.
-                    Check your spam folder if it doesn't arrive within a few minutes.
-                  </p>
-                  <button type="button" onClick={() => switchMode('login')}
-                    className="mt-2 text-[13px] font-medium text-emerald-600 hover:text-emerald-700 hover:underline">
-                    Back to sign in
-                  </button>
+              {/* Password reset view */}
+              {mode === 'reset' && (
+                <div>
+                  {resetSent ? (
+                    <div className="text-center space-y-4">
+                      <div
+                        className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-1"
+                        style={{ background: 'var(--z-primary-soft)' }}
+                      >
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--z-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      </div>
+                      <p className="text-[14px] font-semibold" style={{ color: 'var(--z-text)' }}>Check your inbox</p>
+                      <p className="text-[13px]" style={{ color: 'var(--z-text-3)' }}>
+                        A password reset link has been sent to <span className="font-medium" style={{ color: 'var(--z-text-2)' }}>{form.email}</span>.
+                        Check your spam folder if it doesn't arrive within a few minutes.
+                      </p>
+                      <button type="button" onClick={() => switchMode('login')}
+                        className="mt-2 text-[13px] font-medium hover:underline"
+                        style={{ color: 'var(--z-primary)' }}>
+                        Back to sign in
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleResetPassword} className="space-y-4">
+                      <div>
+                        <p className="text-[13px] mb-4" style={{ color: 'var(--z-text-3)' }}>
+                          Enter your email address and we'll send you a link to reset your password.
+                        </p>
+                        <label className="block text-[11.5px] font-semibold mb-1.5" style={{ color: 'var(--z-text-2)' }}>
+                          Email address
+                        </label>
+                        <input type="email" required autoComplete="email"
+                          className="w-full rounded-[var(--z-radius-sm)] px-3.5 py-2.5 text-sm outline-none border transition-shadow"
+                          style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border-strong)', color: 'var(--z-text)' }}
+                          onFocus={e => { e.target.style.borderColor = 'var(--z-focus)'; e.target.style.boxShadow = '0 0 0 3px var(--z-focus-ring)'; }}
+                          onBlur={e => { e.target.style.borderColor = 'var(--z-border-strong)'; e.target.style.boxShadow = 'none'; }}
+                          placeholder="you@company.com"
+                          value={form.email}
+                          onChange={e => set('email', e.target.value)}
+                        />
+                      </div>
+                      {error && (
+                        <div className="flex items-start gap-2.5 text-[13px] px-3.5 py-3 rounded-[var(--z-radius-sm)] border"
+                          style={{ background: 'color-mix(in srgb, var(--z-critical) 8%, transparent)', borderColor: 'color-mix(in srgb, var(--z-critical) 30%, transparent)', color: 'var(--z-critical)' }}>
+                          <AlertCircle size={15} className="shrink-0 mt-0.5" />
+                          <span>{error}</span>
+                        </div>
+                      )}
+                      <button type="submit" disabled={loading}
+                        className="w-full font-semibold py-2.5 rounded-[var(--z-radius-md)] text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ background: 'var(--z-primary)', color: 'var(--z-primary-on)' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--z-primary-hover)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'var(--z-primary)'}>
+                        {loading && <Spinner size={4} />}
+                        Send reset link
+                      </button>
+                      <button type="button" onClick={() => switchMode('login')}
+                        className="w-full text-[13px] font-medium transition-colors py-1"
+                        style={{ color: 'var(--z-text-muted)' }}>
+                        Back to sign in
+                      </button>
+                    </form>
+                  )}
                 </div>
-              ) : (
-                <form onSubmit={handleResetPassword} className="space-y-4">
-                  <div>
-                    <p className="text-[13px] text-gray-500 mb-4">
-                      Enter your email address and we'll send you a link to reset your password.
-                    </p>
-                    <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                      Email
-                    </label>
-                    <input type="email" required autoComplete="email"
-                      className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 placeholder:text-gray-300"
-                      placeholder="you@company.com"
-                      value={form.email}
-                      onChange={e => set('email', e.target.value)}
-                    />
+              )}
+
+              {mode !== 'reset' && (
+                <>
+                  {/* Card head */}
+                  <div className="mb-5">
+                    <ZevraLogo size={34} style={{ borderRadius: 'var(--z-radius-sm)', display: 'block', marginBottom: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.14)' }} />
+                    <h2 className="text-[20px] font-semibold tracking-tight" style={{ color: 'var(--z-text)' }}>Welcome back</h2>
+                    <p className="mt-1 text-[13px]" style={{ color: 'var(--z-text-3)' }}>Sign in to your Zevra workspace</p>
                   </div>
-                  {error && (
-                    <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 text-[13px] px-3.5 py-3 rounded-lg">
-                      <AlertCircle size={15} className="shrink-0 mt-0.5 text-red-500" />
-                      <span>{error}</span>
+
+                  {/* SSO buttons — only when Supabase is configured */}
+                  {supabase && (
+                    <div className="flex flex-col gap-2 mb-3.5">
+                      <button
+                        type="button"
+                        onClick={() => handleSso('google')}
+                        disabled={!!ssoLoading}
+                        className="w-full flex items-center justify-center gap-2.5 rounded-[var(--z-radius-md)] py-2.5 text-[13px] font-medium transition-all border disabled:opacity-50"
+                        style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border-strong)', color: 'var(--z-text-2)' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--z-hover)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'var(--z-surface)'; e.currentTarget.style.transform = 'none'; }}
+                      >
+                        {ssoLoading === 'google' ? <Spinner size={4} /> : <GoogleIcon />}
+                        Continue with Google
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSso('azure')}
+                        disabled={!!ssoLoading}
+                        className="w-full flex items-center justify-center gap-2.5 rounded-[var(--z-radius-md)] py-2.5 text-[13px] font-medium transition-all border disabled:opacity-50"
+                        style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border-strong)', color: 'var(--z-text-2)' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--z-hover)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'var(--z-surface)'; e.currentTarget.style.transform = 'none'; }}
+                      >
+                        {ssoLoading === 'azure' ? <Spinner size={4} /> : <MicrosoftIcon />}
+                        Continue with Microsoft
+                      </button>
+                      <div className="flex items-center gap-3 pt-1">
+                        <div className="flex-1 h-px" style={{ background: 'var(--z-border)' }} />
+                        <span className="text-[11px]" style={{ color: 'var(--z-text-muted)' }}>or sign in with email</span>
+                        <div className="flex-1 h-px" style={{ background: 'var(--z-border)' }} />
+                      </div>
                     </div>
                   )}
-                  <button type="submit" disabled={loading}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                    {loading && <Spinner size={4} />}
-                    Send reset link
-                  </button>
-                  <button type="button" onClick={() => switchMode('login')}
-                    className="w-full text-[13px] font-medium text-gray-400 hover:text-gray-600 transition-colors py-1">
-                    Back to sign in
-                  </button>
-                </form>
+
+                  {/* Tab strip — only relevant in legacy (no-Supabase) mode, where signup exists */}
+                  {!supabase && (
+                    <div className="flex border-b mb-1" style={{ borderColor: 'var(--z-border)' }}>
+                      {['login', 'signup'].map(m => (
+                        <button key={m} type="button"
+                          onClick={() => switchMode(m)}
+                          className="flex-1 py-3 text-[13px] font-semibold transition-colors border-b-2"
+                          style={
+                            mode === m
+                              ? { color: 'var(--z-primary)', borderColor: 'var(--z-primary)', background: 'var(--z-primary-soft)' }
+                              : { color: 'var(--z-text-muted)', borderColor: 'transparent' }
+                          }
+                        >
+                          {m === 'login' ? 'Sign in' : 'Join workspace'}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <form onSubmit={submit}>
+
+                    {/* Workspace ID — only shown in legacy mode (no Supabase) */}
+                    {!supabase && (
+                      <div className="mb-3">
+                        <label className="block text-[11.5px] font-semibold mb-1.5" style={{ color: 'var(--z-text-2)' }}>
+                          Workspace ID
+                        </label>
+                        <div className="relative">
+                          <Building2 size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--z-text-muted)' }} />
+                          <input
+                            className="w-full rounded-[var(--z-radius-sm)] pl-10 pr-3.5 py-2.5 text-sm font-mono border outline-none"
+                            style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border-strong)', color: 'var(--z-text)' }}
+                            placeholder="e.g. acme-corp"
+                            value={form.tenantSlug}
+                            onChange={e => set('tenantSlug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                            required={!supabase}
+                            autoComplete="organization"
+                            spellCheck={false}
+                          />
+                        </div>
+                        <p className="mt-1 text-[11px]" style={{ color: 'var(--z-text-muted)' }}>
+                          {mode === 'login'
+                            ? 'Your workspace ID was provided when your account was set up.'
+                            : 'Ask your workspace administrator for the workspace ID.'}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Name (signup only, legacy mode) */}
+                    {mode === 'signup' && !supabase && (
+                      <div className="mb-3">
+                        <label className="block text-[11.5px] font-semibold mb-1.5" style={{ color: 'var(--z-text-2)' }}>
+                          Full Name
+                        </label>
+                        <input
+                          className="w-full rounded-[var(--z-radius-sm)] px-3.5 py-2.5 text-sm border outline-none"
+                          style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border-strong)', color: 'var(--z-text)' }}
+                          placeholder="Jane Smith"
+                          value={form.name}
+                          onChange={e => set('name', e.target.value)}
+                          required={!supabase}
+                        />
+                      </div>
+                    )}
+
+                    {/* Email */}
+                    <div className="mb-3">
+                      <label className="block text-[11.5px] font-semibold mb-1.5" style={{ color: 'var(--z-text-2)' }}>
+                        Email address
+                      </label>
+                      <input type="email" required autoComplete="email"
+                        className="w-full rounded-[var(--z-radius-sm)] px-3.5 py-2.5 text-sm border outline-none transition-shadow"
+                        style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border-strong)', color: 'var(--z-text)' }}
+                        onFocus={e => { e.target.style.borderColor = 'var(--z-focus)'; e.target.style.boxShadow = '0 0 0 3px var(--z-focus-ring)'; }}
+                        onBlur={e => { e.target.style.borderColor = 'var(--z-border-strong)'; e.target.style.boxShadow = 'none'; }}
+                        placeholder="you@company.com"
+                        value={form.email}
+                        onChange={e => set('email', e.target.value)}
+                      />
+                    </div>
+
+                    {/* Password */}
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-[11.5px] font-semibold" style={{ color: 'var(--z-text-2)' }}>
+                          Password
+                        </label>
+                        {mode === 'login' && supabase && (
+                          <button type="button" onClick={() => switchMode('reset')}
+                            className="text-[12.5px] font-medium hover:underline"
+                            style={{ color: 'var(--z-text-2)' }}>
+                            Forgot password?
+                          </button>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <input type={showPassword ? 'text' : 'password'} required minLength={8}
+                          className="w-full rounded-[var(--z-radius-sm)] pl-3.5 pr-10 py-2.5 text-sm border outline-none transition-shadow"
+                          style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border-strong)', color: 'var(--z-text)' }}
+                          onFocus={e => { e.target.style.borderColor = 'var(--z-focus)'; e.target.style.boxShadow = '0 0 0 3px var(--z-focus-ring)'; }}
+                          onBlur={e => { e.target.style.borderColor = 'var(--z-border-strong)'; e.target.style.boxShadow = 'none'; }}
+                          placeholder="••••••••"
+                          value={form.password}
+                          onChange={e => set('password', e.target.value)}
+                          autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(v => !v)}
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1"
+                          style={{ color: 'var(--z-text-muted)' }}
+                        >
+                          {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {mode === 'login' && supabase && (
+                      <label className="flex items-center gap-2 mb-4 text-[12.5px] cursor-pointer" style={{ color: 'var(--z-text-2)' }}>
+                        <input
+                          type="checkbox"
+                          checked={rememberMe}
+                          onChange={e => setRememberMe(e.target.checked)}
+                          className="w-3.5 h-3.5"
+                          style={{ accentColor: 'var(--z-primary)' }}
+                        />
+                        Keep me signed in
+                      </label>
+                    )}
+
+                    {error && (
+                      <div className="flex items-start gap-2.5 text-[13px] px-3.5 py-3 rounded-[var(--z-radius-sm)] border mb-4"
+                        style={{ background: 'color-mix(in srgb, var(--z-critical) 8%, transparent)', borderColor: 'color-mix(in srgb, var(--z-critical) 30%, transparent)', color: 'var(--z-critical)' }}>
+                        <AlertCircle size={15} className="shrink-0 mt-0.5" />
+                        <span>{error}</span>
+                      </div>
+                    )}
+
+                    <button type="submit" disabled={loading}
+                      className="w-full font-semibold py-2.5 rounded-[var(--z-radius-md)] text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ background: 'var(--z-primary)', color: 'var(--z-primary-on)', boxShadow: '0 1px 2px rgba(0,0,0,0.08), 0 6px 16px -8px var(--z-spine-strong, var(--z-primary))' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--z-primary-hover)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'var(--z-primary)'}>
+                      {loading && <Spinner size={4} />}
+                      {mode === 'login' ? 'Sign in' : 'Create account'}
+                    </button>
+                  </form>
+
+                  <div className="text-center mt-3.5 text-[12px]" style={{ color: 'var(--z-text-muted)' }}>
+                    Need help? Contact your workspace administrator
+                  </div>
+                </>
               )}
             </div>
-          )}
+          </div>
 
-          {/* SSO buttons — only when Supabase is configured */}
-          {mode !== 'reset' && supabase && (
-            <div className="px-8 pt-7 pb-5 space-y-2.5">
-              <button
-                type="button"
-                onClick={() => handleSso('google')}
-                disabled={!!ssoLoading}
-                className="w-full flex items-center justify-center gap-2.5 border border-gray-200 rounded-lg py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-              >
-                {ssoLoading === 'google' ? <Spinner size={4} /> : <GoogleIcon />}
-                Continue with Google
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSso('azure')}
-                disabled={!!ssoLoading}
-                className="w-full flex items-center justify-center gap-2.5 border border-gray-200 rounded-lg py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-              >
-                {ssoLoading === 'azure' ? <Spinner size={4} /> : <MicrosoftIcon />}
-                Continue with Microsoft
-              </button>
-              <div className="flex items-center gap-3 pt-1">
-                <div className="flex-1 h-px bg-gray-100" />
-                <span className="text-[11px] text-gray-400">or email</span>
-                <div className="flex-1 h-px bg-gray-100" />
-              </div>
-            </div>
-          )}
-
-          {/* Tab strip */}
-          {mode !== 'reset' && (
-            <div className={`flex border-b border-gray-100 ${supabase ? '' : 'mt-0'}`}>
-              {['login', 'signup'].map(m => (
-                <button key={m} type="button"
-                  onClick={() => switchMode(m)}
-                  className={`flex-1 py-3.5 text-[13px] font-semibold transition-colors ${
-                    mode === m
-                      ? 'text-emerald-700 border-b-2 border-emerald-600 bg-emerald-50/60'
-                      : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  {m === 'login' ? 'Sign in' : 'Join workspace'}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {mode !== 'reset' && <form onSubmit={submit} className="px-8 py-7 space-y-4">
-
-            {/* Workspace ID — only shown in legacy mode (no Supabase) */}
-            {!supabase && (
-              <div>
-                <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                  Workspace ID
-                </label>
-                <div className="relative">
-                  <Building2 size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                  <input
-                    className="w-full border border-gray-200 rounded-lg pl-10 pr-3.5 py-2.5 text-sm text-gray-900 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 placeholder:text-gray-300 placeholder:font-sans"
-                    placeholder="e.g. acme-corp"
-                    value={form.tenantSlug}
-                    onChange={e => set('tenantSlug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                    required={!supabase}
-                    autoComplete="organization"
-                    spellCheck={false}
-                  />
-                </div>
-                <p className="mt-1 text-[11px] text-gray-400">
-                  {mode === 'login'
-                    ? 'Your workspace ID was provided when your account was set up.'
-                    : 'Ask your workspace administrator for the workspace ID.'}
-                </p>
-              </div>
-            )}
-
-            {/* Name (signup only, legacy mode) */}
-            {mode === 'signup' && !supabase && (
-              <div>
-                <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                  Full Name
-                </label>
-                <input
-                  className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 placeholder:text-gray-300"
-                  placeholder="Jane Smith"
-                  value={form.name}
-                  onChange={e => set('name', e.target.value)}
-                  required={!supabase}
-                />
-              </div>
-            )}
-
-            {/* Email */}
-            <div>
-              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                Email
-              </label>
-              <input type="email" required autoComplete="email"
-                className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 placeholder:text-gray-300"
-                placeholder="you@company.com"
-                value={form.email}
-                onChange={e => set('email', e.target.value)}
-              />
-            </div>
-
-            {/* Password */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
-                  Password
-                </label>
-                {mode === 'login' && supabase && (
-                  <button type="button" onClick={() => switchMode('reset')}
-                    className="text-[11px] font-medium text-emerald-600 hover:text-emerald-700 hover:underline">
-                    Forgot password?
-                  </button>
-                )}
-              </div>
-              <input type="password" required minLength={8}
-                className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 placeholder:text-gray-300"
-                placeholder="••••••••"
-                value={form.password}
-                onChange={e => set('password', e.target.value)}
-                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              />
-            </div>
-
-            {error && (
-              <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 text-[13px] px-3.5 py-3 rounded-lg">
-                <AlertCircle size={15} className="shrink-0 mt-0.5 text-red-500" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <button type="submit" disabled={loading}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-1">
-              {loading && <Spinner size={4} />}
-              {mode === 'login' ? 'Sign in' : 'Create account'}
-            </button>
-          </form>}
-
-          {mode !== 'reset' && (
-            <div className="px-8 pb-6 text-center">
-              <p className="text-[12px] text-gray-400">
-                By signing in you agree to Zevra terms of service.
-              </p>
-            </div>
-          )}
+          <p className="text-center mt-3.5 text-[11.5px]" style={{ color: 'var(--z-text-muted)' }}>
+            Terms of Service <span style={{ color: 'var(--z-border-strong)' }}>&middot;</span> Privacy Policy
+          </p>
         </div>
-
-        <p className="text-center text-[12px] text-white/30 mt-6">
-          © 2026 Zevra · Enterprise Operational Intelligence Platform
-        </p>
-      </div>
+      </main>
     </div>
   );
 }

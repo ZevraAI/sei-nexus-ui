@@ -982,6 +982,9 @@ export default function Semantic() {
   const [learnings, setLearnings]     = useState([]);
   const [learningsLoading, setLearningsLoading] = useState(false);
   const [editLearning, setEditLearning] = useState(null);
+  // concept_key backfill: admin-facing catalog for the "Assign concept" picker below — read-only,
+  // loaded once when the Learned tab is first opened.
+  const [concepts, setConcepts]       = useState([]);
   const [editSqlPattern, setEditSqlPattern] = useState('');
   const [allPacks,     setAllPacks]     = useState([]);
   const [appliedPacks, setAppliedPacks] = useState([]);
@@ -1058,6 +1061,12 @@ export default function Semantic() {
   useEffect(() => {
     if (tab === 'learned' && selectedDomain) loadLearnings(selectedDomain);
   }, [tab, selectedDomain]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (tab === 'learned' && concepts.length === 0) {
+      api.semantic.concepts.list().then(setConcepts).catch(() => setConcepts([]));
+    }
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPacks = useCallback(async () => {
     setPacksLoading(true);
@@ -1306,6 +1315,15 @@ export default function Semantic() {
                   </span>
                 </div>
                 <p className="text-[11px] font-mono text-gray-500 mt-0.5 truncate">{m.sql_pattern}</p>
+                {/* concept_key: null = promoted but not yet classified, so a promoted learning
+                    stays excluded from Vector Store projection until an admin picks a concept. */}
+                <div className="mt-1">
+                  {m.concept_key ? (
+                    <span className="text-[10px] font-medium text-gray-500">Concept: {m.concept_key}</span>
+                  ) : (
+                    <span className="text-[10px] font-medium text-amber-600">Unclassified</span>
+                  )}
+                </div>
                 {/* Confidence bar */}
                 <div className="mt-1.5 flex items-center gap-2">
                   <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
@@ -1317,13 +1335,40 @@ export default function Semantic() {
                   </span>
                   <span className="text-[10px] text-gray-400">{m.use_count}×</span>
                 </div>
+                {/* Concept picker — offered whenever unclassified, whether or not promoted yet, so
+                    promoting and classifying can happen together or separately. */}
+                {!m.concept_key && concepts.length > 0 && (
+                  <div className="mt-1.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <select defaultValue="" id={`concept-select-${m.mapping_key}`}
+                      className="text-[10.5px] border border-gray-200 rounded px-1 py-0.5 text-gray-600">
+                      <option value="" disabled>Assign concept…</option>
+                      {concepts.map(c => (
+                        <option key={c.conceptKey} value={c.conceptKey}>{c.name}</option>
+                      ))}
+                    </select>
+                    <button onClick={async () => {
+                      const select = document.getElementById(`concept-select-${m.mapping_key}`);
+                      const conceptKey = select?.value;
+                      if (!conceptKey) return;
+                      await api.semantic.learnings.assignConcept(m.mapping_key, conceptKey);
+                      loadLearnings(selectedDomain);
+                    }} className="text-[10.5px] text-emerald-600 hover:underline">Assign</button>
+                  </div>
+                )}
                 {/* Inline actions (visible on hover) */}
                 <div className="mt-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   {!m.promoted && (
                     <button onClick={async () => {
-                      await api.semantic.learnings.promote(m.mapping_key);
+                      const select = document.getElementById(`concept-select-${m.mapping_key}`);
+                      await api.semantic.learnings.promote(m.mapping_key, select?.value || undefined);
                       loadLearnings(selectedDomain);
                     }} className="text-[10.5px] text-emerald-600 hover:underline">Promote</button>
+                  )}
+                  {m.promoted && (
+                    <button onClick={async () => {
+                      await api.semantic.learnings.demote(m.mapping_key);
+                      loadLearnings(selectedDomain);
+                    }} className="text-[10.5px] text-amber-600 hover:underline">Demote</button>
                   )}
                   <button onClick={() => { setEditLearning(m); setEditSqlPattern(m.sql_pattern); }}
                     className="text-[10.5px] text-blue-600 hover:underline">Edit SQL</button>
