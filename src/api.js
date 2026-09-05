@@ -347,6 +347,20 @@ export const api = {
     remove:  (packKey)               => del(`/industry-packs/applied/${packKey}`),
   },
 
+  // ── AI Knowledge / Vector Store synchronization (tenant ADMIN only) ────────
+  knowledge: {
+    vectorStore: {
+      status: ()  => get('/admin/knowledge/vector-store/status'),
+      sync:   ()  => post('/admin/knowledge/vector-store/sync', {}),
+      // Cross-tenant — platform/Zevra ADMIN only (backend also enforces this).
+      platform: {
+        list:    ()            => get('/admin/knowledge/vector-store/tenants'),
+        pending: (tenantSlug)   => get(`/admin/knowledge/vector-store/tenants/${tenantSlug}/pending`),
+        sync:    (tenantSlug)   => post(`/admin/knowledge/vector-store/tenants/${tenantSlug}/sync`, {}),
+      },
+    },
+  },
+
   // ── Integration Templates ──────────────────────────────────────────────────
   integrationTemplates: {
     list:     ()                       => get('/templates'),

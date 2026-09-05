@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Activity, Brain, CheckCircle2, ChevronRight, Database, Globe,
-  Package, RefreshCw, Shield, ShieldCheck, Zap,
+  Package, RefreshCw, Shield, ShieldCheck, Sparkles, Zap,
 } from 'lucide-react';
 import { api } from '../api.js';
-import { navigate } from '../App.jsx';
+import { navigate, useAuth } from '../App.jsx';
+import AiKnowledgeStoreCard from '../components/AiKnowledgeStoreCard.jsx';
+import AiKnowledgeCrossTenantCard from '../components/AiKnowledgeCrossTenantCard.jsx';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -40,6 +42,11 @@ function SectionHeader({ icon: Icon, title, linkLabel, linkTarget, color = 'bg-e
 // ── Settings page ─────────────────────────────────────────────────────────────
 
 export default function Settings() {
+  const { user } = useAuth();
+  const isTenantAdmin = user?.role === 'ADMIN';
+  // Same disambiguation Layout.jsx's own isPlatformAdmin already uses: role ADMIN AND the
+  // caller's session resolves to the public/platform schema, not a tenant schema.
+  const isPlatformAdmin = isTenantAdmin && (user?.tenant_schema === 'public' || !user?.tenant_schema);
   const [loading,       setLoading]       = useState(true);
   const [packData,      setPackData]       = useState({ applied: [], available: [] });
   const [govData,       setGovData]        = useState({ columns: 0, rls: 0, contracts: 0, auditTotal: 0 });
@@ -227,6 +234,22 @@ export default function Settings() {
             </div>
           )}
         </section>
+
+        {/* ── AI Knowledge / Vector Store sync (tenant ADMIN only) ──────────── */}
+        {isTenantAdmin && (
+          <section className="mb-10">
+            <SectionHeader icon={Sparkles} title="AI Knowledge"
+              color="bg-violet-50" iconColor="text-violet-600" />
+            <AiKnowledgeStoreCard />
+          </section>
+        )}
+
+        {/* ── AI Knowledge Synchronization — cross-tenant (Zevra/platform ADMIN only) ── */}
+        {isPlatformAdmin && (
+          <section className="mb-10">
+            <AiKnowledgeCrossTenantCard />
+          </section>
+        )}
 
         {/* ── System ───────────────────────────────────────────────────────── */}
         <section className="mb-10">
