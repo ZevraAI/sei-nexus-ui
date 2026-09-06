@@ -3,9 +3,40 @@ import { api } from '../api.js';
 import { supabase } from '../supabase.js';
 import { Spinner } from '../components/Card.jsx';
 import { ZevraLogo } from '../components/ZevraLogo.jsx';
-import { ThemeToggle } from '../components/ThemeToggle.jsx';
-import LoginIntelligencePanel from './login/LoginIntelligencePanel.jsx';
-import { Building2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext.jsx';
+import LoginIntelligencePanel, { INDUSTRIES } from './login/LoginIntelligencePanel.jsx';
+import { Building2, AlertCircle, Eye, EyeOff, Sun, Moon } from 'lucide-react';
+
+// A richer visual treatment of the same theme control used elsewhere in the
+// app (Layout.jsx's ThemeToggle) — both sun and moon stay visible flanking
+// the switch, matching the login page's premium visual language. It calls
+// the exact same useTheme()/toggleTheme mechanism, so persistence is
+// unchanged; this is local to the login page only, not a second control.
+function LoginThemeToggle() {
+  const { isDark, toggleTheme } = useTheme();
+  return (
+    <div
+      className="inline-flex items-center gap-2 rounded-full border px-2.5 py-[7px]"
+      style={{ background: 'var(--z-card)', borderColor: 'var(--z-border)' }}
+    >
+      <Sun size={13} strokeWidth={1.8} style={{ color: isDark ? 'var(--z-text-muted)' : 'var(--z-brass)' }} />
+      <button
+        type="button"
+        onClick={toggleTheme}
+        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        aria-pressed={isDark}
+        className="relative w-9 h-[18px] rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2"
+        style={{ background: isDark ? 'var(--z-primary)' : 'var(--z-border-strong)' }}
+      >
+        <span
+          className="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-sm transition-transform duration-200"
+          style={{ transform: isDark ? 'translateX(18px)' : 'translateX(2px)' }}
+        />
+      </button>
+      <Moon size={13} strokeWidth={1.8} style={{ color: isDark ? 'var(--z-primary)' : 'var(--z-text-muted)' }} />
+    </div>
+  );
+}
 
 function GoogleIcon() {
   return (
@@ -162,39 +193,103 @@ export default function Login({ onLogin }) {
 
   return (
     <div
-      className="min-h-screen grid md:grid-cols-[1.16fr_0.84fr]"
+      className="min-h-screen md:h-[100dvh] grid md:grid-cols-[1.32fr_0.68fr] md:overflow-hidden"
       style={{ background: 'var(--z-bg)', color: 'var(--z-text)' }}
     >
+      {/* Dark-mode-only text brightness overrides. Light mode is untouched — every
+          element below still carries its normal `var(--z-text-*)` inline color as
+          the light-mode value; these classes only layer a brighter dark-mode value
+          on top (via !important, the one thing that can beat an inline style),
+          because the shared --z-text-2/3/muted tokens read as too washed-out for
+          this page's dark background. Four levels, consistently applied:
+          zv-t1 headline/primary, zv-t2 body/labels, zv-t3 secondary headings,
+          zv-t4 muted/metadata (still legible, not disappearing). */}
+      <style>{`
+        /* No page scroll on desktop/tablet (md+, the two-column layout): the shell
+           is pinned to exactly 100dvh and clips instead of scrolling. Mobile keeps
+           its normal stacked-page scroll — that's standard mobile UX and is how the
+           collapsed industry strip below the login card stays reachable there. */
+        @media (min-width: 768px) {
+          html, body { overflow: hidden; }
+        }
+        [data-theme="dark"] .zv-t1 { color: #f5f3ec !important; }
+        [data-theme="dark"] .zv-t2 { color: #d7dcd3 !important; }
+        [data-theme="dark"] .zv-t3 { color: #aab3a8 !important; }
+        [data-theme="dark"] .zv-t4 { color: #8b968c !important; }
+        .zv-input::placeholder { color: var(--z-text-muted); }
+        [data-theme="dark"] .zv-input::placeholder { color: #7c8a80; }
+        /* Ask Zevra status dot — a very slight continuous glow so the card
+           reads as "live", not just a static illustration. */
+        .zv-indicator-pulse { animation: zvIndicatorPulse 2.8s ease-in-out infinite; }
+        @keyframes zvIndicatorPulse {
+          0%, 100% { box-shadow: 0 0 0 0 var(--z-primary-soft); }
+          50%      { box-shadow: 0 0 0 4px var(--z-primary-soft); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .zv-indicator-pulse { animation: none; }
+        }
+
+        /* Height-based compaction for the login card, so it keeps fitting
+           within the fixed-height shell on short desktop/tablet windows
+           instead of ever needing its own scrollbar. */
+        @media (min-width: 768px) and (max-height: 760px) {
+          .zv-authwrap { max-width: 360px; }
+          .zv-card-inner { padding: 20px 26px 16px !important; }
+          .zv-card-head { margin-bottom: 14px !important; }
+          .zv-sso-row { margin-bottom: 10px !important; gap: 7px !important; }
+          .zv-field { margin-bottom: 9px !important; }
+        }
+        @media (min-width: 768px) and (max-height: 620px) {
+          .zv-card-inner { padding: 14px 24px 12px !important; }
+          .zv-card-head { margin-bottom: 10px !important; }
+        }
+      `}</style>
+
       <div className="fixed top-[18px] right-[18px] z-50">
-        <ThemeToggle />
+        <LoginThemeToggle />
       </div>
 
       <LoginIntelligencePanel logo={<ZevraLogo size={26} style={{ borderRadius: '7px' }} />} />
 
       <main
-        className="relative flex items-center justify-center px-6 py-10 md:border-l"
+        className="relative flex items-center justify-center px-6 py-10 md:border-l min-w-0 md:h-full md:overflow-hidden"
         style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border)' }}
       >
-        <div className="w-full max-w-[374px]">
+        <div className="w-full max-w-[374px] zv-authwrap">
 
-          {/* Mobile-only compact brand row — the left panel is hidden below md */}
-          <div className="flex md:hidden items-center justify-center gap-2.5 mb-7">
-            <ZevraLogo size={28} style={{ borderRadius: '8px' }} />
-            <span className="text-[15px] font-semibold" style={{ color: 'var(--z-text)' }}>Zevra</span>
+          {/* Mobile-only compact brand + hero — the full left panel (with the
+              intelligence card and industry cards) is hidden below md; this is
+              the condensed stand-in so the product story isn't lost, per the
+              mobile content order: logo → hero → short explanation → login card. */}
+          <div className="flex md:hidden flex-col items-center text-center gap-2.5 mb-7">
+            <div className="flex items-center gap-2.5">
+              <ZevraLogo size={28} style={{ borderRadius: '8px' }} />
+              <span className="text-[15px] font-semibold zv-t1" style={{ color: 'var(--z-text)' }}>Zevra</span>
+            </div>
+            <h1
+              className="mt-1 text-[19px] leading-snug tracking-tight zv-t1"
+              style={{ fontFamily: 'var(--z-font-serif)', fontWeight: 450, color: 'var(--z-text)' }}
+            >
+              Understand your business.<br />
+              Act with <span style={{ color: 'var(--z-primary)' }}>confidence.</span>
+            </h1>
+            <p className="text-[12.5px] leading-snug max-w-[34ch] zv-t2" style={{ color: 'var(--z-text-2)' }}>
+              Zevra connects to the systems your organization already runs and turns operational data into intelligence your teams can trust.
+            </p>
           </div>
 
           <div
             className="rounded-[var(--z-radius-xl)] p-[2px]"
             style={{
               backgroundImage:
-                'linear-gradient(var(--z-card), var(--z-card)), linear-gradient(155deg, var(--z-border-strong), var(--z-border) 40%, var(--z-border-strong) 100%)',
+                'linear-gradient(var(--z-card), var(--z-card)), linear-gradient(155deg, color-mix(in srgb, var(--z-primary) 32%, var(--z-border-strong)), var(--z-border) 45%, color-mix(in srgb, var(--z-primary) 22%, var(--z-border-strong)) 100%)',
               backgroundOrigin: 'border-box',
               backgroundClip: 'padding-box, border-box',
               border: '1px solid transparent',
-              boxShadow: 'var(--z-elev-4)',
+              boxShadow: 'var(--z-elev-4), 0 0 34px -14px color-mix(in srgb, var(--z-primary) 45%, transparent)',
             }}
           >
-            <div className="p-[28px_30px_22px]">
+            <div className="p-[28px_30px_22px] zv-card-inner">
 
               {/* Password reset view */}
               {mode === 'reset' && (
@@ -207,9 +302,9 @@ export default function Login({ onLogin }) {
                       >
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--z-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                       </div>
-                      <p className="text-[14px] font-semibold" style={{ color: 'var(--z-text)' }}>Check your inbox</p>
-                      <p className="text-[13px]" style={{ color: 'var(--z-text-3)' }}>
-                        A password reset link has been sent to <span className="font-medium" style={{ color: 'var(--z-text-2)' }}>{form.email}</span>.
+                      <p className="text-[14px] font-semibold zv-t1" style={{ color: 'var(--z-text)' }}>Check your inbox</p>
+                      <p className="text-[13px] zv-t3" style={{ color: 'var(--z-text-3)' }}>
+                        A password reset link has been sent to <span className="font-medium zv-t2" style={{ color: 'var(--z-text-2)' }}>{form.email}</span>.
                         Check your spam folder if it doesn't arrive within a few minutes.
                       </p>
                       <button type="button" onClick={() => switchMode('login')}
@@ -221,14 +316,14 @@ export default function Login({ onLogin }) {
                   ) : (
                     <form onSubmit={handleResetPassword} className="space-y-4">
                       <div>
-                        <p className="text-[13px] mb-4" style={{ color: 'var(--z-text-3)' }}>
+                        <p className="text-[13px] mb-4 zv-t3" style={{ color: 'var(--z-text-3)' }}>
                           Enter your email address and we'll send you a link to reset your password.
                         </p>
-                        <label className="block text-[11.5px] font-semibold mb-1.5" style={{ color: 'var(--z-text-2)' }}>
+                        <label className="block text-[11.5px] font-semibold mb-1.5 zv-t2" style={{ color: 'var(--z-text-2)' }}>
                           Email address
                         </label>
                         <input type="email" required autoComplete="email"
-                          className="w-full rounded-[var(--z-radius-sm)] px-3.5 py-2.5 text-sm outline-none border transition-shadow"
+                          className="w-full rounded-[var(--z-radius-sm)] px-3.5 py-2.5 text-sm outline-none border transition-shadow zv-input zv-t1"
                           style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border-strong)', color: 'var(--z-text)' }}
                           onFocus={e => { e.target.style.borderColor = 'var(--z-focus)'; e.target.style.boxShadow = '0 0 0 3px var(--z-focus-ring)'; }}
                           onBlur={e => { e.target.style.borderColor = 'var(--z-border-strong)'; e.target.style.boxShadow = 'none'; }}
@@ -253,7 +348,7 @@ export default function Login({ onLogin }) {
                         Send reset link
                       </button>
                       <button type="button" onClick={() => switchMode('login')}
-                        className="w-full text-[13px] font-medium transition-colors py-1"
+                        className="w-full text-[13px] font-medium transition-colors py-1 zv-t4"
                         style={{ color: 'var(--z-text-muted)' }}>
                         Back to sign in
                       </button>
@@ -265,20 +360,20 @@ export default function Login({ onLogin }) {
               {mode !== 'reset' && (
                 <>
                   {/* Card head */}
-                  <div className="mb-5">
+                  <div className="mb-5 zv-card-head">
                     <ZevraLogo size={34} style={{ borderRadius: 'var(--z-radius-sm)', display: 'block', marginBottom: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.14)' }} />
-                    <h2 className="text-[20px] font-semibold tracking-tight" style={{ color: 'var(--z-text)' }}>Welcome back</h2>
-                    <p className="mt-1 text-[13px]" style={{ color: 'var(--z-text-3)' }}>Sign in to your Zevra workspace</p>
+                    <h2 className="text-[20px] font-semibold tracking-tight zv-t1" style={{ color: 'var(--z-text)' }}>Welcome back</h2>
+                    <p className="mt-1 text-[13px] zv-t3" style={{ color: 'var(--z-text-3)' }}>Sign in to your Zevra workspace</p>
                   </div>
 
                   {/* SSO buttons — only when Supabase is configured */}
                   {supabase && (
-                    <div className="flex flex-col gap-2 mb-3.5">
+                    <div className="flex flex-col gap-2 mb-3.5 zv-sso-row">
                       <button
                         type="button"
                         onClick={() => handleSso('google')}
                         disabled={!!ssoLoading}
-                        className="w-full flex items-center justify-center gap-2.5 rounded-[var(--z-radius-md)] py-2.5 text-[13px] font-medium transition-all border disabled:opacity-50"
+                        className="w-full flex items-center justify-center gap-2.5 rounded-[var(--z-radius-md)] py-2.5 text-[13px] font-medium transition-all border disabled:opacity-50 zv-t2"
                         style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border-strong)', color: 'var(--z-text-2)' }}
                         onMouseEnter={e => { e.currentTarget.style.background = 'var(--z-hover)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'var(--z-surface)'; e.currentTarget.style.transform = 'none'; }}
@@ -290,7 +385,7 @@ export default function Login({ onLogin }) {
                         type="button"
                         onClick={() => handleSso('azure')}
                         disabled={!!ssoLoading}
-                        className="w-full flex items-center justify-center gap-2.5 rounded-[var(--z-radius-md)] py-2.5 text-[13px] font-medium transition-all border disabled:opacity-50"
+                        className="w-full flex items-center justify-center gap-2.5 rounded-[var(--z-radius-md)] py-2.5 text-[13px] font-medium transition-all border disabled:opacity-50 zv-t2"
                         style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border-strong)', color: 'var(--z-text-2)' }}
                         onMouseEnter={e => { e.currentTarget.style.background = 'var(--z-hover)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'var(--z-surface)'; e.currentTarget.style.transform = 'none'; }}
@@ -300,7 +395,7 @@ export default function Login({ onLogin }) {
                       </button>
                       <div className="flex items-center gap-3 pt-1">
                         <div className="flex-1 h-px" style={{ background: 'var(--z-border)' }} />
-                        <span className="text-[11px]" style={{ color: 'var(--z-text-muted)' }}>or sign in with email</span>
+                        <span className="text-[11px] zv-t4" style={{ color: 'var(--z-text-muted)' }}>or sign in with email</span>
                         <div className="flex-1 h-px" style={{ background: 'var(--z-border)' }} />
                       </div>
                     </div>
@@ -329,14 +424,14 @@ export default function Login({ onLogin }) {
 
                     {/* Workspace ID — only shown in legacy mode (no Supabase) */}
                     {!supabase && (
-                      <div className="mb-3">
-                        <label className="block text-[11.5px] font-semibold mb-1.5" style={{ color: 'var(--z-text-2)' }}>
+                      <div className="mb-3 zv-field">
+                        <label className="block text-[11.5px] font-semibold mb-1.5 zv-t2" style={{ color: 'var(--z-text-2)' }}>
                           Workspace ID
                         </label>
                         <div className="relative">
                           <Building2 size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--z-text-muted)' }} />
                           <input
-                            className="w-full rounded-[var(--z-radius-sm)] pl-10 pr-3.5 py-2.5 text-sm font-mono border outline-none"
+                            className="w-full rounded-[var(--z-radius-sm)] pl-10 pr-3.5 py-2.5 text-sm font-mono border outline-none zv-input zv-t1"
                             style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border-strong)', color: 'var(--z-text)' }}
                             placeholder="e.g. acme-corp"
                             value={form.tenantSlug}
@@ -346,7 +441,7 @@ export default function Login({ onLogin }) {
                             spellCheck={false}
                           />
                         </div>
-                        <p className="mt-1 text-[11px]" style={{ color: 'var(--z-text-muted)' }}>
+                        <p className="mt-1 text-[11px] zv-t4" style={{ color: 'var(--z-text-muted)' }}>
                           {mode === 'login'
                             ? 'Your workspace ID was provided when your account was set up.'
                             : 'Ask your workspace administrator for the workspace ID.'}
@@ -356,12 +451,12 @@ export default function Login({ onLogin }) {
 
                     {/* Name (signup only, legacy mode) */}
                     {mode === 'signup' && !supabase && (
-                      <div className="mb-3">
-                        <label className="block text-[11.5px] font-semibold mb-1.5" style={{ color: 'var(--z-text-2)' }}>
+                      <div className="mb-3 zv-field">
+                        <label className="block text-[11.5px] font-semibold mb-1.5 zv-t2" style={{ color: 'var(--z-text-2)' }}>
                           Full Name
                         </label>
                         <input
-                          className="w-full rounded-[var(--z-radius-sm)] px-3.5 py-2.5 text-sm border outline-none"
+                          className="w-full rounded-[var(--z-radius-sm)] px-3.5 py-2.5 text-sm border outline-none zv-input zv-t1"
                           style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border-strong)', color: 'var(--z-text)' }}
                           placeholder="Jane Smith"
                           value={form.name}
@@ -372,12 +467,12 @@ export default function Login({ onLogin }) {
                     )}
 
                     {/* Email */}
-                    <div className="mb-3">
-                      <label className="block text-[11.5px] font-semibold mb-1.5" style={{ color: 'var(--z-text-2)' }}>
+                    <div className="mb-3 zv-field">
+                      <label className="block text-[11.5px] font-semibold mb-1.5 zv-t2" style={{ color: 'var(--z-text-2)' }}>
                         Email address
                       </label>
                       <input type="email" required autoComplete="email"
-                        className="w-full rounded-[var(--z-radius-sm)] px-3.5 py-2.5 text-sm border outline-none transition-shadow"
+                        className="w-full rounded-[var(--z-radius-sm)] px-3.5 py-2.5 text-sm border outline-none transition-shadow zv-input zv-t1"
                         style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border-strong)', color: 'var(--z-text)' }}
                         onFocus={e => { e.target.style.borderColor = 'var(--z-focus)'; e.target.style.boxShadow = '0 0 0 3px var(--z-focus-ring)'; }}
                         onBlur={e => { e.target.style.borderColor = 'var(--z-border-strong)'; e.target.style.boxShadow = 'none'; }}
@@ -388,14 +483,14 @@ export default function Login({ onLogin }) {
                     </div>
 
                     {/* Password */}
-                    <div className="mb-3">
+                    <div className="mb-3 zv-field">
                       <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-[11.5px] font-semibold" style={{ color: 'var(--z-text-2)' }}>
+                        <label className="block text-[11.5px] font-semibold zv-t2" style={{ color: 'var(--z-text-2)' }}>
                           Password
                         </label>
                         {mode === 'login' && supabase && (
                           <button type="button" onClick={() => switchMode('reset')}
-                            className="text-[12.5px] font-medium hover:underline"
+                            className="text-[12.5px] font-medium hover:underline zv-t2"
                             style={{ color: 'var(--z-text-2)' }}>
                             Forgot password?
                           </button>
@@ -403,7 +498,7 @@ export default function Login({ onLogin }) {
                       </div>
                       <div className="relative">
                         <input type={showPassword ? 'text' : 'password'} required minLength={8}
-                          className="w-full rounded-[var(--z-radius-sm)] pl-3.5 pr-10 py-2.5 text-sm border outline-none transition-shadow"
+                          className="w-full rounded-[var(--z-radius-sm)] pl-3.5 pr-10 py-2.5 text-sm border outline-none transition-shadow zv-input zv-t1"
                           style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border-strong)', color: 'var(--z-text)' }}
                           onFocus={e => { e.target.style.borderColor = 'var(--z-focus)'; e.target.style.boxShadow = '0 0 0 3px var(--z-focus-ring)'; }}
                           onBlur={e => { e.target.style.borderColor = 'var(--z-border-strong)'; e.target.style.boxShadow = 'none'; }}
@@ -425,7 +520,7 @@ export default function Login({ onLogin }) {
                     </div>
 
                     {mode === 'login' && supabase && (
-                      <label className="flex items-center gap-2 mb-4 text-[12.5px] cursor-pointer" style={{ color: 'var(--z-text-2)' }}>
+                      <label className="flex items-center gap-2 mb-4 text-[12.5px] cursor-pointer zv-t2" style={{ color: 'var(--z-text-2)' }}>
                         <input
                           type="checkbox"
                           checked={rememberMe}
@@ -447,25 +542,58 @@ export default function Login({ onLogin }) {
 
                     <button type="submit" disabled={loading}
                       className="w-full font-semibold py-2.5 rounded-[var(--z-radius-md)] text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ background: 'var(--z-primary)', color: 'var(--z-primary-on)', boxShadow: '0 1px 2px rgba(0,0,0,0.08), 0 6px 16px -8px var(--z-spine-strong, var(--z-primary))' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--z-primary-hover)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'var(--z-primary)'}>
+                      style={{ background: 'linear-gradient(135deg, var(--z-primary) 0%, var(--z-primary-hover) 100%)', color: 'var(--z-primary-on)', boxShadow: '0 1px 2px rgba(0,0,0,0.08), 0 6px 16px -8px var(--z-spine-strong, var(--z-primary))' }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1), 0 10px 24px -8px var(--z-spine-strong, var(--z-primary))'; }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.08), 0 6px 16px -8px var(--z-spine-strong, var(--z-primary))'; }}>
                       {loading && <Spinner size={4} />}
                       {mode === 'login' ? 'Sign in' : 'Create account'}
                     </button>
                   </form>
 
-                  <div className="text-center mt-3.5 text-[12px]" style={{ color: 'var(--z-text-muted)' }}>
-                    Need help? Contact your workspace administrator
+                  <div className="text-center mt-3.5 text-[12px] zv-t4" style={{ color: 'var(--z-text-muted)' }}>
+                    Need help? <span style={{ color: 'var(--z-primary)', fontWeight: 500 }}>Contact your workspace administrator</span>
                   </div>
                 </>
               )}
             </div>
           </div>
 
-          <p className="text-center mt-3.5 text-[11.5px]" style={{ color: 'var(--z-text-muted)' }}>
+          <p className="text-center mt-3.5 text-[11.5px] zv-t4" style={{ color: 'var(--z-text-muted)' }}>
             Terms of Service <span style={{ color: 'var(--z-border-strong)' }}>&middot;</span> Privacy Policy
           </p>
+          <p className="hidden md:flex items-center justify-center gap-2 mt-2 text-[11px] italic zv-t4" style={{ color: 'var(--z-text-muted)' }}>
+            <span style={{ width: 16, height: 1, background: 'var(--z-border-strong)' }} />
+            Real operations. Greater possibilities.
+          </p>
+
+          {/* Mobile-only: Industry Packs collapsed to a compact icon strip below the
+              login card, not a scrollable row of the full descriptor cards — the
+              login form stays short, but the "one platform, every industry" idea
+              isn't dropped entirely. */}
+          <div className="md:hidden mt-8 pt-6 border-t text-center" style={{ borderColor: 'var(--z-border)' }}>
+            <div className="text-[10.5px] font-bold uppercase tracking-[0.14em] zv-t3" style={{ color: 'var(--z-text-3)' }}>
+              One platform. Every industry.
+            </div>
+            {/* flex-wrap, not overflow-x-auto: a non-wrapping scroll row of
+                flex-none pills can force its min-content width onto the whole
+                page inside a flex/grid ancestor (Login's main is a flex
+                container) — wrapping sidesteps that class of bug entirely. */}
+            <div className="flex flex-wrap gap-2 mt-3 justify-center">
+              {INDUSTRIES.map(ind => {
+                const Icon = ind.icon;
+                return (
+                  <span
+                    key={ind.name}
+                    className="inline-flex items-center gap-1.5 rounded-[var(--z-radius-pill)] border px-2.5 py-1.5"
+                    style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border)' }}
+                  >
+                    <Icon size={12} strokeWidth={1.8} style={{ color: 'var(--z-text-3)' }} />
+                    <span className="text-[11px] whitespace-nowrap zv-t3" style={{ color: 'var(--z-text-3)' }}>{ind.name}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </main>
     </div>

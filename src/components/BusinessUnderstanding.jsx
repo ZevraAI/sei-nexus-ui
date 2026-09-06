@@ -22,10 +22,10 @@ export default function BusinessUnderstanding({ steps = [], runKey = null }) {
   if (concepts.length === 0) return null;
 
   return (
-    <div className="mt-3 pt-3 border-t border-[#F0EDE8]">
+    <div className="mt-2 pt-2 border-t border-z-border">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 text-[11.5px] font-medium text-gray-400 hover:text-gray-600 transition-colors w-full text-left"
+        className="flex items-center gap-2 text-[11.5px] font-medium text-z-text-3 hover:text-z-text-2 transition-colors w-full text-left"
       >
         {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
         Business Understanding ({concepts.length} concept{concepts.length !== 1 ? 's' : ''})
@@ -73,18 +73,24 @@ function ConceptRow({ concept, runKey, selected, onToggle }) {
   const businessObjects = Array.isArray(concept.businessObjects) ? concept.businessObjects : [];
 
   return (
-    <div className="rounded-lg border border-gray-100 overflow-hidden">
+    <div className="rounded-lg border border-z-border overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+        className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 bg-z-card-2 hover:bg-z-hover transition-colors text-left"
       >
         <span className="flex items-center gap-2 min-w-0">
-          <span className={`grid h-[14px] w-[14px] flex-none place-items-center rounded-full border ${selected ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300'}`}>
-            {selected && <Check size={9} strokeWidth={3} className="text-white" />}
+          <span
+            className="grid h-[14px] w-[14px] flex-none place-items-center rounded-full border"
+            style={selected
+              ? { borderColor: 'var(--z-primary)', background: 'var(--z-primary)' }
+              : { borderColor: 'var(--z-border-strong)' }}
+          >
+            {selected && <Check size={9} strokeWidth={3} style={{ color: 'var(--z-primary-on)' }} />}
           </span>
-          <span className="text-[12.5px] font-semibold text-gray-700 truncate">{concept.surface}</span>
+          <span className="text-[12.5px] font-semibold text-z-text truncate">{concept.surface}</span>
         </span>
-        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 shrink-0">
+        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0"
+          style={{ background: 'var(--z-primary-soft)', color: 'var(--z-primary)' }}>
           {source}
         </span>
       </button>
@@ -101,12 +107,13 @@ function ConceptDetail({ concept, runKey, source, businessObjects }) {
   const [feedbackMode, setFeedbackMode] = useState(null); // 'definition' | 'incorrect' | null
 
   return (
-    <div className="px-3 py-2.5 space-y-2 text-[11.5px] border-t border-gray-100">
+    <div className="px-3 py-2.5 space-y-2 text-[11.5px] border-t border-z-border">
       <Field label="Knowledge Source" value={source} />
       <Field label="Enterprise Definition" value="Not Available"
         hint="No enterprise-authored definition is currently reachable for this term." />
       <Field label="Enterprise Metadata">
-        <code className="px-1 py-0.5 bg-gray-50 border border-gray-100 rounded text-[10.5px] text-gray-600 font-mono">
+        <code className="px-1 py-0.5 border rounded text-[10.5px] font-mono"
+          style={{ background: 'var(--z-card-2)', borderColor: 'var(--z-border)', color: 'var(--z-text-2)' }}>
           {concept.target}
         </code>
       </Field>
@@ -114,18 +121,19 @@ function ConceptDetail({ concept, runKey, source, businessObjects }) {
         value={businessObjects.length > 0 ? businessObjects.join(', ') : '—'} />
 
       <div className="pt-1">
-        <p className="text-[10.5px] font-semibold text-gray-500 uppercase tracking-wide">Why Zevra used this understanding</p>
-        <p className="mt-0.5 text-gray-500 italic leading-snug">{whyThisUnderstanding(concept.tier)}</p>
+        <p className="text-[10.5px] font-semibold uppercase tracking-wide text-z-text-2">Why Zevra used this understanding</p>
+        <p className="mt-0.5 italic leading-snug text-z-text-3">{whyThisUnderstanding(concept.tier)}</p>
       </div>
 
       {!feedbackMode ? (
         <div className="flex items-center gap-3 pt-1.5">
           <button onClick={() => setFeedbackMode('definition')}
-            className="text-[11px] font-medium text-emerald-700 hover:text-emerald-800 transition-colors">
+            className="text-[11px] font-medium transition-colors"
+            style={{ color: 'var(--z-primary)' }}>
             Add Enterprise Definition
           </button>
           <button onClick={() => setFeedbackMode('incorrect')}
-            className="text-[11px] font-medium text-gray-500 hover:text-gray-700 transition-colors">
+            className="text-[11px] font-medium text-z-text-3 hover:text-z-text-2 transition-colors">
             Report Incorrect Understanding
           </button>
         </div>
@@ -144,10 +152,10 @@ function ConceptDetail({ concept, runKey, source, businessObjects }) {
 function Field({ label, value, children, hint }) {
   return (
     <div className="flex items-start justify-between gap-3">
-      <span className="text-gray-400 shrink-0">{label}</span>
+      <span className="text-z-text-3 shrink-0">{label}</span>
       <span className="text-right min-w-0">
-        {children ?? <span className="text-gray-700 font-medium">{value}</span>}
-        {hint && <span className="block text-[10px] text-gray-400 mt-0.5 max-w-[26ch]">{hint}</span>}
+        {children ?? <span className="font-medium text-z-text">{value}</span>}
+        {hint && <span className="block text-[10px] mt-0.5 max-w-[26ch] text-z-text-3">{hint}</span>}
       </span>
     </div>
   );
@@ -191,20 +199,20 @@ function ConceptFeedbackForm({ concept, runKey, mode, onDone }) {
   };
 
   if (submitted) {
-    return <p className="pt-1.5 text-[11px] text-emerald-700 font-medium">Thanks — this has been recorded for review.</p>;
+    return <p className="pt-1.5 text-[11px] font-medium" style={{ color: 'var(--z-primary)' }}>Thanks — this has been recorded for review.</p>;
   }
 
   return (
-    <div className="pt-1.5 space-y-2 border-t border-gray-100 mt-1.5">
-      <p className="text-[10.5px] font-semibold text-gray-500 uppercase tracking-wide">
+    <div className="pt-1.5 space-y-2 border-t border-z-border mt-1.5">
+      <p className="text-[10.5px] font-semibold uppercase tracking-wide text-z-text-2">
         Improve Zevra&rsquo;s understanding of &ldquo;{concept}&rdquo;
       </p>
       <div className="space-y-1">
         {CATEGORIES.map(opt => (
           <label key={opt} className="flex items-center gap-2 cursor-pointer">
             <input type="radio" name={`category-${concept}`} checked={category === opt}
-              onChange={() => setCategory(opt)} className="accent-emerald-600" />
-            <span className="text-gray-600">{opt}</span>
+              onChange={() => setCategory(opt)} style={{ accentColor: 'var(--z-primary)' }} />
+            <span className="text-z-text-2">{opt}</span>
           </label>
         ))}
       </div>
@@ -213,19 +221,23 @@ function ConceptFeedbackForm({ concept, runKey, mode, onDone }) {
         onChange={e => setComment(e.target.value)}
         placeholder="Comments (optional)"
         rows={2}
-        className="w-full text-[11.5px] p-1.5 border border-gray-200 rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-emerald-400"
+        className="w-full text-[11.5px] p-1.5 border rounded-md resize-none focus:outline-none focus:ring-[3px]"
+        style={{ borderColor: 'var(--z-border-strong)', background: 'var(--z-surface)', color: 'var(--z-text)' }}
+        onFocus={e => { e.target.style.boxShadow = '0 0 0 3px var(--z-focus-ring)'; }}
+        onBlur={e => { e.target.style.boxShadow = 'none'; }}
       />
       <div className="flex items-center gap-3">
         <button onClick={submit} disabled={submitting || !runKey}
-          className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50">
+          className="text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors disabled:opacity-50"
+          style={{ background: 'var(--z-primary)', color: 'var(--z-primary-on)' }}>
           {submitting ? 'Submitting…' : 'Submit'}
         </button>
-        <button onClick={onDone} className="text-[11px] text-gray-400 hover:text-gray-600 transition-colors">
+        <button onClick={onDone} className="text-[11px] text-z-text-3 hover:text-z-text-2 transition-colors">
           Cancel
         </button>
       </div>
       {!runKey && (
-        <p className="text-[10px] text-amber-600">This answer doesn&rsquo;t have a run reference yet — try again once it finishes loading.</p>
+        <p className="text-[10px]" style={{ color: 'var(--z-warning)' }}>This answer doesn&rsquo;t have a run reference yet — try again once it finishes loading.</p>
       )}
     </div>
   );

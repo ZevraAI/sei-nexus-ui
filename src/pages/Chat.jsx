@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { marked } from 'marked';
 import {
-  ArrowLeft, Bot, CalendarClock, Check, ChevronDown, Clipboard, Clock, Download, FileDown,
-  FileSpreadsheet, FileText, ListTree, Printer, Search, User, X,
+  ArrowLeft, Bot, CalendarClock, Check, ChevronDown, Clipboard, Clock, Compass,
+  Download, FileDown, FileSpreadsheet, FileText, ListTree, Printer, Radar, Search, Sparkles, TrendingUp, User, X,
 } from 'lucide-react';
 import { api } from '../api.js';
 import { openEventStream } from '../lib/sse.js';
@@ -11,8 +11,9 @@ import { cn } from '../utils/cn';
 import {
   Button, IconButton, Field, Input, SegmentedControl, Dialog,
   InlineAlert, Spinner, Spine, TableWrap, Table, THead, TBody, Th, Tr, Td,
+  Badge, StatusDot, statusKind,
 } from '../ds';
-import { IntelligencePage, ReadingColumn, Eyebrow, Verdict } from '../ds/intelligence';
+import { IntelligencePage, ReadingColumn, Eyebrow, Verdict, HighlightSurface } from '../ds/intelligence';
 import InvestigationComposer from '../components/InvestigationComposer.jsx';
 
 import DataViz from '../components/DataViz.jsx';
@@ -23,7 +24,7 @@ import AgentStepTrace from '../components/agents/AgentStepTrace.jsx';
 // ── markdown ──────────────────────────────────────────────────────────────────
 marked.setOptions({ breaks: true, gfm: true });
 
-function MarkdownBody({ content }) {
+export function MarkdownBody({ content }) {
   const html = marked.parse(content || '');
   return (
     <div
@@ -38,7 +39,7 @@ function envLabel() {
   return import.meta.env.VITE_ENV_LABEL || import.meta.env.MODE || 'environment';
 }
 
-function timeAgo(value) {
+export function timeAgo(value) {
   if (!value) return '';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
@@ -64,7 +65,7 @@ function groupLabel(value) {
   return 'Earlier';
 }
 
-function safeArray(value) {
+export function safeArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
@@ -400,7 +401,7 @@ function FloatingHistory({ conversations, loading, onOpen, onClose }) {
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-function fmtCell(v) {
+export function fmtCell(v) {
   if (v == null) return '—';
   const n = parseFloat(v);
   if (!isNaN(n) && isFinite(v)) {
@@ -411,13 +412,13 @@ function fmtCell(v) {
   return String(v);
 }
 
-function colLabel(key) {
+export function colLabel(key) {
   return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 // ── DataTable ─────────────────────────────────────────────────────────────────
 
-function DataTable({ rows }) {
+export function DataTable({ rows }) {
   if (!rows?.length) return null;
   const cols = Object.keys(rows[0]);
   return (
@@ -453,7 +454,7 @@ function DataTable({ rows }) {
 
 // ── SuggestedQuestions ────────────────────────────────────────────────────────
 
-function buildSuggestions(quickRefinements, queryData) {
+export function buildSuggestions(quickRefinements, queryData) {
   const chips = [];
 
   // Data-driven: detect useful follow-ups from column patterns
@@ -550,7 +551,7 @@ function UserMessage({ text, attachment }) {
 // Small "view steps" toggle shown on answers produced by a Zevra Agent.
 // Fetches the agent session lazily on first open and renders the tool-call
 // trace with the same component used on the agent detail page.
-function AgentStepsToggle({ sessionId }) {
+export function AgentStepsToggle({ sessionId }) {
   const [open,    setOpen]    = useState(false);
   const [session, setSession] = useState(null);
   const [error,   setError]   = useState('');
@@ -605,7 +606,7 @@ function AgentStepsToggle({ sessionId }) {
 // Lift the answer's lead sentence into a serif "verdict" headline (the mockup's wow),
 // with **bold** phrases picked out in emerald — but only when the answer genuinely opens
 // with a short, plain sentence. Otherwise the whole answer stays as prose (safe fallback).
-function splitVerdict(md) {
+export function splitVerdict(md) {
   const text = (md || '').trim();
   const nl = text.indexOf('\n\n');
   const head = (nl === -1 ? text : text.slice(0, nl)).trim();
@@ -621,7 +622,7 @@ function splitVerdict(md) {
   return isVerdict ? { verdict: head, body: rest } : { verdict: null, body: text };
 }
 
-function renderVerdict(s) {
+export function renderVerdict(s) {
   return s.split(/(\*\*[^*]+\*\*)/g).map((part, i) => {
     const m = part.match(/^\*\*([^*]+)\*\*$/);
     return m
@@ -642,7 +643,7 @@ const MILESTONE_PHASES = {
   judgment:       ['reasoning'],
   preparing:      ['composition'],
 };
-const MILESTONE_LABEL = {
+export const MILESTONE_LABEL = {
   understanding: 'Understanding your business question...',
   reviewing:      'Reviewing enterprise data...',
   judgment:       'Forming business judgment...',
@@ -657,7 +658,7 @@ const PHASE_TO_MILESTONE = Object.fromEntries(
  *  fabricated ahead of time), which is exactly what makes a genuinely-skipped phase (e.g.
  *  EXECUTION on a memory-only answer) silently skip its milestone too — no phase, no row.
  *  A milestone checks off only once its last constituent phase has actually completed. */
-function deriveMilestones(phaseSteps) {
+export function deriveMilestones(phaseSteps) {
   const byMilestone = new Map(); // milestoneId -> ordered raw phase entries seen so far
   for (const p of phaseSteps) {
     const mid = PHASE_TO_MILESTONE[p.phase];
@@ -684,7 +685,7 @@ function deriveMilestones(phaseSteps) {
 // objects, confidence explanation, ...): pass it once that data exists on completed phases
 // and a completed row automatically gains an expand chevron — no restructuring needed here.
 // Omitted (as today), rows render exactly as before: no chevron, no expand affordance.
-function RuntimeProgress({ phases, renderDetail }) {
+export function RuntimeProgress({ phases, renderDetail }) {
   const [expanded, setExpanded] = useState(() => new Set());
   const toggle = (phaseId) => setExpanded((prev) => {
     const next = new Set(prev);
@@ -730,7 +731,7 @@ function RuntimeProgress({ phases, renderDetail }) {
 
 // Live reasoning — the mockup's behaviour: steps thread onto the spine one at a time,
 // each a spinning dot while busy, a filled check when done, with a mono meta on the right.
-function LiveReasoningSteps({ steps }) {
+export function LiveReasoningSteps({ steps }) {
   return (
     <div className="flex flex-col gap-3">
       {steps.map((s, i) => {
@@ -983,24 +984,24 @@ function PinReportModal({ conversationTitle, messages, user, onClose }) {
 // own answer supplies evidence + reasoning; the conversation is an appendix at the very
 // bottom. Reuses the same components as Live Mode — one investigation, two presentations.
 function ReportLabel({ children }) {
-  return <div className="mb-3 text-z-label uppercase tracking-[0.14em] text-z-text-3">{children}</div>;
+  return <div className="mb-1.5 text-z-label uppercase tracking-[0.14em] text-z-text-3">{children}</div>;
 }
-function reportStatus(s) {
+export function reportStatus(s) {
   const v = String(s || 'OPEN').toUpperCase();
   return (v.includes('RESOLV') || v.includes('CLOSED')) ? 'Resolved' : 'Decision Required';
 }
 // Pull one sentence matching a pattern out of the conclusion — presentation only, never
 // fabricated: returns '' when the investigation didn't state impact / a recommendation.
 // List intros ("Here are…:", sentences ending in ":") are excluded — they aren't statements.
-const isListItem  = (s) => /^(\d+[.)]|[-*•])\s+/.test(s);
-const isListIntro = (s) => /[:;]$/.test(s)
+export const isListItem  = (s) => /^(\d+[.)]|[-*•])\s+/.test(s);
+export const isListIntro = (s) => /[:;]$/.test(s)
   || /^(here (are|is)|the most critical|these are|below (are|is)|following)/i.test(s);
 
 // Split on line breaks first so list items stay separate from the prose around them
 // (collapsing every whitespace run would glue "…840 units at risk" onto the next
 // sentence). A list-item line is kept whole — sentence-splitting it would divorce its
 // "1." marker and defeat isListItem — otherwise split on sentence boundaries.
-function toSentences(text) {
+export function toSentences(text) {
   return String(text || '')
     .replace(/[ \t]+/g, ' ')
     .split(/\n+/)
@@ -1011,7 +1012,7 @@ function toSentences(text) {
     .filter(Boolean);
 }
 
-function pickSentence(text, re) {
+export function pickSentence(text, re) {
   const hit = toSentences(text).find((t) => {
     if (!re.test(t) || t.length < 24) return false;
     if (isListItem(t) || isListIntro(t)) return false;   // items live in Supporting Evidence
@@ -1019,128 +1020,640 @@ function pickSentence(text, re) {
   });
   return hit ? hit.trim() : '';
 }
-const RE_RECO = /\b(recommend|prioriti[sz]e|consider|suggest|advis|renegotiat|you should|should be)\b/i;
+export const RE_RECO = /\b(recommend|prioriti[sz]e|consider|suggest|advis|renegotiat|you should|should be)\b/i;
 // Genuine quantified impact only: a dollar amount, a percentage change, or explicit loss.
-const RE_IMPACT = /\$[\d,]{3,}|\b\d+(\.\d+)?%\s*(rise|increase|drop|decrease|decline|deviation|surge|higher|lower)|\blost sales\b|\bpotential (stockout|loss)\b/i;
+export const RE_IMPACT = /\$[\d,]{3,}|\b\d+(\.\d+)?%\s*(rise|increase|drop|decrease|decline|deviation|surge|higher|lower)|\blost sales\b|\bpotential (stockout|loss)\b/i;
 
-function ReportView({ finding, messages, onAsk }) {
-  const primary = messages.find((m) => m.role === 'assistant' && !m.loading);
-  const pIdx = primary ? messages.indexOf(primary) : -1;
-  const followups = pIdx >= 0 ? messages.slice(pIdx + 1) : [];
-  const queryData = safeArray(primary?.queryData);
-  const reasoningSteps = safeArray(primary?.reasoningSteps);
-  const agentSessionId = primary?.agentSessionId || null;
-  const runKey = primary?.runKey || null;
-  const firstQuestion = messages.find((m) => m.role === 'user')?.content;
-  const title = finding?.title || firstQuestion || 'Investigation';
-  const full = finding?.description || primary?.content || '';
+// Generic, real-data metric tiles from queryData — no business-specific assumptions
+// about what the columns mean. Up to 3: how many results, a numeric column's total
+// (if one exists), a categorical column's distinct-value count (if one exists worth
+// surfacing). Every figure is literally present in the dataset — nothing inferred.
+function deriveKeyMetrics(queryData) {
+  const rows = safeArray(queryData);
+  if (!rows.length) return [];
+  const cols = Object.keys(rows[0]);
+  const metrics = [{ value: rows.length.toLocaleString(), label: rows.length === 1 ? 'result' : 'results' }];
+
+  const numCol = cols.find((c) => {
+    const vals = rows.map((r) => r[c]).filter((v) => v != null && v !== '');
+    return vals.length > 0 && vals.every((v) => !isNaN(parseFloat(v)) && isFinite(v));
+  });
+  if (numCol) {
+    const total = rows.reduce((sum, r) => sum + (parseFloat(r[numCol]) || 0), 0);
+    metrics.push({ value: fmtCell(total), label: `total ${colLabel(numCol)}` });
+  }
+
+  const catCol = cols.find((c) => c !== numCol && /status|state|type|categ|supplier|owner|location|region|priority/i.test(c));
+  if (catCol) {
+    const unique = new Set(rows.map((r) => r[catCol]).filter(Boolean));
+    if (unique.size > 1 && unique.size < rows.length) {
+      metrics.push({ value: unique.size.toLocaleString(), label: `distinct ${colLabel(catCol)}` });
+    }
+  }
+  return metrics.slice(0, 3);
+}
+
+// Real sentences from the real answer, organized rather than fabricated: the impact
+// and recommendation sentences (same extraction Report Mode already used), plus up to
+// two "related facts" — remaining declarative sentences not already used elsewhere —
+// plus, when the backend's own evaluator flagged something noteworthy while querying
+// (a decision other than a clean first-try SUFFICIENT), its rationale as a finding.
+function deriveIntelligence(full, reasoningSteps) {
+  const { verdict } = splitVerdict(full);
   const recommendation = pickSentence(full, RE_RECO);
   const impact = pickSentence(full, RE_IMPACT);
-  // Executive summary = the narrative prose only. The per-item list is dropped (it appears
-  // verbatim in Supporting Evidence), as are dangling list intros and the sentences promoted
-  // to Recommendation / Business impact — so nothing repeats. Fall back to the full text if
-  // trimming would gut it.
-  const pulled = [recommendation, impact].filter(Boolean);
-  let summary = toSentences(full)
+  const used = [verdict, recommendation, impact].filter(Boolean);
+
+  const relatedFacts = toSentences(full)
     .filter((s) => !isListItem(s) && !isListIntro(s))
-    .filter((s) => !pulled.some((p) => s === p || p.includes(s) || s.includes(p)))
-    .join(' ')
-    .trim();
-  if (summary.length < 40) summary = full;
+    .filter((s) => !used.some((u) => s === u || u.includes(s) || s.includes(u)))
+    .slice(0, 3);
+
+  const rationale = safeArray(reasoningSteps)
+    .find((s) => s.evaluatorRationale && s.evaluatorDecision && s.evaluatorDecision !== 'SUFFICIENT');
+
+  const keyFindings = [impact, rationale?.evaluatorRationale].filter(Boolean).slice(0, 3);
+
+  return { recommendation, impact, relatedFacts, keyFindings };
+}
+
+// A status-like column (matching /status|state/i) renders through the platform's own
+// statusKind() mapping — the same semantic-color language used everywhere else in
+// Zevra, applied to whatever real string values the query actually returned. A search
+// box filters real rows client-side; nothing here alters or invents data.
+function InvestigationDataset({ rows }) {
+  const [search, setSearch] = useState('');
+  if (!rows?.length) return null;
+  const cols = Object.keys(rows[0]);
+  const statusCol = cols.find((c) => /status|state$/i.test(c));
+  const q = search.trim().toLowerCase();
+  const filtered = q ? rows.filter((r) => cols.some((c) => String(r[c] ?? '').toLowerCase().includes(q))) : rows;
 
   return (
-    <article className="mx-auto max-w-[70ch] pb-4">
-      {/* Document masthead — instantly reads as a completed report, not a conversation */}
-      <header className="mb-11 border-b border-z-border pb-7">
-        <div className="text-z-label uppercase tracking-[0.18em] text-z-primary">Investigation report</div>
-        <h1 className="mt-4 font-z-serif text-[30px] font-medium leading-[1.14] tracking-[-0.01em] text-z-text sm:text-[35px]">{title}</h1>
-        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-z-caption text-z-text-3">
-          <span className="uppercase tracking-[0.08em] text-z-primary">{reportStatus(finding?.status)}</span>
-          <span aria-hidden>·</span>
-          <span>Prepared by Zevra</span>
-          <span aria-hidden>·</span>
-          <span>Complete</span>
+    <div>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+        <span className="text-z-label uppercase tracking-[0.14em] text-z-text-3">
+          Dataset <span className="normal-case tracking-normal text-z-text-2">({rows.length.toLocaleString()})</span>
+        </span>
+        <div className="relative w-56">
+          <Search size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-z-text-3" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search dataset…"
+            className="w-full rounded-z-sm border border-z-border-strong bg-z-surface py-1.5 pl-7 pr-2.5 text-z-caption text-z-text placeholder:text-z-text-3 focus:outline-none focus:ring-[3px] focus:ring-z-focus-ring"
+          />
         </div>
-      </header>
+      </div>
+      <TableWrap>
+        <div className="max-h-[105px] overflow-y-auto">
+          <Table>
+            <THead className="sticky top-0 z-10">
+              <tr>{cols.map((c) => <Th key={c} className="whitespace-nowrap">{colLabel(c)}</Th>)}</tr>
+            </THead>
+            <TBody>
+              {filtered.map((row, i) => (
+                <Tr key={i}>
+                  {cols.map((c) => (
+                    <Td key={c} className="max-w-[220px] truncate whitespace-nowrap">
+                      {c === statusCol && row[c] != null
+                        ? <Badge status={statusKind(row[c])}>{String(row[c])}</Badge>
+                        : fmtCell(row[c])}
+                    </Td>
+                  ))}
+                </Tr>
+              ))}
+            </TBody>
+          </Table>
+        </div>
+        <div className="border-t border-z-border bg-z-card-2 px-3.5 py-1.5 font-z-mono text-[11px] text-z-text-3">
+          {filtered.length.toLocaleString()} of {rows.length.toLocaleString()} row{rows.length !== 1 ? 's' : ''}
+        </div>
+      </TableWrap>
+    </div>
+  );
+}
 
-      {summary && (
-        <section className="mb-11">
-          <ReportLabel>Zevra's judgment</ReportLabel>
-          <MarkdownBody content={summary} />
-        </section>
+// A quiet, intentional bordered panel — used for the left rail's Question / Executive Summary /
+// Investigation Context. Real card treatment (this workspace's reference composition wants
+// borders/cards for these regions), but never used for a section with nothing real to show.
+function Panel({ eyebrow, accent, children, style, className }) {
+  return (
+    <section
+      style={style}
+      className={cn(
+        'animate-z-rise rounded-z-lg border border-z-border bg-z-card px-4 py-3 shadow-z-1 motion-reduce:animate-none',
+        accent && 'border-l-2 border-l-z-primary',
+        className,
       )}
+    >
+      {eyebrow && <div className="mb-2 text-z-label uppercase tracking-[0.14em] text-z-text-3">{eyebrow}</div>}
+      {children}
+    </section>
+  );
+}
 
-      {impact && (
-        <section className="mb-11">
-          <ReportLabel>Business impact</ReportLabel>
-          <p className="font-z-serif text-z-body-lg leading-[1.55] text-z-text">{impact}</p>
-        </section>
+const PROGRESS_STAGES = [
+  ['understanding', 'Business context'],
+  ['reviewing', 'Data'],
+  ['judgment', 'Analysis'],
+  ['preparing', 'Findings'],
+];
+
+// Real progress, not a fabricated wizard: while the response is live, each stage only lights up
+// once the backend's own SSE phase events say it has (see deriveMilestones — never fabricated
+// ahead of time). Once answered, the whole line reads as complete — some answers genuinely skip
+// a phase (e.g. a memory-only answer never opens EXECUTION), so "complete" is judged by whether
+// an answer exists, not by requiring every individual phase to have fired.
+// A horizontal stepper — one line, not a stacked checklist — the same real per-phase state
+// (never fabricated ahead of time; see deriveMilestones) in the compact form the reference
+// itself uses.
+function InvestigationProgress({ milestones, loading }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+      {PROGRESS_STAGES.map(([phase, label], i) => {
+        const m = milestones.find((x) => x.phase === phase);
+        const done = !loading || !!m?.done;
+        const active = loading && !!m && !m.done;
+        return (
+          <div key={phase} className="flex items-center gap-3">
+            {i > 0 && <span className="h-px w-3 flex-none bg-z-border" aria-hidden />}
+            <div className="flex items-center gap-1.5">
+              {done ? (
+                <span className="grid h-4 w-4 flex-none place-items-center rounded-full bg-z-primary">
+                  <Check size={9} strokeWidth={3} className="text-z-on-accent" />
+                </span>
+              ) : active ? (
+                <StatusDot status="investigating" live className="h-4 w-4" />
+              ) : (
+                <span className="h-2 w-2 flex-none rounded-full border border-z-border-strong" />
+              )}
+              <span className={cn('text-[11px]', done ? 'text-z-text-2' : active ? 'text-z-text' : 'text-z-text-3')}>
+                {label}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Response composition — the universal Zevra Intelligence Response model. Pure function:
+// normalizes ResponseArtifacts (preferred, backend-composed, shared by chat/agent/future
+// workflow paths) or the original client-side derivation (fallback, for a reopened past
+// conversation or any response shape that predates `artifacts`) into ONE shape the renderer
+// composes from. Never blends both sources for a single field. A field is genuinely absent
+// (undefined/empty), never a placeholder — that absence is exactly what lets a whole section
+// disappear downstream instead of rendering empty. Nothing here is invented: every value traces
+// to real backend data (ResponseArtifacts) or the same regex-derived fallback already shipped
+// and reviewed in prior rounds.
+export function composeResponse(primary, finding, question) {
+  const full = finding?.description || primary?.content || '';
+  const { verdict, body } = splitVerdict(full);
+  const queryData = safeArray(primary?.queryData);
+  const reasoningSteps = safeArray(primary?.reasoningSteps);
+  const artifacts = primary?.artifacts || null;
+
+  const understanding = artifacts?.understanding || verdict || null;
+  const narrativeBody = understanding ? body : full;
+
+  let keyFindings, relatedFacts, recommendation;
+  if (artifacts) {
+    keyFindings = safeArray(artifacts.key_findings || artifacts.keyFindings);
+    relatedFacts = safeArray(artifacts.related_facts || artifacts.relatedFacts);
+    recommendation = artifacts.recommendation || null;
+  } else {
+    const d = deriveIntelligence(full, reasoningSteps);
+    keyFindings = d.keyFindings;
+    relatedFacts = d.relatedFacts;
+    recommendation = d.recommendation || null;
+  }
+
+  const metrics = (() => {
+    const am = safeArray(artifacts?.metrics);
+    return am.length > 0 ? am : deriveKeyMetrics(queryData);
+  })();
+
+  const nextSteps = (() => {
+    const steps = safeArray(artifacts?.next_steps || artifacts?.nextSteps);
+    return steps.length > 0 ? steps : buildSuggestions(primary?.quickRefinements, queryData);
+  })();
+
+  // 0 → nothing to show. 1 → a single emphasized figure. 2–4 → a compact strip. 5+ (not
+  // produced by the backend today, capped at 3 — see ResponseArtifactsBuilder.metrics; handled
+  // here so the UI degrades gracefully rather than assuming a fixed count) → top 4 + expand.
+  const singleMetric = metrics.length === 1 ? metrics[0] : null;
+  const metricStrip = metrics.length >= 2 && metrics.length <= 4 ? metrics : [];
+  const overflowMetrics = metrics.length > 4 ? metrics : [];
+
+  const evidenceList = safeArray(artifacts?.evidence);
+  const rawChartEvidence = evidenceList.find((e) => e.kind === 'CHART') || null;
+  // Backend JSON is snake_case (global Jackson naming strategy) — normalize once here so
+  // DataViz only ever deals with one shape regardless of transport casing.
+  const chartHint = rawChartEvidence
+    ? {
+        chartType: rawChartEvidence.chart_type || rawChartEvidence.chartType || null,
+        xKey: rawChartEvidence.x_key || rawChartEvidence.xKey || null,
+        yKeys: safeArray(rawChartEvidence.y_keys || rawChartEvidence.yKeys),
+      }
+    : null;
+
+  const rawAgentContext = artifacts?.agent_context || artifacts?.agentContext || null;
+  const agentContext = rawAgentContext
+    ? {
+        agentName: rawAgentContext.agent_name || rawAgentContext.agentName || primary?.agentName || null,
+        iterationsUsed: rawAgentContext.iterations_used ?? rawAgentContext.iterationsUsed ?? null,
+      }
+    : (primary?.agentSessionId ? { agentName: primary.agentName, iterationsUsed: null } : null);
+
+  const artifactTrail = safeArray(artifacts?.trail);
+
+  // Investigation context — only fields genuinely known. No "Scope"/"Business context"/"Data
+  // sources" here: nothing in the response contract states them, and inventing prose for them
+  // would be exactly the fabrication this model exists to avoid.
+  const answeredBy = primary?.agentName || primary?.decisionType || null;
+  const fieldsAnalyzed = queryData.length > 0 ? Object.keys(queryData[0]).map(colLabel).join(', ') : null;
+
+  return {
+    question,
+    understanding,
+    narrativeBody,
+    singleMetric,
+    metricStrip,
+    overflowMetrics,
+    queryData,
+    chartHint,
+    keyFindings,
+    relatedFacts,
+    recommendation,
+    nextSteps,
+    artifactTrail,
+    reasoningSteps,
+    agentContext,
+    agentSessionId: primary?.agentSessionId || null,
+    runKey: primary?.runKey || null,
+    answeredBy,
+    fieldsAnalyzed,
+  };
+}
+
+// A small circular icon badge — the recurring visual device that gives metrics/findings/facts/
+// next-steps rows presence instead of a plain bullet. One consistent accent per section (never
+// a rainbow coded by fabricated categories the response never stated — every row means the
+// same thing, so every badge looks the same).
+function IconBadge({ icon: Icon, tone = 'primary', size = 30 }) {
+  const tones = {
+    primary: 'bg-z-primary-soft text-z-primary',
+    quiet: 'bg-z-card-2 text-z-text-3',
+  };
+  return (
+    <span
+      className={cn('grid flex-none place-items-center rounded-z-round', tones[tone])}
+      style={{ width: size, height: size }}
+    >
+      <Icon size={Math.round(size * 0.46)} />
+    </span>
+  );
+}
+
+// The metric moment — never a grid of bordered KPI tiles. A single real figure is emphasized
+// on its own; 2–4 read as icon-led rows (the reference's "executive summary metrics" treatment);
+// a rare 5+ shows the first 4 with an explicit, honest "N more" expansion rather than silently
+// truncating.
+function MetricGroup({ single, strip, overflow }) {
+  const [expanded, setExpanded] = useState(false);
+  if (single) {
+    return (
+      <div className="animate-z-rise motion-reduce:animate-none">
+        <div className="text-[28px] font-semibold leading-none tabular-nums text-z-text">{single.value}</div>
+        <div className="mt-1 text-z-caption text-z-text-3">{single.label}</div>
+      </div>
+    );
+  }
+  const list = strip.length > 0 ? strip : overflow;
+  if (list.length === 0) return null;
+  const shown = strip.length > 0 || expanded ? list : list.slice(0, 4);
+  return (
+    <div className="animate-z-rise motion-reduce:animate-none">
+      <div className="flex flex-col gap-1.5">
+        {shown.map((m, i) => (
+          <div key={i} className="flex items-center gap-2.5">
+            <IconBadge icon={TrendingUp} size={24} />
+            <div className="min-w-0">
+              <div className="text-[16px] font-semibold leading-tight tabular-nums text-z-text">{m.value}</div>
+              <div className="text-z-caption text-z-text-3">{m.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {overflow.length > 4 && (
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          className="mt-2 text-z-caption text-z-primary transition-colors hover:underline"
+        >
+          {expanded ? 'Show fewer' : `Show ${overflow.length - 4} more`}
+        </button>
       )}
+    </div>
+  );
+}
 
-      {recommendation && (
-        <section className="mb-11">
-          <ReportLabel>Recommendation</ReportLabel>
-          <p className="border-l-2 border-z-primary pl-5 font-z-serif text-z-body-lg italic leading-[1.5] text-z-text">{recommendation}</p>
-        </section>
-      )}
+// The investigation/execution trail — normalized across chat and agent alike. Collapsed to a
+// scannable summary; the full disclosure (SQL, business-concept resolution) still lives in the
+// unchanged BusinessUnderstanding/ReasoningTrace components. Renders nothing — no header, no
+// placeholder sentence — when there is genuinely no trail to show.
+function IntelligenceTrail({ reasoningSteps, artifactTrail, runKey, agentSessionId }) {
+  const hasLegacySteps = safeArray(reasoningSteps).length > 0;
+  const hasArtifactTrail = safeArray(artifactTrail).length > 0;
+  if (!hasLegacySteps && !hasArtifactTrail && !agentSessionId) return null;
 
-      {queryData.length > 0 && (
-        <section className="mb-11">
-          <ReportLabel>Supporting evidence</ReportLabel>
-          <DataTable rows={queryData} />
-          <DataViz queryData={queryData} />
-        </section>
-      )}
+  const conceptCount = reasoningSteps.filter((s) => s.type === 'resolution').length;
+  const stepCount = reasoningSteps.filter((s) => s.type !== 'resolution' && s.type !== 'literal').length;
 
-      <section className="mb-2">
-        <ReportLabel>Detailed reasoning</ReportLabel>
-        {reasoningSteps.length > 0 ? (
-          <>
+  return (
+    <section className="animate-z-rise motion-reduce:animate-none">
+      <ReportLabel>Investigation trail</ReportLabel>
+      {hasLegacySteps ? (
+        <div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-z-caption text-z-text-2">
+            {conceptCount > 0 && (
+              <span className="flex items-center gap-1.5">
+                <Clipboard size={12} className="text-z-text-3" />
+                Business understanding · {conceptCount} concept{conceptCount === 1 ? '' : 's'}
+              </span>
+            )}
+            {stepCount > 0 && (
+              <span className="flex items-center gap-1.5">
+                <ListTree size={12} className="text-z-text-3" />
+                Technical investigation · {stepCount} step{stepCount === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
+          <div className="mt-1.5">
             <BusinessUnderstanding steps={reasoningSteps} runKey={runKey} />
             <ReasoningTrace steps={reasoningSteps} loading={false} />
-          </>
-        ) : agentSessionId ? (
-          <AgentStepsToggle sessionId={agentSessionId} />
-        ) : (
-          <p className="text-z-caption text-z-text-3">
-            Zevra's step-by-step reasoning is captured while the investigation runs — ask a follow-up below to see it live.
-          </p>
-        )}
-      </section>
+          </div>
+        </div>
+      ) : hasArtifactTrail ? (
+        <ul className="space-y-2">
+          {artifactTrail.map((t, i) => (
+            <li key={i} className="flex items-start gap-2.5 text-z-caption text-z-text-2">
+              <span className="mt-1.5 h-1 w-1 flex-none rounded-full bg-z-text-3" />
+              <span>{t.label}{t.outcome ? ` — ${t.outcome}` : ''}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <AgentStepsToggle sessionId={agentSessionId} />
+      )}
+    </section>
+  );
+}
 
-      {/* Appendix boundary — the conversation is clearly secondary, below the report */}
-      <div className="mt-16 mb-9 flex items-center gap-4" aria-hidden>
-        <span className="h-px flex-1 bg-z-border" />
-        <span className="text-z-label uppercase tracking-[0.18em] text-z-text-3">Follow-up</span>
-        <span className="h-px flex-1 bg-z-border" />
-      </div>
-      <section>
-        <p className="mb-8 max-w-[60ch] font-z-serif italic text-z-body-lg leading-[1.55] text-z-text-3">
-          This investigation is complete. Ask a follow-up below to explore it further — your questions continue the same investigation.
-        </p>
-        {followups.map((m, i) =>
-          m.role === 'user' ? (
-            <UserMessage key={i} text={m.content} attachment={m.attachment} />
+
+// ── Zevra Intelligence Response — the universal presentation of a Zevra response, regardless of
+// which execution path produced it (direct chat, a Zevra Agent, or a future workflow — the UI
+// never branches on that; it only ever asks "which artifacts exist"). Three regions — QUESTION/
+// UNDERSTANDING (left), EVIDENCE (center), ZEVRA INTELLIGENCE (right) — composed from whatever
+// composeResponse() actually found, so a simple factual answer stays light (most panels simply
+// don't render) and an analytical or agent-driven answer fills out into a full intelligence
+// briefing — the SAME renderer either way, never a different UI per execution path. In Live Mode
+// `primary` is always the newest turn; in Report Mode (opened from the Executive Brief) `primary`
+// stays the original investigation the finding came from. Earlier turns remain fully visible
+// above it via the unchanged UserMessage/AssistantMessage list.
+export function IntelligenceResponse({ finding, messages, onAsk }) {
+  const assistantIdxs = messages.reduce((acc, m, i) => (m.role === 'assistant' ? [...acc, i] : acc), []);
+  const pIdx = finding
+    ? assistantIdxs[0] ?? -1               // report mode: the original investigation the finding came from
+    : assistantIdxs[assistantIdxs.length - 1] ?? -1; // live mode: the newest turn
+  const primary = pIdx >= 0 ? messages[pIdx] : null;
+  const question = pIdx > 0 ? messages[pIdx - 1]?.content : messages.find((m) => m.role === 'user')?.content;
+  const earlier = pIdx > 0 ? messages.slice(0, pIdx - 1) : [];
+  const loading = !!primary?.loading;
+  const title = finding?.title || question || 'Investigation';
+  const startedLabel = primary?.startedAt ? timeAgo(primary.startedAt) : null;
+  const milestones = useMemo(() => deriveMilestones(safeArray(primary?.phaseSteps)), [primary?.phaseSteps]);
+  const r = useMemo(() => composeResponse(primary, finding, question), [primary, finding, question]);
+  const hasMetrics = !!r.singleMetric || r.metricStrip.length > 0 || r.overflowMetrics.length > 0;
+
+  return (
+    <div className="pb-4">
+      {earlier.length > 0 && (
+        <>
+          <div className="mb-8 flex justify-center"><Eyebrow>Earlier in this investigation</Eyebrow></div>
+          {earlier.map((m, i) =>
+            m.role === 'user' ? (
+              <UserMessage key={i} text={m.content} attachment={m.attachment} />
+            ) : (
+              <AssistantMessage
+                key={i} content={m.content} decisionType={m.decisionType} agentName={m.agentName}
+                loading={m.loading} queryData={m.queryData} quickRefinements={m.quickRefinements}
+                reasoningSteps={m.reasoningSteps || []} streamingSteps={m.streamingSteps || []}
+                phaseSteps={m.phaseSteps || []} agentSessionId={m.agentSessionId || null}
+                runKey={m.runKey || null} onAsk={onAsk}
+              />
+            ),
+          )}
+          <div className="mb-9 mt-12 flex items-center gap-4" aria-hidden>
+            <span className="h-px flex-1 bg-z-border" />
+            <span className="text-z-label uppercase tracking-[0.18em] text-z-text-3">Current investigation</span>
+            <span className="h-px flex-1 bg-z-border" />
+          </div>
+        </>
+      )}
+
+      {/* Masthead */}
+      <header className="mb-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <Eyebrow dot={loading} className={cn(loading ? 'text-z-primary' : 'text-z-text-3')}>
+            {finding ? 'Investigation report' : loading ? 'Investigation active' : 'Investigation'}
+          </Eyebrow>
+          {!finding && (
+            <>
+              {startedLabel && <span className="text-z-caption text-z-text-3">Started {startedLabel}</span>}
+              {!loading && <span className="flex items-center gap-1.5 text-z-caption text-z-text-3"><StatusDot status="healthy" />Answered</span>}
+            </>
+          )}
+          {finding && <span className="text-z-caption uppercase tracking-[0.08em] text-z-primary">{reportStatus(finding.status)}</span>}
+        </div>
+        <h1 className="mt-1.5 font-z-serif text-[22px] font-medium leading-[1.18] tracking-[-0.01em] text-z-text sm:text-[24px]">
+          {title}
+        </h1>
+      </header>
+
+      <div className="grid grid-cols-1 gap-x-6 gap-y-4 lg:grid-cols-[260px_minmax(0,1fr)_280px]">
+        {/* ── Left — Question, Zevra's understanding, Investigation context ── */}
+        <div className="flex flex-col gap-3 lg:order-1">
+          <Panel eyebrow="Question" style={{ animationDelay: '20ms' }}>
+            <p className="font-z-serif text-[14.5px] leading-[1.35] text-z-text">{title}</p>
+          </Panel>
+
+          {!loading && (r.understanding || r.narrativeBody || hasMetrics) && (
+            <Panel accent style={{ animationDelay: '70ms' }}>
+              <div className="mb-2 flex items-center gap-2">
+                <Sparkles size={13} className="text-z-primary" />
+                <span className="text-z-label uppercase tracking-[0.14em] text-z-text-3">Executive summary</span>
+                <span className="ml-auto text-[10px] text-z-text-3">Generated by Zevra</span>
+              </div>
+              {r.understanding && (
+                <Verdict as="p" size="sm" className="mb-2">{renderVerdict(r.understanding)}</Verdict>
+              )}
+              {hasMetrics && (
+                <div className="mt-2.5 border-t border-z-border pt-2.5">
+                  <MetricGroup single={r.singleMetric} strip={r.metricStrip} overflow={r.overflowMetrics} />
+                </div>
+              )}
+            </Panel>
+          )}
+
+          {!loading && (r.answeredBy || r.fieldsAnalyzed || startedLabel) && (
+            <Panel eyebrow="Investigation context" style={{ animationDelay: '130ms' }}>
+              <dl className="space-y-1.5 text-[11.5px]">
+                {r.answeredBy && (
+                  <div className="flex items-start justify-between gap-3">
+                    <dt className="text-z-text-3">Answered by</dt>
+                    <dd className="text-right text-z-text-2">{r.answeredBy}</dd>
+                  </div>
+                )}
+                {r.fieldsAnalyzed && (
+                  <div className="flex items-start justify-between gap-3">
+                    <dt className="flex-none text-z-text-3">Fields analyzed</dt>
+                    <dd className="min-w-0 truncate text-right text-z-text-2">{r.fieldsAnalyzed}</dd>
+                  </div>
+                )}
+                {r.queryData.length > 0 && (
+                  <div className="flex items-start justify-between gap-3">
+                    <dt className="text-z-text-3">Filters</dt>
+                    <dd className="text-z-text-2">None applied</dd>
+                  </div>
+                )}
+                {startedLabel && (
+                  <div className="flex items-start justify-between gap-3">
+                    <dt className="text-z-text-3">Last updated</dt>
+                    <dd className="text-z-text-2">{startedLabel}</dd>
+                  </div>
+                )}
+              </dl>
+            </Panel>
+          )}
+        </div>
+
+        {/* ── Center — evidence and the reasoning trail behind it ── */}
+        <div className="min-w-0 lg:order-2">
+          {loading ? (
+            <div className="mb-8">
+              {milestones.length > 0 ? (
+                <RuntimeProgress phases={milestones} />
+              ) : (
+                <p className="font-z-serif italic text-z-body leading-[1.5] text-z-text-2">Understanding your question…</p>
+              )}
+              {safeArray(primary?.streamingSteps).length > 0 && (
+                <div className="mt-3"><LiveReasoningSteps steps={safeArray(primary?.streamingSteps)} /></div>
+              )}
+            </div>
           ) : (
-            <AssistantMessage
-              key={i}
-              content={m.content}
-              decisionType={m.decisionType}
-              agentName={m.agentName}
-              loading={m.loading}
-              queryData={m.queryData}
-              quickRefinements={m.quickRefinements}
-              reasoningSteps={m.reasoningSteps || []}
-              streamingSteps={m.streamingSteps || []}
-              phaseSteps={m.phaseSteps || []}
-              agentSessionId={m.agentSessionId || null}
-              runKey={m.runKey || null}
-              onAsk={onAsk}
-            />
-          ),
-        )}
-      </section>
-    </article>
+            <>
+              {(r.understanding || r.narrativeBody) && (
+                <section className="mb-3 animate-z-rise motion-reduce:animate-none">
+                  <MarkdownBody content={r.narrativeBody} />
+                  {r.agentContext?.agentName && (
+                    <p className="mt-1.5 text-z-caption text-z-text-3">
+                      Investigated by {r.agentContext.agentName}
+                      {r.agentContext.iterationsUsed ? ` · ${r.agentContext.iterationsUsed} step${r.agentContext.iterationsUsed === 1 ? '' : 's'}` : ''}
+                    </p>
+                  )}
+                </section>
+              )}
+
+              {r.queryData.length > 0 && (
+                <section className="mb-3 animate-z-rise motion-reduce:animate-none" style={{ animationDelay: '60ms' }}>
+                  <ReportLabel>Primary evidence</ReportLabel>
+                  <DataViz queryData={r.queryData} chartHint={r.chartHint} />
+                  <div className="mt-2"><InvestigationDataset rows={r.queryData} /></div>
+                </section>
+              )}
+
+              <IntelligenceTrail
+                reasoningSteps={r.reasoningSteps} artifactTrail={r.artifactTrail}
+                runKey={r.runKey} agentSessionId={r.agentSessionId}
+              />
+            </>
+          )}
+        </div>
+
+        {/* ── Right — Zevra Intelligence, an investigation companion, not a chat ── */}
+        <HighlightSurface
+          material="subtle" accent="primary" live={loading}
+          className="h-fit lg:order-3 lg:sticky lg:top-4"
+          style={{ padding: '14px 16px' }}
+        >
+          <div className="flex items-center gap-2">
+            <span className="grid h-7 w-7 flex-none place-items-center rounded-z-round bg-z-primary-soft">
+              <Radar size={14} className="text-z-primary" />
+            </span>
+            <div className="min-w-0">
+              <div className="text-z-body font-semibold text-z-text">Zevra Intelligence</div>
+              <div className="text-[11px] text-z-text-3">
+                {loading ? 'Continuously analyzing your data' : 'Ask a follow-up to keep investigating'}
+              </div>
+            </div>
+          </div>
+
+          {r.keyFindings.length > 0 && (
+            <div className="mt-3">
+              <div className="mb-2 flex items-center gap-2">
+                <ReportLabel>Key findings</ReportLabel>
+                <span className="rounded-z-round bg-z-card-2 px-1.5 text-[10px] font-semibold text-z-text-3">{r.keyFindings.length}</span>
+              </div>
+              <ul className={cn('space-y-2', r.keyFindings.length > 5 && 'max-h-[168px] overflow-y-auto pr-1')}>
+                {r.keyFindings.map((f, i) => (
+                  <li key={i} className="flex gap-2 text-z-caption leading-[1.5] text-z-text-2">
+                    <IconBadge icon={Sparkles} size={20} />
+                    <span className="pt-0.5">{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {r.relatedFacts.length > 0 && (
+            <div className="mt-2 border-t border-z-ai-edge pt-2">
+              <div className="mb-2 flex items-center gap-2">
+                <ReportLabel>Related facts</ReportLabel>
+                <span className="rounded-z-round bg-z-card-2 px-1.5 text-[10px] font-semibold text-z-text-3">{r.relatedFacts.length}</span>
+              </div>
+              <ul className={cn('space-y-2', r.relatedFacts.length > 5 && 'max-h-[168px] overflow-y-auto pr-1')}>
+                {r.relatedFacts.map((f, i) => (
+                  <li key={i} className="flex gap-2 text-z-caption leading-[1.5] text-z-text-3">
+                    <IconBadge icon={FileText} tone="quiet" size={20} />
+                    <span className="pt-0.5">{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Strategic recommendation — real prose from the answer/artifacts, not a
+              duplicate of the tactical follow-up chips (those live in the "Continue
+              investigation" composer bar below, sourced from the same nextSteps). */}
+          {r.recommendation && (
+            <div className="mt-2 border-t border-z-ai-edge pt-2">
+              <ReportLabel>Recommendation</ReportLabel>
+              <div className="flex gap-2 text-z-caption leading-[1.5] text-z-text-2">
+                <IconBadge icon={Compass} size={20} />
+                <span className="pt-0.5">{r.recommendation}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-2 border-t border-z-ai-edge pt-2">
+            <InvestigationProgress milestones={milestones} loading={loading} />
+          </div>
+        </HighlightSurface>
+      </div>
+    </div>
   );
 }
 
@@ -1163,6 +1676,13 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
   // chat state
   const [chatMode, setChatMode] = useState(false);
   const [messages, setMessages] = useState([]);
+  // "Continue investigation" composer chips — the same real nextSteps composeResponse()
+  // already derives for the latest ANSWERED turn (live mode's newest, regardless of
+  // presentationMode), so the bottom bar and the workspace body never disagree.
+  const composerSuggestions = useMemo(() => {
+    const lastAnswered = [...messages].reverse().find((m) => m.role === 'assistant' && !m.loading);
+    return lastAnswered ? composeResponse(lastAnswered, null, null).nextSteps : [];
+  }, [messages]);
   const conversationIdRef = useRef(null);   // useRef avoids stale-closure bugs in async handlers
   const [chatQuery, setChatQuery] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -1344,8 +1864,12 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
       } : null,
     }]);
 
-    // Add loading placeholder — streamingSteps accumulates via SSE while POST is in-flight
-    setMessages((prev) => [...prev, { role: 'assistant', content: '', loading: true, streamingSteps: [], phaseSteps: [] }]);
+    // Add loading placeholder — streamingSteps accumulates via SSE while POST is in-flight.
+    // startedAt is a real client-side timestamp (when this question was actually submitted),
+    // carried through to the finalised message below for the Investigation Console's
+    // "Started X ago" / "Last updated" — never a fabricated or simulated value.
+    const startedAt = Date.now();
+    setMessages((prev) => [...prev, { role: 'assistant', content: '', loading: true, streamingSteps: [], phaseSteps: [], startedAt }]);
 
     setSubmitting(true);
     setSubmitError('');
@@ -1440,8 +1964,14 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
           learningsApplied:response.learnings_applied || response.learningsApplied || [],
           agentSessionId:  response.agent_session_id  || response.agentSessionId  || null,
           runKey:          response.run_key            || response.runKey          || null,
+          // Generalized "Zevra Intelligence Response Artifacts" (backend-composed; see
+          // ResponseArtifacts/ResponseArtifactsBuilder). Optional — null on older/other
+          // response shapes (e.g. a reopened past conversation), in which case
+          // composeResponse() falls back to the same client-side derivation it always used.
+          artifacts:       response.artifacts || null,
           streamingSteps:  [],   // cleared — final steps are in reasoningSteps
           phaseSteps:      [],
+          startedAt,
           loading: false,
         };
         return next;
@@ -1458,6 +1988,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
           loading: false,
           streamingSteps: [],
           phaseSteps: [],
+          startedAt,
         };
         return next;
       });
@@ -1681,17 +2212,18 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
         {/* ── CHAT VIEW ── */}
         {chatMode && (
           <>
-            {/* Chat header — a slim conversation toolbar that blends with the thread
-                (the shell composer is hidden on this route; the workspace owns input). */}
+            {/* Chat header — a slim conversation toolbar (the shell composer is hidden on this
+                route; the workspace owns input). The question itself is NOT repeated here —
+                the Investigation Console's own masthead + Question panel already show it
+                prominently; a third copy in this small italic span read as a rendering glitch
+                during streaming, not intentional hierarchy. */}
             <header className="flex h-12 shrink-0 items-center gap-3 border-b border-z-border bg-transparent px-6">
               <Button variant="ghost" size="sm"
                 onClick={presentationMode === 'report' ? () => { window.location.hash = '/'; } : startNewChat}
                 leadingIcon={<ArrowLeft size={16} />}>
                 {presentationMode === 'report' ? 'Executive Brief' : 'New chat'}
               </Button>
-              <span className="min-w-0 flex-1 truncate px-2 text-center font-z-serif text-z-caption italic text-z-text-3">
-                {conversationTitle}
-              </span>
+              <span className="min-w-0 flex-1" />
               <div className="flex items-center gap-1">
                 <IconButton
                   label="Conversation history"
@@ -1716,48 +2248,22 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
               </div>
             </header>
 
-            {/* Messages */}
-            <div className="min-h-0 flex-1 overflow-y-auto scroll-smooth">
-              <ReadingColumn measure="wide" className="py-10">
-                {presentationMode === 'report' ? (
-                  <ReportView finding={reportFinding} messages={messages} onAsk={q => sendQuestion(q)} />
-                ) : (
-                <>
-                <div className="mb-8 flex justify-center">
-                  <Eyebrow>Today</Eyebrow>
-                </div>
-                {messages.map((msg, i) =>
-                  msg.role === 'user' ? (
-                    <UserMessage key={i} text={msg.content} attachment={msg.attachment} />
-                  ) : (
-                    <AssistantMessage
-                      key={i}
-                      content={msg.content}
-                      decisionType={msg.decisionType}
-                      agentName={msg.agentName}
-                      loading={msg.loading}
-                      queryData={msg.queryData}
-                      quickRefinements={msg.quickRefinements}
-                      reasoningSteps={msg.reasoningSteps || []}
-                      learningsApplied={msg.learningsApplied || []}
-                      streamingSteps={msg.streamingSteps || []}
-                      phaseSteps={msg.phaseSteps || []}
-                      agentSessionId={msg.agentSessionId || null}
-                      runKey={msg.runKey || null}
-                      onAsk={q => sendQuestion(q)}
-                      exportMenu={
-                        <ExportMenu
-                          open={openExportMenu === i}
-                          onToggle={() => setOpenExportMenu((current) => current === i ? null : i)}
-                          disabled={msg.loading}
-                          actions={exportAnswerActions(msg, i)}
-                        />
-                      }
-                    />
-                  )
-                )}
-                </>
-                )}
+            {/* Zevra Intelligence Response — one response dominates the page (see
+                IntelligenceResponse above); this replaces the previous plain chat-bubble
+                thread as the default presentation, not just Report Mode's. */}
+            <div className="relative min-h-0 flex-1 overflow-y-auto scroll-smooth">
+              {/* The Signature canvas atmosphere — same emerald-light glow every other
+                  Intelligence Experience page uses; an Investigation is signature-forward. */}
+              <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-[image:var(--z-ai-atmo)]" />
+              {/* measure="wide" caps at 1280px (the shared default for other Intelligence
+                  pages) — overridden here via inline style (the only reliable way to beat a
+                  shared component's own class, since Tailwind class cascade order isn't
+                  guaranteed by className position). This workspace's center evidence column
+                  benefits from real estate a narrower page wouldn't need; the extra width goes
+                  entirely to the center column since left/right are fixed-width and center is
+                  `minmax(0,1fr)`. */}
+              <ReadingColumn measure="wide" className="relative z-[1] py-5" style={{ maxWidth: '1600px' }}>
+                <IntelligenceResponse finding={presentationMode === 'report' ? reportFinding : null} messages={messages} onAsk={q => sendQuestion(q)} />
                 {submitError && (
                   <p className="text-center text-z-caption text-z-critical-on">{submitError}</p>
                 )}
@@ -1765,11 +2271,16 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
               </ReadingColumn>
             </div>
 
-            {/* Composer */}
-            <div className="shrink-0 border-t border-z-border bg-z-card px-6 py-4 backdrop-blur-sm">
+            {/* Composer — "Continue investigation": the same tactical follow-up prompts
+                composeResponse() already derives (real quickRefinements/nextSteps, never
+                fabricated per composer render) sit right above the input, matching the
+                reference's bottom continuation bar. The right panel's "Recommended next
+                steps" stays strategic prose (the `recommendation` sentence) — these are two
+                different things, not a duplicate list. */}
+            <div className="shrink-0 border-t border-z-border bg-z-card px-6 py-3 backdrop-blur-sm">
               {/* Attachment preview / loading / error */}
               {(attachment || attachmentLoading || attachmentError) && (
-                <div className="mx-auto mb-2 max-w-[1280px]">
+                <div className="mx-auto mb-2 max-w-[1600px]">
                   {attachmentLoading && (
                     <div className="flex items-center gap-2 text-z-caption text-z-text-3">
                       <Spinner size="xs" /> Uploading file…
@@ -1783,8 +2294,22 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                   )}
                 </div>
               )}
+              {composerSuggestions.length > 0 && !submitting && (
+                <div className="mx-auto mb-2 flex max-w-[1600px] flex-wrap gap-2">
+                  {composerSuggestions.map((s, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => sendQuestion(s.prompt)}
+                      className="rounded-z-pill border border-z-border px-3 py-1.5 text-z-caption text-z-text-2 transition-colors hover:border-z-primary hover:text-z-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-z-focus-ring"
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              )}
               <InvestigationComposer
-                className="mx-auto max-w-[1280px]"
+                className="mx-auto max-w-[1600px]"
                 value={chatQuery}
                 onChange={setChatQuery}
                 onSubmit={handleChatSubmit}
@@ -1796,7 +2321,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                 attachmentBusy={attachmentLoading}
                 inputRef={chatInputRef}
               />
-              <p className="mt-2.5 text-center font-z-mono text-[11px] text-z-text-3">
+              <p className="mt-1.5 text-center font-z-mono text-[11px] text-z-text-3">
                 Zevra queries approved data sources only · Results may require validation
               </p>
             </div>

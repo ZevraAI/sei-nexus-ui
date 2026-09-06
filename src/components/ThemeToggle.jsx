@@ -11,8 +11,11 @@ export function ThemeToggle() {
   const { isDark, toggleTheme } = useTheme();
   return (
     <button
+      type="button"
       onClick={toggleTheme}
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-pressed={isDark}
       className={`relative w-11 h-[22px] rounded-full transition-colors duration-200
                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500
                   ${isDark ? 'bg-emerald-700' : 'bg-gray-200'}`}

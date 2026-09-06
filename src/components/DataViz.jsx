@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ResponsiveContainer,
   BarChart, Bar,
@@ -11,10 +11,40 @@ import {
 } from 'recharts';
 
 // ── Brand palette ──────────────────────────────────────────────────────────────
-const PALETTE = [
-  '#0C5847', '#2DBFA8', '#3B82F6', '#8B5CF6',
-  '#F59E0B', '#EF4444', '#EC4899', '#10B981',
-];
+// The first two slots track the live theme accent (see useThemedAccents below) — resolved to a
+// literal color, never a raw `var(--...)` string, because SVG presentation ATTRIBUTES (fill=,
+// stroke=, <stop stopColor=>) do not reliably repaint custom-property values across renderers —
+// confirmed empirically: getComputedStyle correctly resolves the cascaded color, but the bar/area
+// paint can still come out blank. Inline `style={{...}}` usages (a real CSS context) don't have
+// this problem — only bare presentation-attribute strings do. The rest of the palette is a fixed
+// categorical set, chosen to stay legible against both the light and dark surfaces.
+const STATIC_PALETTE = ['#d99a3d', '#a78bda', '#e0729a', '#4fb8a0', '#6ea3e8', '#e0685f'];
+
+// Resolves --z-primary / --z-investigating / --z-hover to literal colors from the actual
+// cascaded value at `ref`'s DOM node (not assumed to live on <html> — works regardless of where
+// an ancestor sets [data-theme]), and re-resolves whenever the theme attribute changes.
+function useThemedAccents(ref) {
+  const [accents, setAccents] = useState({ primary: '#0f7a58', investigating: '#2f6fb0', hover: 'rgba(15,23,42,0.04)' });
+  useEffect(() => {
+    if (!ref.current) return undefined;
+    const resolve = () => {
+      const cs = getComputedStyle(ref.current);
+      const primary = cs.getPropertyValue('--z-primary').trim();
+      const investigating = cs.getPropertyValue('--z-investigating').trim();
+      const hover = cs.getPropertyValue('--z-hover').trim();
+      setAccents((prev) => ({
+        primary: primary || prev.primary,
+        investigating: investigating || prev.investigating,
+        hover: hover || prev.hover,
+      }));
+    };
+    resolve();
+    const observer = new MutationObserver(resolve);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, [ref]);
+  return accents;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -95,20 +125,20 @@ function selectConfig(rows, cols) {
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-gray-200/80 rounded-xl shadow-xl px-4 py-3 text-[13px]"
-         style={{ minWidth: 140 }}>
+    <div className="rounded-xl border px-4 py-3 text-[13px] shadow-z-2"
+         style={{ minWidth: 140, background: 'var(--z-card)', borderColor: 'var(--z-border)' }}>
       {label != null && (
-        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--z-text-3)' }}>
           {truncate(String(label), 24)}
         </p>
       )}
       {payload.map((p, i) => (
         <div key={i} className="flex items-center justify-between gap-5 mb-0.5 last:mb-0">
-          <span className="flex items-center gap-1.5 text-gray-500">
+          <span className="flex items-center gap-1.5" style={{ color: 'var(--z-text-2)' }}>
             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: p.color }} />
             {p.name}
           </span>
-          <span className="font-semibold text-gray-900 tabular-nums">{fmtNum(p.value)}</span>
+          <span className="font-semibold tabular-nums" style={{ color: 'var(--z-text)' }}>{fmtNum(p.value)}</span>
         </div>
       ))}
     </div>
@@ -117,15 +147,15 @@ function ChartTooltip({ active, payload, label }) {
 
 // ── Chart components ──────────────────────────────────────────────────────────
 
-const AXIS_STYLE = { fontSize: 12, fill: '#9CA3AF', fontFamily: 'inherit' };
-const GRID_STYLE = { stroke: '#F3F4F6', strokeDasharray: '0' };
+const AXIS_STYLE = { fontSize: 12, fill: 'var(--z-text-3)', fontFamily: 'inherit' };
+const GRID_STYLE = { stroke: 'var(--z-border)', strokeDasharray: '0' };
 
-function ZevraBarChart({ rows, config }) {
+function ZevraBarChart({ rows, config, palette, hoverColor }) {
   const { xKey, yKeys } = config;
   const many = rows.length > 6;
 
   return (
-    <ResponsiveContainer width="100%" height={220}>
+    <ResponsiveContainer width="100%" height={115}>
       <BarChart data={rows} margin={{ top: 4, right: 8, left: -8, bottom: many ? 24 : 4 }}
                 barCategoryGap="32%" barGap={3}>
         <CartesianGrid vertical={false} {...GRID_STYLE} />
@@ -133,31 +163,31 @@ function ZevraBarChart({ rows, config }) {
                axisLine={false} tickLine={false}
                tickFormatter={v => truncate(String(v), many ? 10 : 14)} />
         <YAxis tickFormatter={fmtNum} tick={AXIS_STYLE} axisLine={false} tickLine={false} width={44} />
-        <Tooltip content={<ChartTooltip />} cursor={{ fill: '#F9FAFB' }} />
+        <Tooltip content={<ChartTooltip />} cursor={{ fill: hoverColor }} />
         {yKeys.length > 1 && (
-          <Legend wrapperStyle={{ fontSize: 12, color: '#6B7280', paddingTop: 8 }} />
+          <Legend wrapperStyle={{ fontSize: 12, color: 'var(--z-text-3)', paddingTop: 4 }} />
         )}
         {yKeys.map((col, i) => (
-          <Bar key={col.key} dataKey={col.key} name={col.label}
-               fill={PALETTE[i % PALETTE.length]} radius={[4, 4, 0, 0]} maxBarSize={48} />
+          <Bar key={col.key} dataKey={col.key} name={col.label} isAnimationActive={false}
+               fill={palette[i % palette.length]} radius={[4, 4, 0, 0]} maxBarSize={48} />
         ))}
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
-function ZevraAreaChart({ rows, config }) {
+function ZevraAreaChart({ rows, config, palette }) {
   const { xKey, yKeys } = config;
   const isSingle = yKeys.length === 1;
 
   return (
-    <ResponsiveContainer width="100%" height={220}>
+    <ResponsiveContainer width="100%" height={115}>
       <AreaChart data={rows} margin={{ top: 4, right: 8, left: -8, bottom: 4 }}>
         <defs>
           {yKeys.map((col, i) => (
             <linearGradient key={col.key} id={`vz-grad-${i}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"   stopColor={PALETTE[i % PALETTE.length]} stopOpacity={0.15} />
-              <stop offset="100%" stopColor={PALETTE[i % PALETTE.length]} stopOpacity={0}    />
+              <stop offset="0%"   stopColor={palette[i % palette.length]} stopOpacity={0.15} />
+              <stop offset="100%" stopColor={palette[i % palette.length]} stopOpacity={0}    />
             </linearGradient>
           ))}
         </defs>
@@ -166,10 +196,10 @@ function ZevraAreaChart({ rows, config }) {
                tickFormatter={v => truncate(String(v), 10)} />
         <YAxis tickFormatter={fmtNum} tick={AXIS_STYLE} axisLine={false} tickLine={false} width={44} />
         <Tooltip content={<ChartTooltip />} />
-        {!isSingle && <Legend wrapperStyle={{ fontSize: 12, color: '#6B7280', paddingTop: 8 }} />}
+        {!isSingle && <Legend wrapperStyle={{ fontSize: 12, color: 'var(--z-text-3)', paddingTop: 4 }} />}
         {yKeys.map((col, i) => (
-          <Area key={col.key} type="monotone" dataKey={col.key} name={col.label}
-                stroke={PALETTE[i % PALETTE.length]} strokeWidth={2}
+          <Area key={col.key} type="monotone" dataKey={col.key} name={col.label} isAnimationActive={false}
+                stroke={palette[i % palette.length]} strokeWidth={2}
                 fill={`url(#vz-grad-${i})`}
                 dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
         ))}
@@ -178,7 +208,7 @@ function ZevraAreaChart({ rows, config }) {
   );
 }
 
-function StatCards({ rows, config }) {
+function StatCards({ rows, config, palette }) {
   const { numerics } = config;
   const row = rows[0];
   const cols = numerics.slice(0, 4);
@@ -186,18 +216,45 @@ function StatCards({ rows, config }) {
     <div className={`grid gap-3 ${cols.length >= 3 ? 'grid-cols-3' : cols.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
       {cols.map((col, i) => (
         <div key={col.key}
-             className="rounded-xl border border-gray-100 bg-gradient-to-br from-[#f0faf5] to-white px-5 py-4">
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5 truncate">
+             className="rounded-xl border px-5 py-4"
+             style={{ borderColor: 'var(--z-border)', background: 'linear-gradient(160deg, var(--z-primary-soft) 0%, var(--z-card) 100%)' }}>
+          <p className="text-[11px] font-semibold uppercase tracking-widest mb-1.5 truncate" style={{ color: 'var(--z-text-3)' }}>
             {col.label}
           </p>
           <p className="text-[28px] font-bold tracking-tight leading-none"
-             style={{ color: PALETTE[i % PALETTE.length] }}>
+             style={{ color: palette[i % palette.length] }}>
             {fmtNum(row[col.key])}
           </p>
         </div>
       ))}
     </div>
   );
+}
+
+// ── Backend visualization intent ────────────────────────────────────────────────
+// ResponseArtifacts.evidence can carry a CHART entry {chartType, xKey, yKeys} — the backend's
+// own read of what kind of evidence this is, computed from the same column-shape rules as
+// selectConfig (see ResponseArtifactsBuilder.evidence(), sei-nexus-ai). Preferred when present
+// and still valid against the actual rows (a hint referencing a column this response doesn't
+// have is ignored, never trusted blindly) — falls back to selectConfig's own inference
+// otherwise, so older/legacy responses render exactly as before.
+function configFromHint(rows, cols, hint) {
+  if (!hint || !hint.chartType) return null;
+  const colKeys = new Set(cols.map((c) => c.key));
+  const byKey = Object.fromEntries(cols.map((c) => [c.key, c]));
+
+  if (hint.chartType === 'stats') {
+    const numerics = (hint.yKeys || []).filter((k) => colKeys.has(k)).map((k) => byKey[k]);
+    return numerics.length ? { chart: 'stats', numerics } : null;
+  }
+  if (hint.chartType === 'area' || hint.chartType === 'bar') {
+    if (!hint.xKey || !colKeys.has(hint.xKey)) return null;
+    const yKeys = (hint.yKeys || []).filter((k) => colKeys.has(k)).map((k) => byKey[k]);
+    if (!yKeys.length) return null;
+    const xCol = byKey[hint.xKey];
+    return { chart: hint.chartType, xKey: xCol.key, xLabel: xCol.label, yKeys };
+  }
+  return null;
 }
 
 // ── Public component ──────────────────────────────────────────────────────────
@@ -208,26 +265,36 @@ const CHART_TITLES = {
   stats: 'Key metrics',
 };
 
-export default function DataViz({ queryData }) {
+export default function DataViz({ queryData, chartHint }) {
+  const rootRef = useRef(null);
+  const accents = useThemedAccents(rootRef);
+  const palette = useMemo(
+    () => [accents.primary, accents.investigating, ...STATIC_PALETTE],
+    [accents.primary, accents.investigating],
+  );
+
   const cols   = useMemo(() => analyzeColumns(queryData), [queryData]);
-  const config = useMemo(() => selectConfig(queryData, cols), [queryData, cols]);
+  const config = useMemo(
+    () => configFromHint(queryData, cols, chartHint) || selectConfig(queryData, cols),
+    [queryData, cols, chartHint],
+  );
 
   if (!config) return null;
 
   return (
-    <div className="mt-5 pt-4 border-t border-gray-100">
-      <div className="flex items-center mb-3 gap-2">
-        <span className="text-[11px] font-semibold tracking-widest uppercase text-gray-400">
+    <div ref={rootRef} className="mt-2 pt-2 border-t border-z-border">
+      <div className="flex items-center mb-1.5 gap-2">
+        <span className="text-[11px] font-semibold tracking-widest uppercase text-z-text-3">
           {CHART_TITLES[config.chart]}
         </span>
-        <span className="ml-auto text-[11px] text-gray-300">
+        <span className="ml-auto text-[11px] text-z-text-muted">
           {queryData.length.toLocaleString()} row{queryData.length !== 1 ? 's' : ''}
         </span>
       </div>
 
-      {config.chart === 'bar'   && <ZevraBarChart  rows={queryData} config={config} />}
-      {config.chart === 'area'  && <ZevraAreaChart rows={queryData} config={config} />}
-      {config.chart === 'stats' && <StatCards      rows={queryData} config={config} />}
+      {config.chart === 'bar'   && <ZevraBarChart  rows={queryData} config={config} palette={palette} hoverColor={accents.hover} />}
+      {config.chart === 'area'  && <ZevraAreaChart rows={queryData} config={config} palette={palette} />}
+      {config.chart === 'stats' && <StatCards      rows={queryData} config={config} palette={palette} />}
     </div>
   );
 }
