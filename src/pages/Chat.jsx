@@ -1024,34 +1024,10 @@ export const RE_RECO = /\b(recommend|prioriti[sz]e|consider|suggest|advis|renego
 // Genuine quantified impact only: a dollar amount, a percentage change, or explicit loss.
 export const RE_IMPACT = /\$[\d,]{3,}|\b\d+(\.\d+)?%\s*(rise|increase|drop|decrease|decline|deviation|surge|higher|lower)|\blost sales\b|\bpotential (stockout|loss)\b/i;
 
-// Generic, real-data metric tiles from queryData — no business-specific assumptions
-// about what the columns mean. Up to 3: how many results, a numeric column's total
-// (if one exists), a categorical column's distinct-value count (if one exists worth
-// surfacing). Every figure is literally present in the dataset — nothing inferred.
-function deriveKeyMetrics(queryData) {
-  const rows = safeArray(queryData);
-  if (!rows.length) return [];
-  const cols = Object.keys(rows[0]);
-  const metrics = [{ value: rows.length.toLocaleString(), label: rows.length === 1 ? 'result' : 'results' }];
-
-  const numCol = cols.find((c) => {
-    const vals = rows.map((r) => r[c]).filter((v) => v != null && v !== '');
-    return vals.length > 0 && vals.every((v) => !isNaN(parseFloat(v)) && isFinite(v));
-  });
-  if (numCol) {
-    const total = rows.reduce((sum, r) => sum + (parseFloat(r[numCol]) || 0), 0);
-    metrics.push({ value: fmtCell(total), label: `total ${colLabel(numCol)}` });
-  }
-
-  const catCol = cols.find((c) => c !== numCol && /status|state|type|categ|supplier|owner|location|region|priority/i.test(c));
-  if (catCol) {
-    const unique = new Set(rows.map((r) => r[catCol]).filter(Boolean));
-    if (unique.size > 1 && unique.size < rows.length) {
-      metrics.push({ value: unique.size.toLocaleString(), label: `distinct ${colLabel(catCol)}` });
-    }
-  }
-  return metrics.slice(0, 3);
-}
+// deriveKeyMetrics(queryData) — a queryData column-name heuristic previously used as a metrics
+// fallback — was removed here. Metrics are 100% deterministic/runtime-owned by design (see
+// ResponseArtifactsBuilder); composeResponse now reads only artifacts.metrics, with no frontend
+// recomputation from queryData.
 
 // Real sentences from the real answer, organized rather than fabricated: the impact
 // and recommendation sentences (same extraction Report Mode already used), plus up to
@@ -1081,7 +1057,7 @@ function deriveIntelligence(full, reasoningSteps) {
 // statusKind() mapping — the same semantic-color language used everywhere else in
 // Zevra, applied to whatever real string values the query actually returned. A search
 // box filters real rows client-side; nothing here alters or invents data.
-function InvestigationDataset({ rows }) {
+function InvestigationDataset({ rows, title = 'Dataset' }) {
   const [search, setSearch] = useState('');
   if (!rows?.length) return null;
   const cols = Object.keys(rows[0]);
@@ -1093,7 +1069,7 @@ function InvestigationDataset({ rows }) {
     <div>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
         <span className="text-z-label uppercase tracking-[0.14em] text-z-text-3">
-          Dataset <span className="normal-case tracking-normal text-z-text-2">({rows.length.toLocaleString()})</span>
+          {title} <span className="normal-case tracking-normal text-z-text-2">({rows.length.toLocaleString()})</span>
         </span>
         <div className="relative w-56">
           <Search size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-z-text-3" />
@@ -1208,9 +1184,31 @@ function InvestigationProgress({ milestones, loading }) {
 // disappear downstream instead of rendering empty. Nothing here is invented: every value traces
 // to real backend data (ResponseArtifacts) or the same regex-derived fallback already shipped
 // and reviewed in prior rounds.
+// Normalizes ResponseArtifacts.sections (backend snake_case) into one consistent shape —
+// { type, title, purpose, display, items, content, datasets: [{ stepNo, rows }] } — so every
+// renderer downstream works off one shape regardless of transport casing. This is purely a
+// field-name/casing normalization: it does not filter, rank, reorder, or interpret anything.
+export function normalizeSections(rawSections) {
+  return safeArray(rawSections).map((s) => ({
+    type: s.type ?? null,
+    title: s.title ?? null,
+    purpose: s.purpose ?? null,
+    display: s.display,
+    items: safeArray(s.items),
+    content: s.content ?? null,
+    datasets: safeArray(s.datasets).map((d) => ({
+      stepNo: d.step_no ?? d.stepNo ?? null,
+      rows: safeArray(d.rows),
+    })),
+  }));
+}
+
 export function composeResponse(primary, finding, question) {
   const full = finding?.description || primary?.content || '';
   const { verdict, body } = splitVerdict(full);
+  // Legacy compatibility field only — see ChatResponse#queryData. Kept on the composed result
+  // for any caller that still reads it (e.g. an export/report path), but nothing in the live
+  // rendering below is derived from it.
   const queryData = safeArray(primary?.queryData);
   const reasoningSteps = safeArray(primary?.reasoningSteps);
   const artifacts = primary?.artifacts || null;
@@ -1218,27 +1216,57 @@ export function composeResponse(primary, finding, question) {
   const understanding = artifacts?.understanding || verdict || null;
   const narrativeBody = understanding ? body : full;
 
-  let keyFindings, relatedFacts, recommendation;
-  if (artifacts) {
+  // Agent Brain's own UI-content plan — the authoritative semantic response structure.
+  // Rendered in the exact order supplied; never reordered by type, dataset size, step number,
+  // or any other signal. DATASET/HIGHLIGHT sections drive Evidence/Highlights directly (see the
+  // render code below) — queryData plays no part in either.
+  const sections = normalizeSections(artifacts?.sections);
+  const datasetSections = sections.filter((s) => s.type === 'DATASET' && s.display !== false);
+  const highlightSections = sections.filter((s) => s.type === 'HIGHLIGHT');
+  // The evidence/highlight portion of the UI, in the EXACT order Agent Brain supplied — a plain
+  // filter preserves relative order, it does not group DATASET sections ahead of HIGHLIGHT
+  // sections or vice versa. Never sorted by type, dataset size, or step number.
+  const evidenceSections = sections.filter((s) =>
+    (s.type === 'DATASET' && s.display !== false) || s.type === 'HIGHLIGHT');
+
+  let keyFindings, relatedFacts, recommendation, nextSteps;
+  if (sections.length > 0) {
+    // Read directly from the model's own sections — never reconstructed from queryData,
+    // column names, reasoning steps, or answer text.
+    keyFindings = sections.filter((s) => s.type === 'FINDINGS').flatMap((s) => s.items);
+    relatedFacts = sections.filter((s) => s.type === 'RELATED_FACTS').flatMap((s) => s.items);
+    const recSection = sections.find((s) => s.type === 'RECOMMENDATION' && s.content);
+    recommendation = recSection ? recSection.content : null;
+    // Plain-text items from Agent Brain; label/prompt are mechanically the same string — a
+    // clicked chip asks exactly what the model suggested, nothing added or inferred. An absent
+    // NEXT_STEPS section yields an empty array here — never backfilled from quickRefinements or
+    // any queryData-driven heuristic (see the removed buildSuggestions/deriveKeyMetrics fallback
+    // paths this replaces).
+    nextSteps = sections.filter((s) => s.type === 'NEXT_STEPS')
+      .flatMap((s) => s.items)
+      .map((text) => ({ label: text, prompt: text }));
+  } else if (artifacts) {
+    // No sections-based plan on this response (the Zevra Agent path, or a response that never
+    // went through structured composition) — these flat fields are still Agent Brain's own
+    // output for those paths (or, for llmSemantics===null, the existing honest sentence-derived
+    // legacy heuristic) — never a queryData/column-name reconstruction.
     keyFindings = safeArray(artifacts.key_findings || artifacts.keyFindings);
     relatedFacts = safeArray(artifacts.related_facts || artifacts.relatedFacts);
     recommendation = artifacts.recommendation || null;
+    nextSteps = safeArray(artifacts.next_steps || artifacts.nextSteps);
   } else {
     const d = deriveIntelligence(full, reasoningSteps);
     keyFindings = d.keyFindings;
     relatedFacts = d.relatedFacts;
     recommendation = d.recommendation || null;
+    nextSteps = [];
   }
 
-  const metrics = (() => {
-    const am = safeArray(artifacts?.metrics);
-    return am.length > 0 ? am : deriveKeyMetrics(queryData);
-  })();
-
-  const nextSteps = (() => {
-    const steps = safeArray(artifacts?.next_steps || artifacts?.nextSteps);
-    return steps.length > 0 ? steps : buildSuggestions(primary?.quickRefinements, queryData);
-  })();
+  // Metrics remain 100% deterministic/runtime-owned by design (see ResponseArtifactsBuilder —
+  // the model has no say in them) — read only from the backend's own computation. No frontend
+  // recomputation from queryData: an absent metrics array renders as no metrics, honestly,
+  // rather than a second, redundant column-name heuristic guessing at the same thing.
+  const metrics = safeArray(artifacts?.metrics);
 
   // 0 → nothing to show. 1 → a single emphasized figure. 2–4 → a compact strip. 5+ (not
   // produced by the backend today, capped at 3 — see ResponseArtifactsBuilder.metrics; handled
@@ -1269,11 +1297,18 @@ export function composeResponse(primary, finding, question) {
 
   const artifactTrail = safeArray(artifacts?.trail);
 
-  // Investigation context — only fields genuinely known. No "Scope"/"Business context"/"Data
-  // sources" here: nothing in the response contract states them, and inventing prose for them
-  // would be exactly the fabrication this model exists to avoid.
+  // Investigation context — only fields genuinely known. "Answered by" is a real routing fact.
+  // "Fields analyzed" is a mechanical column-key extraction from the DATASET section(s) actually
+  // being rendered — Agent Brain already decided which datasets matter by including them as
+  // sections; this only reads off their column names for display, never queryData[0]. No
+  // "Filters" line: nothing in the response contract carries authoritative filter state, so it
+  // is omitted rather than presented as a fabricated "None applied".
   const answeredBy = primary?.agentName || primary?.decisionType || null;
-  const fieldsAnalyzed = queryData.length > 0 ? Object.keys(queryData[0]).map(colLabel).join(', ') : null;
+  const fieldsAnalyzed = datasetSections.length > 0
+    ? ([...new Set(datasetSections.flatMap((s) =>
+        s.datasets.flatMap((d) => (d.rows[0] ? Object.keys(d.rows[0]) : []))))]
+        .map(colLabel).join(', ') || null)
+    : null;
 
   return {
     question,
@@ -1284,6 +1319,10 @@ export function composeResponse(primary, finding, question) {
     overflowMetrics,
     queryData,
     chartHint,
+    sections,
+    datasetSections,
+    highlightSections,
+    evidenceSections,
     keyFindings,
     relatedFacts,
     recommendation,
@@ -1523,12 +1562,8 @@ export function IntelligenceResponse({ finding, messages, onAsk }) {
                     <dd className="min-w-0 truncate text-right text-z-text-2">{r.fieldsAnalyzed}</dd>
                   </div>
                 )}
-                {r.queryData.length > 0 && (
-                  <div className="flex items-start justify-between gap-3">
-                    <dt className="text-z-text-3">Filters</dt>
-                    <dd className="text-z-text-2">None applied</dd>
-                  </div>
-                )}
+                {/* No "Filters" row: nothing in the response contract carries authoritative
+                    filter state. An honest omission, never a fabricated "None applied". */}
                 {startedLabel && (
                   <div className="flex items-start justify-between gap-3">
                     <dt className="text-z-text-3">Last updated</dt>
@@ -1567,11 +1602,50 @@ export function IntelligenceResponse({ finding, messages, onAsk }) {
                 </section>
               )}
 
-              {r.queryData.length > 0 && (
+              {/* Evidence — Agent Brain's own DATASET/HIGHLIGHT sections, rendered in the exact
+                  order supplied. Every dataset Agent Brain included as its own section is shown
+                  as its own dataset — never merged, never reduced to one "primary" table by row
+                  count or step order. A HIGHLIGHT's narrative is shown verbatim, with the
+                  dataset(s) it cites as supporting evidence beneath it, tagged by step. */}
+              {r.evidenceSections.length > 0 && (
                 <section className="mb-3 animate-z-rise motion-reduce:animate-none" style={{ animationDelay: '60ms' }}>
-                  <ReportLabel>Primary evidence</ReportLabel>
-                  <DataViz queryData={r.queryData} chartHint={r.chartHint} />
-                  <div className="mt-2"><InvestigationDataset rows={r.queryData} /></div>
+                  <ReportLabel>Evidence</ReportLabel>
+                  {r.evidenceSections.map((s, i) => (
+                    <div key={i} className={i > 0 ? 'mt-4' : ''}>
+                      {s.type === 'DATASET' ? (
+                        <div>
+                          {(s.title || s.purpose) && (
+                            <div className="mb-1.5">
+                              {s.title && <div className="text-z-body font-semibold text-z-text">{s.title}</div>}
+                              {s.purpose && <div className="text-z-caption text-z-text-3">{s.purpose}</div>}
+                            </div>
+                          )}
+                          {s.datasets.map((ds, j) => (
+                            <div key={j} className={j > 0 ? 'mt-2' : ''}>
+                              <InvestigationDataset
+                                rows={ds.rows}
+                                title={s.datasets.length > 1 ? `Dataset step-${ds.stepNo}` : 'Dataset'}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="rounded-z-lg border border-z-border bg-z-card px-3 py-2.5">
+                          {s.title && <div className="mb-1 text-z-body font-semibold text-z-text">{s.title}</div>}
+                          <div className="text-z-caption leading-[1.5] text-z-text-2">{s.content}</div>
+                          {s.datasets.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {s.datasets.map((ds, j) => (
+                                <span key={j} className="rounded-z-round bg-z-card-2 px-1.5 py-0.5 text-[10px] text-z-text-3">
+                                  step-{ds.stepNo} · {ds.rows.length} row{ds.rows.length === 1 ? '' : 's'}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </section>
               )}
 
