@@ -12,8 +12,15 @@ export function TableWrap({ className, children, ...rest }: HTMLAttributes<HTMLD
   );
 }
 
-export function Table({ className, children, ...rest }: TableHTMLAttributes<HTMLTableElement>) {
-  return <table className={cn('w-full border-collapse text-z-body', className)} {...rest}>{children}</table>;
+export interface TableProps extends TableHTMLAttributes<HTMLTableElement> {
+  /** Tighter type + row height — an investigation's evidence table wants more rows on
+   *  screen than the default admin/reports table; opt-in so every other Table usage
+   *  in the app is unaffected. */
+  dense?: boolean;
+}
+
+export function Table({ dense, className, children, ...rest }: TableProps) {
+  return <table className={cn('w-full border-collapse', dense ? 'text-[12px]' : 'text-z-body', className)} {...rest}>{children}</table>;
 }
 
 export function THead({ className, children, ...rest }: HTMLAttributes<HTMLTableSectionElement>) {
@@ -30,20 +37,21 @@ export interface ThProps extends ThHTMLAttributes<HTMLTableCellElement> {
   numeric?: boolean;
   sortable?: boolean;
   sort?: SortDir;
+  dense?: boolean;
 }
 
-export function Th({ numeric, sortable, sort = null, className, children, ...rest }: ThProps) {
+export function Th({ numeric, sortable, sort = null, dense, className, children, ...rest }: ThProps) {
   return (
     <th
       aria-sort={sort === 'asc' ? 'ascending' : sort === 'desc' ? 'descending' : undefined}
       className={cn(
-        'sticky top-0 z-[1] whitespace-nowrap border-b border-z-border bg-z-card-2 px-4 py-3 text-z-caption font-semibold text-z-text-3',
+        'sticky top-0 z-[1] whitespace-nowrap border-b border-z-border bg-z-card-2 font-semibold text-z-text-3',
+        dense ? 'px-2.5 py-1.5 text-[11px]' : 'px-4 py-3 text-z-caption',
         numeric ? 'text-right tabular-nums' : 'text-left',
         sortable && 'cursor-pointer select-none hover:text-z-text',
         className,
       )}
-      {...rest}
-    >
+      {...rest}>
       <span className="inline-flex items-center gap-1">
         {children}
         {sortable && <span aria-hidden className="text-z-text-muted">{sort === 'asc' ? '↑' : sort === 'desc' ? '↓' : '↕'}</span>}
@@ -76,11 +84,12 @@ export function Tr({ selected, interactive, className, children, ...rest }: TrPr
 
 export interface TdProps extends TdHTMLAttributes<HTMLTableCellElement> {
   numeric?: boolean;
+  dense?: boolean;
 }
 
-export function Td({ numeric, className, children, ...rest }: TdProps) {
+export function Td({ numeric, dense, className, children, ...rest }: TdProps) {
   return (
-    <td className={cn('px-4 py-3.5 align-middle text-z-text-2', numeric && 'text-right tabular-nums', className)} {...rest}>
+    <td className={cn('align-middle text-z-text-2', dense ? 'px-2.5 py-1.5' : 'px-4 py-3.5', numeric && 'text-right tabular-nums', className)} {...rest}>
       {children}
     </td>
   );

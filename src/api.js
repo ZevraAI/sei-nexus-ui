@@ -254,6 +254,14 @@ export const api = {
     },
   },
 
+  // ── /TeachZevra (Explicit Teaching, Part B) ─────────────────────────────────
+  teaching: {
+    concepts:    ()       => get('/teaching/concepts'),
+    connections: ()       => get('/teaching/connections'),
+    propose:     (body)   => post('/teaching/proposal', body),
+    confirm:     (proposal) => post('/teaching/confirm', proposal),
+  },
+
   // ── Agents ─────────────────────────────────────────────────────────────────
   agents: {
     list:            ()             => get('/agents'),

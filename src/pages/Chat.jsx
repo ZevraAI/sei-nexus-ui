@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { marked } from 'marked';
 import {
-  ArrowLeft, Bot, CalendarClock, Check, ChevronDown, Clipboard, Clock, Compass,
-  Download, FileDown, FileSpreadsheet, FileText, ListTree, Printer, Radar, Search, Sparkles, TrendingUp, User, X,
+  ArrowLeft, ArrowUpRight, Activity, Award, BarChart3, Bot, CalendarClock, Check, ChevronDown, Clipboard, Clock, Compass,
+  Download, FileDown, FileSpreadsheet, FileText, Hash, ListTree, Printer, Radar, Search, TrendingUp, User, X,
 } from 'lucide-react';
 import { api } from '../api.js';
 import { openEventStream } from '../lib/sse.js';
@@ -15,8 +15,9 @@ import {
 } from '../ds';
 import { IntelligencePage, ReadingColumn, Eyebrow, Verdict, HighlightSurface } from '../ds/intelligence';
 import InvestigationComposer from '../components/InvestigationComposer.jsx';
+import TeachZevraModal from '../components/TeachZevraModal.jsx';
 
-import DataViz from '../components/DataViz.jsx';
+import DataViz, { hasChartConfig } from '../components/DataViz.jsx';
 import ReasoningTrace from '../components/ReasoningTrace.jsx';
 import BusinessUnderstanding from '../components/BusinessUnderstanding.jsx';
 import AgentStepTrace from '../components/agents/AgentStepTrace.jsx';
@@ -414,6 +415,25 @@ export function fmtCell(v) {
 
 export function colLabel(key) {
   return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// Purely mechanical, meaning-blind display transform for a raw CATEGORICAL VALUE (as opposed to
+// colLabel above, which formats a column NAME) — e.g. an enum like PARTIALLY_RECEIVED or a
+// snake_case string rendered in a table cell/badge. Same category of helper as colLabel/fmtLabel
+// (DataViz.jsx): casing/punctuation only, zero awareness of what the value means, no lookup
+// table. A value that already looks like free/human-authored text (contains whitespace) or has
+// no separator/casing signal to normalize passes through unchanged. The underlying raw value is
+// still used for search/export/filtering/color mapping — only the rendered text changes.
+export function fmtValue(v) {
+  const s = String(v ?? '');
+  if (!s) return s;
+  if (/[_-]/.test(s) && !/\s/.test(s)) {
+    return s.toLowerCase().replace(/[_-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+  if (/^[A-Z0-9][A-Z0-9\s]*$/.test(s) && /[A-Z]/.test(s) && s.length > 1) {
+    return s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  }
+  return s;
 }
 
 // ── DataTable ─────────────────────────────────────────────────────────────────
@@ -1056,44 +1076,87 @@ function deriveIntelligence(full, reasoningSteps) {
 // A status-like column (matching /status|state/i) renders through the platform's own
 // statusKind() mapping — the same semantic-color language used everywhere else in
 // Zevra, applied to whatever real string values the query actually returned. A search
-// box filters real rows client-side; nothing here alters or invents data.
+// box filters real rows client-side; nothing here alters or invents data. The dataset is
+// a first-class investigation artifact (spec §8): search, a client-side column-visibility
+// toggle, and a CSV export of exactly the rows/columns currently shown — all presentation-
+// only, layered over the exact same rows the backend returned, with no new data derived.
 function InvestigationDataset({ rows, title = 'Dataset' }) {
   const [search, setSearch] = useState('');
+  const [hiddenCols, setHiddenCols] = useState(() => new Set());
+  const [colsMenuOpen, setColsMenuOpen] = useState(false);
+  const colsMenuRef = useRef(null);
+
+  useEffect(() => {
+    if (!colsMenuOpen) return undefined;
+    const onDocClick = (e) => { if (colsMenuRef.current && !colsMenuRef.current.contains(e.target)) setColsMenuOpen(false); };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [colsMenuOpen]);
+
   if (!rows?.length) return null;
-  const cols = Object.keys(rows[0]);
+  const allCols = Object.keys(rows[0]);
+  const cols = allCols.filter((c) => !hiddenCols.has(c));
   const statusCol = cols.find((c) => /status|state$/i.test(c));
   const q = search.trim().toLowerCase();
-  const filtered = q ? rows.filter((r) => cols.some((c) => String(r[c] ?? '').toLowerCase().includes(q))) : rows;
+  const filtered = q ? rows.filter((r) => allCols.some((c) => String(r[c] ?? '').toLowerCase().includes(q))) : rows;
+
+  const toggleCol = (c) => setHiddenCols((prev) => {
+    const next = new Set(prev);
+    if (next.has(c)) next.delete(c); else next.add(c);
+    return next;
+  });
+
+  const exportCsv = () => {
+    const header = cols.map(colLabel).join(',');
+    const body = filtered.map((row) => cols.map((c) => csvEscape(row[c])).join(',')).join('\n');
+    downloadBlob(`${slugifyFileName(title)}-${exportStamp()}.csv`, `${header}\n${body}\n`, 'text/csv;charset=utf-8');
+  };
 
   return (
     <div>
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-        <span className="text-z-label uppercase tracking-[0.14em] text-z-text-3">
-          {title} <span className="normal-case tracking-normal text-z-text-2">({rows.length.toLocaleString()})</span>
+      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2.5">
+        <span className="text-z-caption font-semibold text-z-text">
+          {title} <span className="ml-1 font-normal text-z-text-3">({rows.length.toLocaleString()} row{rows.length !== 1 ? 's' : ''})</span>
         </span>
-        <div className="relative w-56">
-          <Search size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-z-text-3" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search dataset…"
-            className="w-full rounded-z-sm border border-z-border-strong bg-z-surface py-1.5 pl-7 pr-2.5 text-z-caption text-z-text placeholder:text-z-text-3 focus:outline-none focus:ring-[3px] focus:ring-z-focus-ring"
-          />
+        <div className="flex items-center gap-1.5">
+          <div className="relative w-44">
+            <Search size={11} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-z-text-3" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search in results…"
+              className="w-full rounded-z-sm border border-z-border-strong bg-z-surface py-1 pl-7 pr-2.5 text-[11.5px] text-z-text placeholder:text-z-text-3 focus:outline-none focus:ring-[3px] focus:ring-z-focus-ring"
+            />
+          </div>
+          <div className="relative" ref={colsMenuRef}>
+            <Button variant="ghost" size="sm" onClick={() => setColsMenuOpen((o) => !o)}>Columns</Button>
+            {colsMenuOpen && (
+              <div role="menu" className="absolute right-0 top-9 z-20 max-h-56 w-52 overflow-y-auto rounded-z-md border border-z-border bg-z-card py-1 shadow-z-2">
+                {allCols.map((c) => (
+                  <label key={c} className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-z-caption text-z-text-2 hover:bg-z-hover">
+                    <input type="checkbox" checked={!hiddenCols.has(c)} onChange={() => toggleCol(c)} />
+                    {colLabel(c)}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+          <Button variant="ghost" size="sm" onClick={exportCsv} leadingIcon={<Download size={13} />}>Export</Button>
         </div>
       </div>
       <TableWrap>
-        <div className="max-h-[105px] overflow-y-auto">
-          <Table>
+        <div className="max-h-[280px] overflow-y-auto">
+          <Table dense>
             <THead className="sticky top-0 z-10">
-              <tr>{cols.map((c) => <Th key={c} className="whitespace-nowrap">{colLabel(c)}</Th>)}</tr>
+              <tr>{cols.map((c) => <Th key={c} dense className="whitespace-nowrap">{colLabel(c)}</Th>)}</tr>
             </THead>
             <TBody>
               {filtered.map((row, i) => (
                 <Tr key={i}>
                   {cols.map((c) => (
-                    <Td key={c} className="max-w-[220px] truncate whitespace-nowrap">
+                    <Td key={c} dense className="max-w-[220px] truncate whitespace-nowrap">
                       {c === statusCol && row[c] != null
-                        ? <Badge status={statusKind(row[c])}>{String(row[c])}</Badge>
+                        ? <Badge status={statusKind(row[c])}>{fmtValue(row[c])}</Badge>
                         : fmtCell(row[c])}
                     </Td>
                   ))}
@@ -1102,7 +1165,7 @@ function InvestigationDataset({ rows, title = 'Dataset' }) {
             </TBody>
           </Table>
         </div>
-        <div className="border-t border-z-border bg-z-card-2 px-3.5 py-1.5 font-z-mono text-[11px] text-z-text-3">
+        <div className="border-t border-z-border bg-z-card-2 px-3 py-1 font-z-mono text-[10.5px] text-z-text-3">
           {filtered.length.toLocaleString()} of {rows.length.toLocaleString()} row{rows.length !== 1 ? 's' : ''}
         </div>
       </TableWrap>
@@ -1175,6 +1238,138 @@ function InvestigationProgress({ milestones, loading }) {
   );
 }
 
+// Investigation Header (spec §1) — replaces the oversized masthead + separate Question card
+// with: title, the question verbatim beneath it (once — never duplicated in a card, spec §2),
+// and a compact metadata line built ONLY from fields the response actually carries (who
+// answered it, when). No domain/connection/analyst fields are shown — this data model has no
+// such fields today, and inventing them would violate spec §19's "no fabricated information".
+function InvestigationHeader({ finding, loading, title, question, startedLabel, answeredBy }) {
+  return (
+    <header className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+      {loading && (
+        <Eyebrow dot className="shrink-0 text-z-primary">Active</Eyebrow>
+      )}
+      {!finding && !loading && (
+        <span className="flex shrink-0 items-center gap-1.5 text-[11px] text-z-text-3">
+          <StatusDot status="healthy" />Answered
+        </span>
+      )}
+      {finding && <span className="shrink-0 text-[11px] uppercase tracking-[0.08em] text-z-primary">{reportStatus(finding.status)}</span>}
+
+      <h1 className="min-w-0 flex-1 truncate font-z-serif text-[16px] font-medium leading-[1.2] tracking-[-0.005em] text-z-text sm:text-[18px]" title={title}>
+        {title}
+      </h1>
+      {question && question !== title && (
+        <p className="min-w-0 basis-full truncate text-[12.5px] text-z-text-2">{question}</p>
+      )}
+      {(answeredBy || startedLabel) && (
+        <p className="ml-auto flex shrink-0 flex-wrap items-center gap-x-2 font-z-mono text-[10.5px] uppercase tracking-[0.1em] text-z-text-3">
+          {answeredBy && <span>{answeredBy}</span>}
+          {answeredBy && startedLabel && <span aria-hidden>·</span>}
+          {startedLabel && <span>{startedLabel}</span>}
+        </p>
+      )}
+    </header>
+  );
+}
+
+// Key Finding hero (spec §3) — the primary answer promoted to a prominent horizontal banner
+// using Zevra's existing emerald accent (HighlightSurface). Renders the real model-generated
+// understanding/answer verbatim — never a hard-coded string, never JS-derived semantics.
+function KeyFindingBanner({ headline, body, agentContext }) {
+  if (!headline && !body) return null;
+  return (
+    <HighlightSurface material="subtle" accent="primary" className="mb-2 animate-z-rise motion-reduce:animate-none" style={{ padding: '10px 14px' }}>
+      <div className="mb-1 flex items-center gap-2">
+        <span className="grid h-4 w-4 flex-none place-items-center rounded-full bg-z-primary text-z-on-accent">
+          <Check size={10} strokeWidth={3} />
+        </span>
+        <span className="text-z-label uppercase tracking-[0.14em] text-z-primary">Key Finding</span>
+      </div>
+      {headline && <Verdict as="p" size="md" className="mb-0.5">{renderVerdict(headline)}</Verdict>}
+      {body && <MarkdownBody content={body} />}
+      {agentContext?.agentName && (
+        <p className="mt-2 text-z-caption text-z-text-3">
+          Investigated by {agentContext.agentName}
+          {agentContext.iterationsUsed ? ` · ${agentContext.iterationsUsed} step${agentContext.iterationsUsed === 1 ? '' : 's'}` : ''}
+        </p>
+      )}
+    </HighlightSurface>
+  );
+}
+
+// Investigation Assistant (spec §9) — replaces the old, more promotional "Zevra Intelligence"
+// panel. The checklist re-labels the SAME real per-phase completion state InvestigationProgress
+// already renders (never fabricated ahead of time — see deriveMilestones); "Suggested
+// follow-ups" renders the SAME followUpQuestions composeResponse() derives from the model's own
+// FOLLOW_UP_QUESTIONS section (never invented here — an empty list simply omits the block).
+const ASSISTANT_CHECKLIST = [
+  ['understanding', 'Business context'],
+  ['reviewing', 'Data retrieved'],
+  ['judgment', 'Analysis completed'],
+  ['preparing', 'Findings generated'],
+];
+
+function InvestigationAssistant({ milestones, loading, followUpQuestions, onAsk }) {
+  return (
+    <HighlightSurface
+      material="subtle" accent="primary" live={loading}
+      className="h-fit"
+      style={{ padding: '10px 14px' }}
+    >
+      <div className="flex items-center gap-2">
+        <span className="grid h-6 w-6 flex-none place-items-center rounded-z-round bg-z-primary-soft">
+          <Radar size={13} className="text-z-primary" />
+        </span>
+        <div className="min-w-0">
+          <div className="text-z-caption font-semibold text-z-text">Investigation Assistant</div>
+          <div className="text-[10.5px] text-z-text-3">
+            {loading ? 'Continuously analyzing your data' : 'Keep exploring. Here are some next steps.'}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-2 space-y-1 border-t border-z-ai-edge pt-2">
+        {ASSISTANT_CHECKLIST.map(([phase, label]) => {
+          const m = milestones.find((x) => x.phase === phase);
+          const done = !loading || !!m?.done;
+          return (
+            <div key={phase} className="flex items-center gap-2 text-[11.5px]">
+              {done ? (
+                <span className="grid h-3.5 w-3.5 flex-none place-items-center rounded-full bg-z-primary">
+                  <Check size={8} strokeWidth={3} className="text-z-on-accent" />
+                </span>
+              ) : (
+                <StatusDot status="investigating" live className="h-3.5 w-3.5" />
+              )}
+              <span className={done ? 'text-z-text-2' : 'text-z-text-3'}>{label}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {followUpQuestions?.length > 0 && (
+        <div className="mt-2 border-t border-z-ai-edge pt-2">
+          <ReportLabel>Suggested follow-ups</ReportLabel>
+          <div className="mt-1.5 flex flex-col gap-1.5">
+            {followUpQuestions.map((s, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => onAsk(s.prompt)}
+                className="flex items-center gap-2 rounded-z-md border border-z-border bg-z-card px-2.5 py-2 text-left text-z-caption leading-[1.3] text-z-text-2 transition-colors hover:border-z-border-strong hover:bg-z-hover hover:text-z-text"
+              >
+                <IconBadge icon={ArrowUpRight} size={24} />
+                <span className="min-w-0">{s.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </HighlightSurface>
+  );
+}
+
 // ── Response composition — the universal Zevra Intelligence Response model. Pure function:
 // normalizes ResponseArtifacts (preferred, backend-composed, shared by chat/agent/future
 // workflow paths) or the original client-side derivation (fallback, for a reopened past
@@ -1185,9 +1380,18 @@ function InvestigationProgress({ milestones, loading }) {
 // to real backend data (ResponseArtifacts) or the same regex-derived fallback already shipped
 // and reviewed in prior rounds.
 // Normalizes ResponseArtifacts.sections (backend snake_case) into one consistent shape —
-// { type, title, purpose, display, items, content, datasets: [{ stepNo, rows }] } — so every
-// renderer downstream works off one shape regardless of transport casing. This is purely a
-// field-name/casing normalization: it does not filter, rank, reorder, or interpret anything.
+// { type, title, purpose, display, items, content, reasoning, datasets: [{ stepNo, rows, rowCount }] }
+// — so every renderer downstream works off one shape regardless of transport casing. This is
+// purely a field-name/casing normalization: it does not filter, rank, reorder, or interpret
+// anything. `rowCount` is the backend's own count for this dataset, which for a non-DATASET
+// section (HIGHLIGHT/TEXT) is populated WITHOUT the full `rows` payload (a mechanical
+// bloat-reduction — those sections cite a dataset only for traceability, never to display its
+// table) — falls back to `rows.length` for an older backend response that only ever sent full
+// rows. `reasoning` is meaningful only for a FOLLOW_UP_QUESTIONS section (the model's own
+// reasoning for that section's own `items`, structurally attached to the same section object —
+// see StructuredAnswer.Section's javadoc); null on every other section type. Not currently
+// rendered — the UI shows "Suggested follow-ups" from `items` alone (see InvestigationAssistant)
+// — carried through only so the shape mirrors the backend contract one-to-one.
 export function normalizeSections(rawSections) {
   return safeArray(rawSections).map((s) => ({
     type: s.type ?? null,
@@ -1196,10 +1400,34 @@ export function normalizeSections(rawSections) {
     display: s.display,
     items: safeArray(s.items),
     content: s.content ?? null,
-    datasets: safeArray(s.datasets).map((d) => ({
-      stepNo: d.step_no ?? d.stepNo ?? null,
-      rows: safeArray(d.rows),
-    })),
+    reasoning: s.reasoning ?? null,
+    datasets: safeArray(s.datasets).map((d) => {
+      const rows = safeArray(d.rows);
+      const rowCount = d.row_count ?? d.rowCount ?? rows.length;
+      return { stepNo: d.step_no ?? d.stepNo ?? null, rows, rowCount };
+    }),
+  }));
+}
+
+// Backend JSON is snake_case (global Jackson naming strategy) — normalize once here so callers
+// only ever deal with one shape regardless of transport casing. Mirrors ResponseArtifacts.Evidence
+// exactly (kind/label/chartType/xKey/yKeys/rowCount/stepNo) — see composeResponse's chartHints
+// derivation below for how these are matched back to the dataset they belong to.
+function normalizeEvidence(rawEvidence) {
+  return safeArray(rawEvidence).map((e) => ({
+    kind: e.kind ?? null,
+    label: e.label ?? null,
+    chartType: e.chart_type || e.chartType || null,
+    xKey: e.x_key || e.xKey || null,
+    yKeys: safeArray(e.y_keys || e.yKeys),
+    rowCount: e.row_count ?? e.rowCount ?? null,
+    stepNo: e.step_no ?? e.stepNo ?? null,
+    // Optional, purely presentational LLM-authored labels (see ReasoningPlanner.SYSTEM_PROMPT's
+    // OPTIONAL HUMAN-READABLE LABELS guidance) — relayed verbatim; DataViz's configFromHint
+    // applies them only when they mechanically align with xKey/yKeys, falling back to its own
+    // fmtLabel() casing transform otherwise.
+    xLabel: e.x_label || e.xLabel || null,
+    yLabels: safeArray(e.y_labels || e.yLabels),
   }));
 }
 
@@ -1218,18 +1446,33 @@ export function composeResponse(primary, finding, question) {
 
   // Agent Brain's own UI-content plan — the authoritative semantic response structure.
   // Rendered in the exact order supplied; never reordered by type, dataset size, step number,
-  // or any other signal. DATASET/HIGHLIGHT sections drive Evidence/Highlights directly (see the
-  // render code below) — queryData plays no part in either.
+  // or any other signal. queryData plays no part in either bucket below.
   const sections = normalizeSections(artifacts?.sections);
   const datasetSections = sections.filter((s) => s.type === 'DATASET' && s.display !== false);
   const highlightSections = sections.filter((s) => s.type === 'HIGHLIGHT');
-  // The evidence/highlight portion of the UI, in the EXACT order Agent Brain supplied — a plain
-  // filter preserves relative order, it does not group DATASET sections ahead of HIGHLIGHT
-  // sections or vice versa. Never sorted by type, dataset size, or step number.
-  const evidenceSections = sections.filter((s) =>
-    (s.type === 'DATASET' && s.display !== false) || s.type === 'HIGHLIGHT');
+  // EVIDENCE is raw proof only: the actual dataset table(s), nothing else. Per
+  // StructuredAnswer's javadoc, HIGHLIGHT is "a distinguished, dataset-grounded observation —
+  // mechanically the same kind of content as a FINDINGS item, just additionally traceable to a
+  // dataset" — i.e. narrative, not evidence, despite citing a dataset. So only DATASET sections
+  // belong under "Evidence"; every other section type (HIGHLIGHT, TEXT, and any future narrative
+  // type this model contract adds) is excluded here and rendered instead alongside Key
+  // Findings/Related Facts/Recommendation (see insightSections below and its render site) rather
+  // than under the "Evidence" heading where a user expects raw/proof data, not another finding.
+  // (FINDINGS/RELATED_FACTS/RECOMMENDATION/FOLLOW_UP_QUESTIONS never reach this array either way — they
+  // are consumed below through their own dedicated fields, not evidenceSections/insightSections.)
+  const evidenceSections = sections.filter((s) => s.type === 'DATASET' && s.display !== false);
+  // Narrative/insight sections — HIGHLIGHT (dataset-grounded observation) and TEXT (free-form
+  // narrative with no required dataset grounding; "use sparingly" per ChatService's prompt).
+  // Both are prose the model authored, not proof data, so both render together with the
+  // Key-Findings-adjacent content (before "Evidence"), in the exact order supplied, using the
+  // same bordered-card treatment (optional title + content + cited-dataset step tags) either
+  // always used — only their structural bucket changed, not their shape or content. Named
+  // explicitly (rather than `type !== 'DATASET'`) because `sections` also carries
+  // FINDINGS/RELATED_FACTS/RECOMMENDATION/FOLLOW_UP_QUESTIONS, which must NOT land here — those already
+  // render through their own dedicated fields above.
+  const insightSections = sections.filter((s) => s.type === 'HIGHLIGHT' || s.type === 'TEXT');
 
-  let keyFindings, relatedFacts, recommendation, nextSteps;
+  let keyFindings, relatedFacts, recommendation, followUpQuestions;
   if (sections.length > 0) {
     // Read directly from the model's own sections — never reconstructed from queryData,
     // column names, reasoning steps, or answer text.
@@ -1239,10 +1482,10 @@ export function composeResponse(primary, finding, question) {
     recommendation = recSection ? recSection.content : null;
     // Plain-text items from Agent Brain; label/prompt are mechanically the same string — a
     // clicked chip asks exactly what the model suggested, nothing added or inferred. An absent
-    // NEXT_STEPS section yields an empty array here — never backfilled from quickRefinements or
+    // FOLLOW_UP_QUESTIONS section yields an empty array here — never backfilled from quickRefinements or
     // any queryData-driven heuristic (see the removed buildSuggestions/deriveKeyMetrics fallback
     // paths this replaces).
-    nextSteps = sections.filter((s) => s.type === 'NEXT_STEPS')
+    followUpQuestions = sections.filter((s) => s.type === 'FOLLOW_UP_QUESTIONS')
       .flatMap((s) => s.items)
       .map((text) => ({ label: text, prompt: text }));
   } else if (artifacts) {
@@ -1253,13 +1496,13 @@ export function composeResponse(primary, finding, question) {
     keyFindings = safeArray(artifacts.key_findings || artifacts.keyFindings);
     relatedFacts = safeArray(artifacts.related_facts || artifacts.relatedFacts);
     recommendation = artifacts.recommendation || null;
-    nextSteps = safeArray(artifacts.next_steps || artifacts.nextSteps);
+    followUpQuestions = safeArray(artifacts.follow_up_questions || artifacts.followUpQuestions);
   } else {
     const d = deriveIntelligence(full, reasoningSteps);
     keyFindings = d.keyFindings;
     relatedFacts = d.relatedFacts;
     recommendation = d.recommendation || null;
-    nextSteps = [];
+    followUpQuestions = [];
   }
 
   // Metrics remain 100% deterministic/runtime-owned by design (see ResponseArtifactsBuilder —
@@ -1275,16 +1518,28 @@ export function composeResponse(primary, finding, question) {
   const metricStrip = metrics.length >= 2 && metrics.length <= 4 ? metrics : [];
   const overflowMetrics = metrics.length > 4 ? metrics : [];
 
-  const evidenceList = safeArray(artifacts?.evidence);
-  const rawChartEvidence = evidenceList.find((e) => e.kind === 'CHART') || null;
-  // Backend JSON is snake_case (global Jackson naming strategy) — normalize once here so
-  // DataViz only ever deals with one shape regardless of transport casing.
-  const chartHint = rawChartEvidence
-    ? {
-        chartType: rawChartEvidence.chart_type || rawChartEvidence.chartType || null,
-        xKey: rawChartEvidence.x_key || rawChartEvidence.xKey || null,
-        yKeys: safeArray(rawChartEvidence.y_keys || rawChartEvidence.yKeys),
-      }
+  // Chart hints (spec §5 / chart-hint architecture): the LLM decides chart type + category +
+  // value columns per investigation step (see ReasoningPlanner's OPTIONAL VISUALIZATION HINT
+  // guidance) — Java only relays them, tagged with the step they belong to (Evidence#stepNo).
+  // Each chartable dataset below looks up its OWN hint by its OWN stepNo (see
+  // EvidenceVisualizationGrid) — never one hint shared across every chart card in the response,
+  // however many chartable datasets it has (0, 1, 2, 5+).
+  const evidenceList = normalizeEvidence(artifacts?.evidence);
+  const chartEvidence = evidenceList.filter((e) => e.kind === 'CHART');
+  const chartHintsByStep = new Map(
+    chartEvidence
+      .filter((e) => e.stepNo != null)
+      .map((e) => [e.stepNo, { chartType: e.chartType, xKey: e.xKey, yKeys: e.yKeys,
+        xLabel: e.xLabel, yLabels: e.yLabels }]),
+  );
+  // Legacy/global fallback — a chart-evidence entry carrying no stepNo (an older backend, or the
+  // single-dataset legacy `queryData` shape heuristic, which has no per-step identity) applies to
+  // any chartable dataset that has no per-step hint of its own — exactly the prior behavior for a
+  // response shaped that way.
+  const legacyChartEntry = chartEvidence.find((e) => e.stepNo == null) || null;
+  const legacyChartHint = legacyChartEntry
+    ? { chartType: legacyChartEntry.chartType, xKey: legacyChartEntry.xKey, yKeys: legacyChartEntry.yKeys,
+        xLabel: legacyChartEntry.xLabel, yLabels: legacyChartEntry.yLabels }
     : null;
 
   const rawAgentContext = artifacts?.agent_context || artifacts?.agentContext || null;
@@ -1318,15 +1573,17 @@ export function composeResponse(primary, finding, question) {
     metricStrip,
     overflowMetrics,
     queryData,
-    chartHint,
+    chartHintsByStep,
+    legacyChartHint,
     sections,
     datasetSections,
     highlightSections,
     evidenceSections,
+    insightSections,
     keyFindings,
     relatedFacts,
     recommendation,
-    nextSteps,
+    followUpQuestions,
     artifactTrail,
     reasoningSteps,
     agentContext,
@@ -1338,13 +1595,14 @@ export function composeResponse(primary, finding, question) {
 }
 
 // A small circular icon badge — the recurring visual device that gives metrics/findings/facts/
-// next-steps rows presence instead of a plain bullet. One consistent accent per section (never
+// follow-up-question rows presence instead of a plain bullet. One consistent accent per section (never
 // a rainbow coded by fabricated categories the response never stated — every row means the
 // same thing, so every badge looks the same).
 function IconBadge({ icon: Icon, tone = 'primary', size = 30 }) {
   const tones = {
     primary: 'bg-z-primary-soft text-z-primary',
     quiet: 'bg-z-card-2 text-z-text-3',
+    warning: 'bg-z-warning-soft text-z-warning',
   };
   return (
     <span
@@ -1356,17 +1614,24 @@ function IconBadge({ icon: Icon, tone = 'primary', size = 30 }) {
   );
 }
 
-// The metric moment — never a grid of bordered KPI tiles. A single real figure is emphasized
-// on its own; 2–4 read as icon-led rows (the reference's "executive summary metrics" treatment);
-// a rare 5+ shows the first 4 with an explicit, honest "N more" expansion rather than silently
-// truncating.
-function MetricGroup({ single, strip, overflow }) {
+// A small, fixed set of neutral/generic icons cycled purely by a metric's position in the
+// list (metric 0 → icon A, metric 1 → icon B, ... wrapping around). Deliberately content-blind:
+// nothing here ever inspects a metric's label/value to "guess" an icon — that would be exactly
+// the business-vocabulary inference the platform forbids. This only adds visual variety.
+const METRIC_ICONS = [TrendingUp, Activity, BarChart3, Hash];
+
+// The KPI moment (spec §4) — compact, evidence-oriented, horizontal cards rather than a
+// dashboard grid or the old "Executive Summary" side card. A single real figure is emphasized
+// on its own; 2–4 read as a row of compact cards; a rare 5+ shows the first 4 with an
+// explicit, honest "N more" expansion rather than silently truncating. Renders only metrics
+// the backend actually supplied (ResponseArtifacts.metrics) — never derived/invented here.
+function InvestigationMetrics({ single, strip, overflow }) {
   const [expanded, setExpanded] = useState(false);
   if (single) {
     return (
-      <div className="animate-z-rise motion-reduce:animate-none">
-        <div className="text-[28px] font-semibold leading-none tabular-nums text-z-text">{single.value}</div>
-        <div className="mt-1 text-z-caption text-z-text-3">{single.label}</div>
+      <div className="mb-2 flex items-baseline gap-2.5 animate-z-rise motion-reduce:animate-none">
+        <span className="text-[20px] font-semibold leading-none tabular-nums text-z-text">{single.value}</span>
+        <span className="text-z-caption text-z-text-3">{single.label}</span>
       </div>
     );
   }
@@ -1374,14 +1639,14 @@ function MetricGroup({ single, strip, overflow }) {
   if (list.length === 0) return null;
   const shown = strip.length > 0 || expanded ? list : list.slice(0, 4);
   return (
-    <div className="animate-z-rise motion-reduce:animate-none">
-      <div className="flex flex-col gap-1.5">
+    <div className="mb-2 animate-z-rise motion-reduce:animate-none">
+      <div className="flex flex-wrap gap-1.5">
         {shown.map((m, i) => (
-          <div key={i} className="flex items-center gap-2.5">
-            <IconBadge icon={TrendingUp} size={24} />
+          <div key={i} className="flex min-w-[110px] flex-1 items-center gap-1.5 rounded-z-md border border-z-border bg-z-card px-2.5 py-1">
+            <IconBadge icon={METRIC_ICONS[i % METRIC_ICONS.length]} size={16} />
             <div className="min-w-0">
-              <div className="text-[16px] font-semibold leading-tight tabular-nums text-z-text">{m.value}</div>
-              <div className="text-z-caption text-z-text-3">{m.label}</div>
+              <div className="text-[12.5px] font-semibold leading-tight tabular-nums text-z-text">{m.value}</div>
+              <div className="text-[10px] text-z-text-3">{m.label}</div>
             </div>
           </div>
         ))}
@@ -1390,7 +1655,7 @@ function MetricGroup({ single, strip, overflow }) {
         <button
           type="button"
           onClick={() => setExpanded((e) => !e)}
-          className="mt-2 text-z-caption text-z-primary transition-colors hover:underline"
+          className="mt-1.5 text-z-caption text-z-primary transition-colors hover:underline"
         >
           {expanded ? 'Show fewer' : `Show ${overflow.length - 4} more`}
         </button>
@@ -1399,53 +1664,185 @@ function MetricGroup({ single, strip, overflow }) {
   );
 }
 
-// The investigation/execution trail — normalized across chat and agent alike. Collapsed to a
-// scannable summary; the full disclosure (SQL, business-concept resolution) still lives in the
-// unchanged BusinessUnderstanding/ReasoningTrace components. Renders nothing — no header, no
-// placeholder sentence — when there is genuinely no trail to show.
-function IntelligenceTrail({ reasoningSteps, artifactTrail, runKey, agentSessionId }) {
+// Visual Evidence (spec §5) — the existing Zevra chart implementation (DataViz), never a new
+// charting library, arranged so multiple charts sit side by side at desktop widths ("Orders by
+// Status", "Open Orders by Buyer", etc. — whatever the response actually supplies). Only wraps
+// a dataset in a chart card when DataViz's OWN selection rules would actually produce a chart
+// (hasChartConfig reuses those exact rules) — never a decorative, empty chart frame.
+function EvidenceVisualizationGrid({ datasetSections, chartHintsByStep, legacyChartHint }) {
+  // Each DATASET section already carries its own real `title`/`purpose` (the same field the
+  // Evidence list below renders as a dataset's heading) — threaded through here as-is so a
+  // chart card's header names the actual dataset the model built it from, verbatim, rather than
+  // a generic chart-type label. When a section genuinely has no title, DataViz's own generic
+  // fallback label (CHART_TITLES, keyed by chart type) is used instead — never a fabricated one.
+  //
+  // Per-dataset chart hint: each candidate looks up its OWN hint by its OWN stepNo (the LLM's
+  // per-step declaration — see composeResponse's chartHintsByStep derivation), falling back to
+  // the legacy/global hint only when this dataset has no per-step hint of its own. This is what
+  // lets two differently-shaped datasets in the same response (e.g. a status breakdown and a
+  // per-buyer breakdown) each render the chart type/category the model chose for THAT dataset,
+  // rather than one hint applied to every chart card.
+  const candidates = safeArray(datasetSections).flatMap((s) =>
+    safeArray(s.datasets).map((d) => ({ rows: d.rows, title: s.title || s.purpose || null, stepNo: d.stepNo })));
+  const chartable = candidates
+    .map((c) => ({
+      ...c,
+      hint: (c.stepNo != null && chartHintsByStep?.get(c.stepNo)) || legacyChartHint || null,
+    }))
+    .filter((c) => hasChartConfig(c.rows, c.hint));
+  if (chartable.length === 0) return null;
+  return (
+    <section
+      className={cn(
+        'mb-2 grid animate-z-rise gap-2.5 motion-reduce:animate-none',
+        chartable.length > 1 && (chartable.length >= 3 ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-2'),
+      )}
+    >
+      {chartable.map((c, i) => (
+        <div key={i} className="rounded-z-lg border border-z-border bg-z-card px-3 py-2">
+          <DataViz queryData={c.rows} chartHint={c.hint} title={c.title} />
+        </div>
+      ))}
+    </section>
+  );
+}
+
+// Investigation Reasoning (spec §7) — a proper three-milestone reasoning component rather than
+// the old "Business understanding · 2 concepts / Technical investigation · 1 step" line. The
+// headline label for each row is always the business-facing phase name (Business Understanding /
+// Data Investigation / Findings & Analysis) — concept/step/finding counts are secondary metadata
+// badges, never the primary label. A row only ever appears once its underlying real data exists
+// (never fabricated ahead of time); the full disclosure (SQL, business-concept resolution, agent
+// tool calls) is unchanged — the same BusinessUnderstanding/ReasoningTrace/AgentStepsToggle
+// components, now revealed via "View full reasoning" instead of always being collapsed inline.
+// Renders nothing when there is genuinely no trail to show — same condition as before.
+// Three distinct semantic accents already in the token set (no purple token exists today —
+// primary/investigating/warning stand in for the mockup's green/blue/purple, same "distinct
+// color per step" intent using colors the design system already defines for both themes).
+const STEP_TONES = ['bg-z-primary', 'bg-z-investigating', 'bg-z-warning'];
+
+function InvestigationReasoning({ reasoningSteps, artifactTrail, runKey, agentSessionId, findingsCount }) {
+  // Secondary by design (explicit user direction): Investigation Reasoning is how Zevra
+  // investigated, not the answer or its proof — so it starts fully collapsed behind one quiet
+  // line, not the old always-visible ①②③ summary row. `outerOpen` gates that whole summary +
+  // its own nested "View full reasoning" detail toggle (`open`, unchanged below) in one place.
+  const [outerOpen, setOuterOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const hasLegacySteps = safeArray(reasoningSteps).length > 0;
   const hasArtifactTrail = safeArray(artifactTrail).length > 0;
   if (!hasLegacySteps && !hasArtifactTrail && !agentSessionId) return null;
 
   const conceptCount = reasoningSteps.filter((s) => s.type === 'resolution').length;
   const stepCount = reasoningSteps.filter((s) => s.type !== 'resolution' && s.type !== 'literal').length;
+  const dataStepBadge = hasLegacySteps
+    ? (stepCount > 0 ? `${stepCount} step${stepCount === 1 ? '' : 's'}` : null)
+    : (hasArtifactTrail ? `${artifactTrail.length} step${artifactTrail.length === 1 ? '' : 's'}` : null);
+
+  const rows = [
+    conceptCount > 0 && {
+      title: 'Business Understanding',
+      detail: 'Identified the business concepts in your question',
+      badge: `${conceptCount} concept${conceptCount === 1 ? '' : 's'}`,
+    },
+    (stepCount > 0 || hasArtifactTrail) && {
+      title: 'Data Investigation',
+      detail: hasArtifactTrail ? (artifactTrail[0]?.label || 'Queried enterprise data') : 'Queried enterprise data for this question',
+      badge: dataStepBadge,
+    },
+    findingsCount > 0 && {
+      title: 'Findings & Analysis',
+      detail: 'Analyzed results and identified key insights',
+      badge: `${findingsCount} finding${findingsCount === 1 ? '' : 's'}`,
+    },
+  ].filter(Boolean);
+
+  const hasDetail = hasLegacySteps || hasArtifactTrail || !!agentSessionId;
+
+  // Real step count only, never fabricated — the same count already computed above for the
+  // "Data Investigation" row's badge. When genuinely unavailable (e.g. an agent session with
+  // no legacy steps/trail of its own), the quiet line omits a count rather than guessing one.
+  const collapsedLabel = dataStepBadge
+    ? `Investigated in ${dataStepBadge}`
+    : 'Investigation reasoning';
 
   return (
-    <section className="animate-z-rise motion-reduce:animate-none">
-      <ReportLabel>Investigation trail</ReportLabel>
-      {hasLegacySteps ? (
-        <div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-z-caption text-z-text-2">
-            {conceptCount > 0 && (
-              <span className="flex items-center gap-1.5">
-                <Clipboard size={12} className="text-z-text-3" />
-                Business understanding · {conceptCount} concept{conceptCount === 1 ? '' : 's'}
-              </span>
-            )}
-            {stepCount > 0 && (
-              <span className="flex items-center gap-1.5">
-                <ListTree size={12} className="text-z-text-3" />
-                Technical investigation · {stepCount} step{stepCount === 1 ? '' : 's'}
-              </span>
+    <section className="rounded-z-lg border border-z-border bg-z-card px-3 py-2 animate-z-rise motion-reduce:animate-none">
+      <button
+        type="button"
+        onClick={() => setOuterOpen((o) => !o)}
+        aria-expanded={outerOpen}
+        className="flex w-full items-center justify-between gap-3 text-left text-z-caption text-z-text-3 transition-colors hover:text-z-text-2"
+      >
+        <span>{collapsedLabel} · {outerOpen ? 'hide reasoning' : 'view reasoning'} →</span>
+        <ChevronDown size={13} className={cn('flex-none transition-transform', outerOpen && 'rotate-180')} />
+      </button>
+
+      {outerOpen && (
+        <div className="mt-2.5 border-t border-z-border pt-2.5">
+          <div className="mb-1.5 flex items-center justify-between gap-3">
+            <ReportLabel>Investigation Reasoning</ReportLabel>
+            {hasDetail && (
+              <button type="button" onClick={() => setOpen((o) => !o)} className="flex-none text-z-caption text-z-primary transition-colors hover:underline">
+                {open ? 'Hide full reasoning' : 'View full reasoning →'}
+              </button>
             )}
           </div>
-          <div className="mt-1.5">
-            <BusinessUnderstanding steps={reasoningSteps} runKey={runKey} />
-            <ReasoningTrace steps={reasoningSteps} loading={false} />
-          </div>
+
+          {rows.length > 0 ? (
+            // Three-stacked-row summary, matching the reference mockup: a colored numbered
+            // circle, a bold step title, a description line beneath it, and a right-aligned
+            // small badge naming the concept/step/finding count. The deeper SQL/agent-step
+            // disclosure below (behind "View full reasoning") is unchanged — this only concerns
+            // how the same three real milestones are laid out once the section is expanded.
+            <div className="space-y-2">
+              {rows.map((row, i) => (
+                <div key={row.title} className="flex items-start gap-2.5">
+                  <span
+                    className={cn(
+                      'mt-0.5 grid h-6 w-6 flex-none place-items-center rounded-full text-[11px] font-semibold text-z-on-accent',
+                      STEP_TONES[i % STEP_TONES.length],
+                    )}
+                  >
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[12.5px] font-semibold text-z-text">{row.title}</div>
+                    <div className="text-[11px] leading-[1.4] text-z-text-3">{row.detail}</div>
+                  </div>
+                  {row.badge && (
+                    <span className="mt-0.5 flex-none whitespace-nowrap rounded-z-round bg-z-investigating-soft px-2 py-0.5 text-[10.5px] font-medium text-z-investigating">
+                      {row.badge} ›
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <AgentStepsToggle sessionId={agentSessionId} />
+          )}
+
+          {open && rows.length > 0 && (
+            <div className="mt-3 border-t border-z-border pt-3">
+              {hasLegacySteps ? (
+                <>
+                  <BusinessUnderstanding steps={reasoningSteps} runKey={runKey} />
+                  <ReasoningTrace steps={reasoningSteps} loading={false} />
+                </>
+              ) : hasArtifactTrail ? (
+                <ul className="space-y-2">
+                  {artifactTrail.map((t, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-z-caption text-z-text-2">
+                      <span className="mt-1.5 h-1 w-1 flex-none rounded-full bg-z-text-3" />
+                      <span>{t.label}{t.outcome ? ` — ${t.outcome}` : ''}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <AgentStepsToggle sessionId={agentSessionId} />
+              )}
+            </div>
+          )}
         </div>
-      ) : hasArtifactTrail ? (
-        <ul className="space-y-2">
-          {artifactTrail.map((t, i) => (
-            <li key={i} className="flex items-start gap-2.5 text-z-caption text-z-text-2">
-              <span className="mt-1.5 h-1 w-1 flex-none rounded-full bg-z-text-3" />
-              <span>{t.label}{t.outcome ? ` — ${t.outcome}` : ''}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <AgentStepsToggle sessionId={agentSessionId} />
       )}
     </section>
   );
@@ -1503,230 +1900,198 @@ export function IntelligenceResponse({ finding, messages, onAsk }) {
         </>
       )}
 
-      {/* Masthead */}
-      <header className="mb-3">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <Eyebrow dot={loading} className={cn(loading ? 'text-z-primary' : 'text-z-text-3')}>
-            {finding ? 'Investigation report' : loading ? 'Investigation active' : 'Investigation'}
-          </Eyebrow>
-          {!finding && (
-            <>
-              {startedLabel && <span className="text-z-caption text-z-text-3">Started {startedLabel}</span>}
-              {!loading && <span className="flex items-center gap-1.5 text-z-caption text-z-text-3"><StatusDot status="healthy" />Answered</span>}
-            </>
-          )}
-          {finding && <span className="text-z-caption uppercase tracking-[0.08em] text-z-primary">{reportStatus(finding.status)}</span>}
-        </div>
-        <h1 className="mt-1.5 font-z-serif text-[22px] font-medium leading-[1.18] tracking-[-0.01em] text-z-text sm:text-[24px]">
-          {title}
-        </h1>
-      </header>
-
-      <div className="grid grid-cols-1 gap-x-6 gap-y-4 lg:grid-cols-[260px_minmax(0,1fr)_280px]">
-        {/* ── Left — Question, Zevra's understanding, Investigation context ── */}
-        <div className="flex flex-col gap-3 lg:order-1">
-          <Panel eyebrow="Question" style={{ animationDelay: '20ms' }}>
-            <p className="font-z-serif text-[14.5px] leading-[1.35] text-z-text">{title}</p>
-          </Panel>
-
-          {!loading && (r.understanding || r.narrativeBody || hasMetrics) && (
-            <Panel accent style={{ animationDelay: '70ms' }}>
-              <div className="mb-2 flex items-center gap-2">
-                <Sparkles size={13} className="text-z-primary" />
-                <span className="text-z-label uppercase tracking-[0.14em] text-z-text-3">Executive summary</span>
-                <span className="ml-auto text-[10px] text-z-text-3">Generated by Zevra</span>
-              </div>
-              {r.understanding && (
-                <Verdict as="p" size="sm" className="mb-2">{renderVerdict(r.understanding)}</Verdict>
-              )}
-              {hasMetrics && (
-                <div className="mt-2.5 border-t border-z-border pt-2.5">
-                  <MetricGroup single={r.singleMetric} strip={r.metricStrip} overflow={r.overflowMetrics} />
-                </div>
-              )}
-            </Panel>
-          )}
-
-          {!loading && (r.answeredBy || r.fieldsAnalyzed || startedLabel) && (
-            <Panel eyebrow="Investigation context" style={{ animationDelay: '130ms' }}>
-              <dl className="space-y-1.5 text-[11.5px]">
-                {r.answeredBy && (
-                  <div className="flex items-start justify-between gap-3">
-                    <dt className="text-z-text-3">Answered by</dt>
-                    <dd className="text-right text-z-text-2">{r.answeredBy}</dd>
-                  </div>
-                )}
-                {r.fieldsAnalyzed && (
-                  <div className="flex items-start justify-between gap-3">
-                    <dt className="flex-none text-z-text-3">Fields analyzed</dt>
-                    <dd className="min-w-0 truncate text-right text-z-text-2">{r.fieldsAnalyzed}</dd>
-                  </div>
-                )}
-                {/* No "Filters" row: nothing in the response contract carries authoritative
-                    filter state. An honest omission, never a fabricated "None applied". */}
-                {startedLabel && (
-                  <div className="flex items-start justify-between gap-3">
-                    <dt className="text-z-text-3">Last updated</dt>
-                    <dd className="text-z-text-2">{startedLabel}</dd>
-                  </div>
-                )}
-              </dl>
-            </Panel>
-          )}
-        </div>
-
-        {/* ── Center — evidence and the reasoning trail behind it ── */}
-        <div className="min-w-0 lg:order-2">
-          {loading ? (
-            <div className="mb-8">
-              {milestones.length > 0 ? (
-                <RuntimeProgress phases={milestones} />
-              ) : (
-                <p className="font-z-serif italic text-z-body leading-[1.5] text-z-text-2">Understanding your question…</p>
-              )}
-              {safeArray(primary?.streamingSteps).length > 0 && (
-                <div className="mt-3"><LiveReasoningSteps steps={safeArray(primary?.streamingSteps)} /></div>
-              )}
-            </div>
-          ) : (
-            <>
-              {(r.understanding || r.narrativeBody) && (
-                <section className="mb-3 animate-z-rise motion-reduce:animate-none">
-                  <MarkdownBody content={r.narrativeBody} />
-                  {r.agentContext?.agentName && (
-                    <p className="mt-1.5 text-z-caption text-z-text-3">
-                      Investigated by {r.agentContext.agentName}
-                      {r.agentContext.iterationsUsed ? ` · ${r.agentContext.iterationsUsed} step${r.agentContext.iterationsUsed === 1 ? '' : 's'}` : ''}
-                    </p>
-                  )}
-                </section>
-              )}
-
-              {/* Evidence — Agent Brain's own DATASET/HIGHLIGHT sections, rendered in the exact
-                  order supplied. Every dataset Agent Brain included as its own section is shown
-                  as its own dataset — never merged, never reduced to one "primary" table by row
-                  count or step order. A HIGHLIGHT's narrative is shown verbatim, with the
-                  dataset(s) it cites as supporting evidence beneath it, tagged by step. */}
-              {r.evidenceSections.length > 0 && (
-                <section className="mb-3 animate-z-rise motion-reduce:animate-none" style={{ animationDelay: '60ms' }}>
-                  <ReportLabel>Evidence</ReportLabel>
-                  {r.evidenceSections.map((s, i) => (
-                    <div key={i} className={i > 0 ? 'mt-4' : ''}>
-                      {s.type === 'DATASET' ? (
-                        <div>
-                          {(s.title || s.purpose) && (
-                            <div className="mb-1.5">
-                              {s.title && <div className="text-z-body font-semibold text-z-text">{s.title}</div>}
-                              {s.purpose && <div className="text-z-caption text-z-text-3">{s.purpose}</div>}
-                            </div>
-                          )}
-                          {s.datasets.map((ds, j) => (
-                            <div key={j} className={j > 0 ? 'mt-2' : ''}>
-                              <InvestigationDataset
-                                rows={ds.rows}
-                                title={s.datasets.length > 1 ? `Dataset step-${ds.stepNo}` : 'Dataset'}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="rounded-z-lg border border-z-border bg-z-card px-3 py-2.5">
-                          {s.title && <div className="mb-1 text-z-body font-semibold text-z-text">{s.title}</div>}
-                          <div className="text-z-caption leading-[1.5] text-z-text-2">{s.content}</div>
-                          {s.datasets.length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-1.5">
-                              {s.datasets.map((ds, j) => (
-                                <span key={j} className="rounded-z-round bg-z-card-2 px-1.5 py-0.5 text-[10px] text-z-text-3">
-                                  step-{ds.stepNo} · {ds.rows.length} row{ds.rows.length === 1 ? '' : 's'}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </section>
-              )}
-
-              <IntelligenceTrail
-                reasoningSteps={r.reasoningSteps} artifactTrail={r.artifactTrail}
-                runKey={r.runKey} agentSessionId={r.agentSessionId}
-              />
-            </>
-          )}
-        </div>
-
-        {/* ── Right — Zevra Intelligence, an investigation companion, not a chat ── */}
-        <HighlightSurface
-          material="subtle" accent="primary" live={loading}
-          className="h-fit lg:order-3 lg:sticky lg:top-4"
-          style={{ padding: '14px 16px' }}
-        >
-          <div className="flex items-center gap-2">
-            <span className="grid h-7 w-7 flex-none place-items-center rounded-z-round bg-z-primary-soft">
-              <Radar size={14} className="text-z-primary" />
-            </span>
-            <div className="min-w-0">
-              <div className="text-z-body font-semibold text-z-text">Zevra Intelligence</div>
-              <div className="text-[11px] text-z-text-3">
-                {loading ? 'Continuously analyzing your data' : 'Ask a follow-up to keep investigating'}
-              </div>
-            </div>
-          </div>
-
-          {r.keyFindings.length > 0 && (
-            <div className="mt-3">
-              <div className="mb-2 flex items-center gap-2">
-                <ReportLabel>Key findings</ReportLabel>
-                <span className="rounded-z-round bg-z-card-2 px-1.5 text-[10px] font-semibold text-z-text-3">{r.keyFindings.length}</span>
-              </div>
-              <ul className={cn('space-y-2', r.keyFindings.length > 5 && 'max-h-[168px] overflow-y-auto pr-1')}>
-                {r.keyFindings.map((f, i) => (
-                  <li key={i} className="flex gap-2 text-z-caption leading-[1.5] text-z-text-2">
-                    <IconBadge icon={Sparkles} size={20} />
-                    <span className="pt-0.5">{f}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {r.relatedFacts.length > 0 && (
-            <div className="mt-2 border-t border-z-ai-edge pt-2">
-              <div className="mb-2 flex items-center gap-2">
-                <ReportLabel>Related facts</ReportLabel>
-                <span className="rounded-z-round bg-z-card-2 px-1.5 text-[10px] font-semibold text-z-text-3">{r.relatedFacts.length}</span>
-              </div>
-              <ul className={cn('space-y-2', r.relatedFacts.length > 5 && 'max-h-[168px] overflow-y-auto pr-1')}>
-                {r.relatedFacts.map((f, i) => (
-                  <li key={i} className="flex gap-2 text-z-caption leading-[1.5] text-z-text-3">
-                    <IconBadge icon={FileText} tone="quiet" size={20} />
-                    <span className="pt-0.5">{f}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Strategic recommendation — real prose from the answer/artifacts, not a
-              duplicate of the tactical follow-up chips (those live in the "Continue
-              investigation" composer bar below, sourced from the same nextSteps). */}
-          {r.recommendation && (
-            <div className="mt-2 border-t border-z-ai-edge pt-2">
-              <ReportLabel>Recommendation</ReportLabel>
-              <div className="flex gap-2 text-z-caption leading-[1.5] text-z-text-2">
-                <IconBadge icon={Compass} size={20} />
-                <span className="pt-0.5">{r.recommendation}</span>
-              </div>
-            </div>
-          )}
-
-          <div className="mt-2 border-t border-z-ai-edge pt-2">
-            <InvestigationProgress milestones={milestones} loading={loading} />
-          </div>
-        </HighlightSurface>
+      {/* Investigation Header (spec §1/§2) — title, the question once (no separate Question
+          card), and a compact real-data-only metadata line. Sticky within the workspace's own
+          scroll region (see the `overflow-y-auto` wrapper in Chat()) so it stays visible while
+          the rest of the investigation scrolls beneath it — a compact ~44px bar, not a masthead. */}
+      <div className="sticky top-0 z-20 -mx-1 mb-2 bg-z-bg/95 px-1 py-1.5 backdrop-blur-sm">
+        <InvestigationHeader
+          finding={finding} loading={loading} title={title} question={question}
+          startedLabel={!loading ? startedLabel : null} answeredBy={!loading ? r.answeredBy : null}
+        />
       </div>
+
+      {loading ? (
+        <div className="mb-8">
+          {milestones.length > 0 ? (
+            <RuntimeProgress phases={milestones} />
+          ) : (
+            <p className="font-z-serif italic text-z-body leading-[1.5] text-z-text-2">Understanding your question…</p>
+          )}
+          {safeArray(primary?.streamingSteps).length > 0 && (
+            <div className="mt-3"><LiveReasoningSteps steps={safeArray(primary?.streamingSteps)} /></div>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-x-4 gap-y-2 lg:grid-cols-[minmax(0,1fr)_300px]">
+          {/* ── Main investigation canvas ── */}
+          <div className="min-w-0 lg:order-1">
+            {/* Key Finding hero (spec §3) */}
+            <KeyFindingBanner headline={r.understanding} body={r.narrativeBody} agentContext={r.agentContext} />
+
+            {/* KPI / Investigation Metrics (spec §4) */}
+            {hasMetrics && (
+              <InvestigationMetrics single={r.singleMetric} strip={r.metricStrip} overflow={r.overflowMetrics} />
+            )}
+
+            {/* Visual Evidence / charts (spec §5) — only when the response's own datasets are
+                actually chartable; never forced onto every investigation. */}
+            <EvidenceVisualizationGrid datasetSections={r.datasetSections}
+              chartHintsByStep={r.chartHintsByStep} legacyChartHint={r.legacyChartHint} />
+
+            {/* Key Findings + related facts + recommendation + narrative insight (spec §6) —
+                real model-generated content only, never fabricated or derived here. Insight
+                (HIGHLIGHT + TEXT) sections render here too (see insightSections above) —
+                narrative content belongs with the other answer-shaped content, not under
+                "Evidence", which is DATASET-only. */}
+            {(r.keyFindings.length > 0 || r.relatedFacts.length > 0 || !!r.recommendation || r.insightSections.length > 0) && (
+              <section className="mb-2 animate-z-rise motion-reduce:animate-none">
+                {r.keyFindings.length > 0 && (
+                  <div className="mb-2 animate-z-rise rounded-z-lg border border-z-border bg-z-card px-4 py-3 shadow-z-1 motion-reduce:animate-none">
+                    <div className="mb-2 flex items-center gap-2">
+                      <IconBadge icon={Award} tone="warning" size={26} />
+                      <span className="text-z-body font-semibold text-z-text">Key Findings</span>
+                    </div>
+                    <ul className="space-y-1.5">
+                      {r.keyFindings.map((f, i) => (
+                        <li key={i} className="flex gap-2 text-z-caption leading-[1.35] text-z-text-2">
+                          <span className="mt-[7px] h-1.5 w-1.5 flex-none rounded-full bg-z-primary" />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {r.relatedFacts.length > 0 && (
+                  <div className="mb-2">
+                    <ReportLabel>Related Facts</ReportLabel>
+                    <ul className="space-y-1">
+                      {r.relatedFacts.map((f, i) => (
+                        <li key={i} className="flex gap-2 text-[11.5px] leading-[1.35] text-z-text-3">
+                          <IconBadge icon={FileText} tone="quiet" size={14} />
+                          <span className="pt-0.5">{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {r.recommendation && (
+                  <div className={r.insightSections.length > 0 ? 'mb-2' : ''}>
+                    <ReportLabel>Recommendation</ReportLabel>
+                    <div className="flex gap-2.5 text-z-caption leading-[1.5] text-z-text-2">
+                      <IconBadge icon={Compass} size={20} />
+                      <span className="pt-0.5">{r.recommendation}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Narrative insight (HIGHLIGHT + TEXT sections) — same bordered-card shape this
+                    content always used, just relocated out from under "Evidence" (see
+                    insightSections above): EVIDENCE is raw proof (DATASET only), this is
+                    narrative, so it sits with the other answer-shaped content instead. A small,
+                    quiet "Additional Insight" heading (same ReportLabel pattern used for Related
+                    Facts/Recommendation above) makes it unambiguous this is a finding-adjacent
+                    note, not part of the dataset/evidence flow — it was previously unlabeled. */}
+                {r.insightSections.length > 0 && <ReportLabel>Additional Insight</ReportLabel>}
+                {r.insightSections.map((s, i) => (
+                  <div key={i} className={cn('rounded-z-lg border border-z-border bg-z-card px-3 py-2.5', i > 0 && 'mt-2')}>
+                    {s.title && <div className="mb-1 text-z-body font-semibold text-z-text">{s.title}</div>}
+                    <div className="text-z-caption leading-[1.5] text-z-text-2">
+                      <MarkdownBody content={s.content} />
+                    </div>
+                    {s.datasets.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {s.datasets.map((ds, j) => (
+                          <span key={j} className="rounded-z-round bg-z-card-2 px-1.5 py-0.5 text-[10px] text-z-text-3">
+                            step-{ds.stepNo} · {ds.rowCount} row{ds.rowCount === 1 ? '' : 's'}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </section>
+            )}
+
+            {/* Evidence — Agent Brain's own DATASET sections only, rendered in the exact order
+                supplied (never reordered/grouped/sorted). Every dataset is a first-class
+                InvestigationDataset artifact (spec §8: search, columns, export). HIGHLIGHT/TEXT
+                narrative sections no longer appear here — see insightSections above; this
+                section is raw proof data exclusively. */}
+            {r.evidenceSections.length > 0 && (
+              <section className="animate-z-rise motion-reduce:animate-none">
+                {r.evidenceSections.map((s, i) => (
+                  <div key={i} className={i > 0 ? 'mt-2.5' : ''}>
+                    <div>
+                      {s.purpose && <div className="mb-1 text-z-caption text-z-text-3">{s.purpose}</div>}
+                      {s.datasets.map((ds, j) => (
+                        <div key={j} className={j > 0 ? 'mt-2' : ''}>
+                          <InvestigationDataset
+                            rows={ds.rows}
+                            title={s.datasets.length > 1 ? `${s.title || 'Dataset'} · step-${ds.stepNo}` : (s.title || 'Dataset')}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </section>
+            )}
+
+          </div>
+
+          {/* ── Investigation Assistant rail (spec §9/§10) — collapses below the main canvas
+              on narrower widths (grid-cols-1 above lg:), never floats over content. ── */}
+          {/* Sticky below the sticky Investigation Header (spec §8) — top offset matches that
+              header's own height so the rail settles directly beneath it, never under it. */}
+          <div className="flex flex-col gap-2 lg:order-2 lg:sticky lg:top-11 lg:h-fit">
+            <InvestigationAssistant milestones={milestones} loading={loading} followUpQuestions={r.followUpQuestions} onAsk={onAsk} />
+
+            {/* Data & Context (spec §10) — reuses the exact same real fields as before
+                ("Investigation context"); only fields genuinely known are ever shown. */}
+            {(r.answeredBy || r.fieldsAnalyzed || startedLabel) && (
+              <Panel eyebrow="Investigation context">
+                <dl className="space-y-1 text-[11px]">
+                  {r.answeredBy && (
+                    <div className="flex items-start justify-between gap-3">
+                      <dt className="text-z-text-3">Answered by</dt>
+                      <dd className="text-right text-z-text-2">{r.answeredBy}</dd>
+                    </div>
+                  )}
+                  {r.fieldsAnalyzed && (
+                    <div className="flex items-start justify-between gap-3">
+                      <dt className="flex-none text-z-text-3">Fields analyzed</dt>
+                      <dd className="min-w-0 truncate text-right text-z-text-2">{r.fieldsAnalyzed}</dd>
+                    </div>
+                  )}
+                  {/* No "Filters" row: nothing in the response contract carries authoritative
+                      filter state. An honest omission, never a fabricated "None applied". */}
+                  {startedLabel && (
+                    <div className="flex items-start justify-between gap-3">
+                      <dt className="text-z-text-3">Last updated</dt>
+                      <dd className="text-z-text-2">{startedLabel}</dd>
+                    </div>
+                  )}
+                </dl>
+              </Panel>
+            )}
+
+            {/* Investigation Reasoning (spec §7) — per explicit user direction this is
+                secondary/optional (how Zevra investigated, not the answer itself), and lives in
+                the rail alongside the Assistant/Investigation-context panel rather than at the
+                bottom of the main canvas — a pure relocation, quiet-by-default (see
+                InvestigationReasoning) with all of its own logic/props unchanged. On narrow
+                widths this moves with the rest of the rail (grid-cols-1 above lg:), not pinned
+                to the main column. */}
+            <InvestigationReasoning
+              reasoningSteps={r.reasoningSteps} artifactTrail={r.artifactTrail}
+              runKey={r.runKey} agentSessionId={r.agentSessionId} findingsCount={r.keyFindings.length}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1750,18 +2115,23 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
   // chat state
   const [chatMode, setChatMode] = useState(false);
   const [messages, setMessages] = useState([]);
-  // "Continue investigation" composer chips — the same real nextSteps composeResponse()
-  // already derives for the latest ANSWERED turn (live mode's newest, regardless of
-  // presentationMode), so the bottom bar and the workspace body never disagree.
-  const composerSuggestions = useMemo(() => {
-    const lastAnswered = [...messages].reverse().find((m) => m.role === 'assistant' && !m.loading);
-    return lastAnswered ? composeResponse(lastAnswered, null, null).nextSteps : [];
-  }, [messages]);
+  // Next-step suggestions render once, inside the Investigation Assistant rail's "Suggested
+  // follow-ups" (spec §9) — composeResponse() derives them from the model's own followUpQuestions
+  // right there in IntelligenceResponse, so there is no separate composer-bar chip row here
+  // to keep in sync (avoids the duplicate-suggestions problem spec §19 warns against).
   const conversationIdRef = useRef(null);   // useRef avoids stale-closure bugs in async handlers
   const [chatQuery, setChatQuery] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [teachModalOpen, setTeachModalOpen] = useState(false); // /TeachZevra (Part B)
   const [openExportMenu, setOpenExportMenu] = useState(null);
+
+  // Slash-command launcher (both composers below share this — see InvestigationComposer).
+  // 'insert'-type commands (e.g. /knowledge) are handled inside the composer itself; only
+  // 'modal' commands reach here, and today that's just /TeachZevra.
+  const handleSlashCommand = (cmd) => {
+    if (cmd.id === 'teach-zevra') setTeachModalOpen(true);
+  };
 
   // Presentation mode of the Investigation Workspace: 'live' (conversational, work in
   // progress) or 'report' (completed investigation opened from the Executive Brief —
@@ -1911,6 +2281,15 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
   // ── submit question ─────────────────────────────────────────────────────────
   const sendQuestion = async (question, isNewConv = false) => {
     if ((!question?.trim() && !attachment) || submitting) return;
+
+    // /TeachZevra — a dedicated Teaching UI/modal, NOT a free-form chat teaching mode. Intercepted
+    // here, before any chat state changes or backend call, so it is never sent to ChatService as
+    // an ordinary question.
+    const trimmedQuestion = question?.trim() || '';
+    if (/^\/teachzevra(\s|$)/i.test(trimmedQuestion)) {
+      setTeachModalOpen(true);
+      return;
+    }
 
     // Always reuse the existing conversationId unless explicitly starting a new chat
     if (isNewConv || !conversationIdRef.current) {
@@ -2272,6 +2651,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
               value={landingQuery}
               onChange={setLandingQuery}
               onSubmit={handleLandingSubmit}
+              onSlashCommand={handleSlashCommand}
               placeholder="Investigate anything — sales, operations, finance, suppliers…"
               autoFocus
               disabled={submitting || (!landingQuery.trim() && !attachment)}
@@ -2336,7 +2716,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                   benefits from real estate a narrower page wouldn't need; the extra width goes
                   entirely to the center column since left/right are fixed-width and center is
                   `minmax(0,1fr)`. */}
-              <ReadingColumn measure="wide" className="relative z-[1] py-5" style={{ maxWidth: '1600px' }}>
+              <ReadingColumn measure="wide" className="relative z-[1] pb-5" style={{ maxWidth: '1600px' }}>
                 <IntelligenceResponse finding={presentationMode === 'report' ? reportFinding : null} messages={messages} onAsk={q => sendQuestion(q)} />
                 {submitError && (
                   <p className="text-center text-z-caption text-z-critical-on">{submitError}</p>
@@ -2345,13 +2725,11 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
               </ReadingColumn>
             </div>
 
-            {/* Composer — "Continue investigation": the same tactical follow-up prompts
-                composeResponse() already derives (real quickRefinements/nextSteps, never
-                fabricated per composer render) sit right above the input, matching the
-                reference's bottom continuation bar. The right panel's "Recommended next
-                steps" stays strategic prose (the `recommendation` sentence) — these are two
-                different things, not a duplicate list. */}
-            <div className="shrink-0 border-t border-z-border bg-z-card px-6 py-3 backdrop-blur-sm">
+            {/* Composer — "Continue investigation" (spec §14). Suggested follow-ups now live
+                exclusively in the Investigation Assistant rail's "Suggested follow-ups" (spec
+                §9), sourced from the same composeResponse().followUpQuestions — no separate chip row
+                here, so there is only ever one place suggestions can disagree from. */}
+            <div className="shrink-0 border-t border-z-border bg-z-card px-6 py-2.5 backdrop-blur-sm">
               {/* Attachment preview / loading / error */}
               {(attachment || attachmentLoading || attachmentError) && (
                 <div className="mx-auto mb-2 max-w-[1600px]">
@@ -2368,26 +2746,13 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                   )}
                 </div>
               )}
-              {composerSuggestions.length > 0 && !submitting && (
-                <div className="mx-auto mb-2 flex max-w-[1600px] flex-wrap gap-2">
-                  {composerSuggestions.map((s, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => sendQuestion(s.prompt)}
-                      className="rounded-z-pill border border-z-border px-3 py-1.5 text-z-caption text-z-text-2 transition-colors hover:border-z-primary hover:text-z-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-z-focus-ring"
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              )}
               <InvestigationComposer
                 className="mx-auto max-w-[1600px]"
                 value={chatQuery}
                 onChange={setChatQuery}
                 onSubmit={handleChatSubmit}
-                placeholder={presentationMode === 'report' ? 'Ask a follow-up about this analysis…' : 'Ask a follow-up…'}
+                onSlashCommand={handleSlashCommand}
+                placeholder={presentationMode === 'report' ? 'Ask a follow-up about this analysis… (type / for commands)' : 'Ask a follow-up or start a new investigation… (type / for commands)'}
                 disabled={submitting || (!chatQuery.trim() && !attachment)}
                 allowAttachments
                 onAttachClick={() => fileInputRef.current?.click()}
@@ -2422,6 +2787,12 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
           onClose={() => setPinReportOpen(false)}
         />
       )}
+
+      {/* /TeachZevra — Explicit Teaching modal (Part B) */}
+      <TeachZevraModal
+        open={teachModalOpen}
+        onClose={() => setTeachModalOpen(false)}
+      />
 
       {/* Hidden file input — triggered by the paperclip in the composer (blank + docked) */}
       <input

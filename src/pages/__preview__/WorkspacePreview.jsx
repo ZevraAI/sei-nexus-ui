@@ -28,7 +28,7 @@ const SIMPLE = [
       key_findings: [],
       related_facts: [],
       recommendation: null,
-      next_steps: [],
+      follow_up_questions: [],
       evidence: [{ kind: 'DATASET', label: 'Dataset', row_count: 2 }],
       metrics: [{ label: 'total value', value: '$2.4M' }],
       trail: [],
@@ -72,7 +72,7 @@ const ANALYTICAL = [
         'The affected regions share the same third-party logistics provider.',
       ],
       recommendation: 'Review supplier lead times for the top five affected suppliers this week.',
-      next_steps: [
+      follow_up_questions: [
         { label: 'Show overdue orders', prompt: 'Show overdue orders' },
         { label: 'Break down by supplier', prompt: 'Break down fulfillment by supplier' },
         { label: 'Compare last 30 days', prompt: 'Compare fulfillment over the last 30 days' },
@@ -117,7 +117,7 @@ const AGENT = [
       ],
       related_facts: ['Weather-related disruptions were reported in the Southwest region during this window.'],
       recommendation: 'Escalate a performance review with Meridian Freight and Atlas Logistics.',
-      next_steps: [
+      follow_up_questions: [
         { label: 'Compare against contract SLAs', prompt: 'Compare supplier performance against contract SLAs' },
         { label: 'Show affected orders', prompt: 'Show orders affected by delayed suppliers' },
       ],
@@ -150,7 +150,7 @@ export default function WorkspacePreview() {
   const composerSuggestions = useMemo(() => {
     const msgs = SCENARIOS[scenario];
     const last = [...msgs].reverse().find((m) => m.role === 'assistant' && !m.loading);
-    return last ? composeResponse(last, null, null).nextSteps : [];
+    return last ? composeResponse(last, null, null).followUpQuestions : [];
   }, [scenario]);
 
   // Matches real production behavior (src/ds/theme.tsx sets [data-theme] on <html>, not a

@@ -6,7 +6,7 @@
 // (0/1/2-4), and a Zevra-Agent-routed response — all rendered by the SAME component, none of
 // which should collapse or throw regardless of which fields are present.
 import { describe, it, expect, afterEach } from 'vitest';
-import { render, cleanup, screen } from '@testing-library/react';
+import { render, cleanup, screen, within } from '@testing-library/react';
 import { IntelligenceResponse, composeResponse } from '../Chat.jsx';
 
 afterEach(cleanup);
@@ -32,8 +32,10 @@ describe('IntelligenceResponse — universal, artifact-driven composition', () =
     render(<IntelligenceResponse finding={null} messages={answered()} onAsk={() => {}} />);
     expect(screen.getAllByText('Show me all open orders').length).toBeGreaterThan(0);
     // No evidence, no findings, no trail — none of these render even a header when there is
-    // genuinely nothing to show (no placeholder sentence, no empty section).
-    expect(screen.queryByText('Evidence')).toBeNull();
+    // genuinely nothing to show (no placeholder sentence, no empty section). The "Evidence"
+    // heading was removed (the dataset table is the answer, not "supporting evidence" for one) —
+    // absence of dataset rows is asserted instead of a now-nonexistent heading.
+    expect(screen.queryByText('PO-1')).toBeNull();
     expect(screen.queryByText('Key findings')).toBeNull();
     expect(screen.queryByText('Investigation trail')).toBeNull();
     // "Investigation context" still shows — "Last updated" is genuinely known (a real client
@@ -50,7 +52,7 @@ describe('IntelligenceResponse — universal, artifact-driven composition', () =
         key_findings: ['Backend-derived finding: 12 suppliers show delayed receipt patterns.'],
         related_facts: ['Backend-derived fact: expected delivery dates extend into next quarter.'],
         recommendation: 'Review the top five affected suppliers this week.',
-        next_steps: [{ label: 'Show overdue orders', prompt: 'Show overdue orders' }],
+        follow_up_questions: [{ label: 'Show overdue orders', prompt: 'Show overdue orders' }],
         evidence: [{ kind: 'DATASET', label: 'Dataset', row_count: 3 }],
         metrics: [{ label: 'results', value: '3' }],
         trail: [],
@@ -61,20 +63,21 @@ describe('IntelligenceResponse — universal, artifact-driven composition', () =
     expect(screen.getAllByText(/12 suppliers show delayed receipt patterns/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/expected delivery dates extend into next quarter/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Review the top five affected suppliers this week\./).length).toBeGreaterThan(0);
-    // Tactical next-step chips are NOT rendered inside the workspace body — they belong to the
-    // "Continue investigation" composer bar (Chat.jsx lifts composeResponse(...).nextSteps there
-    // directly); the right panel shows only the strategic `recommendation` prose.
-    expect(screen.queryByText('Show overdue orders')).toBeNull();
+    // Investigation Console redesign (spec: "Investigation Assistant" / "Suggested follow-ups",
+    // see InvestigationAssistant in Chat.jsx): followUpQuestions chips now render in the Investigation
+    // Assistant rail itself — there is no longer a separate composer-bar chip row to keep in
+    // sync with this same data, so the suggestion is expected to appear exactly here instead.
+    expect(screen.getByText('Show overdue orders')).toBeTruthy();
     expect(screen.getByText('Recommendation')).toBeTruthy();
   });
 
-  it('exposes nextSteps via composeResponse for the composer bar to render, independent of the workspace body', () => {
+  it('exposes followUpQuestions via composeResponse for the composer bar to render, independent of the workspace body', () => {
     const msg = {
       role: 'assistant', loading: false, content: 'a',
-      artifacts: { next_steps: [{ label: 'Show overdue orders', prompt: 'Show overdue orders' }] },
+      artifacts: { follow_up_questions: [{ label: 'Show overdue orders', prompt: 'Show overdue orders' }] },
     };
     const r = composeResponse(msg, null, 'q');
-    expect(r.nextSteps).toEqual([{ label: 'Show overdue orders', prompt: 'Show overdue orders' }]);
+    expect(r.followUpQuestions).toEqual([{ label: 'Show overdue orders', prompt: 'Show overdue orders' }]);
   });
 
   it('emphasizes a single real metric rather than hiding it, and shows a strip for 2-4', () => {
@@ -118,7 +121,7 @@ describe('IntelligenceResponse — universal, artifact-driven composition', () =
         key_findings: [],
         related_facts: [],
         recommendation: null,
-        next_steps: [],
+        follow_up_questions: [],
         sections: [{
           type: 'DATASET', title: 'Supplier Risk', purpose: null, display: true, items: [], content: null,
           datasets: [{ step_no: 1, rows: [{ supplier: 'Acme', risk_score: 8 }] }],
@@ -132,8 +135,11 @@ describe('IntelligenceResponse — universal, artifact-driven composition', () =
     render(<IntelligenceResponse finding={null} messages={messages} onAsk={() => {}} />);
 
     expect(screen.getByText('Two suppliers show elevated risk.')).toBeTruthy();
-    expect(screen.getByText('Evidence')).toBeTruthy();
-    expect(screen.getByText('Supplier Risk')).toBeTruthy();
+    // The generic "Evidence" heading was removed — the dataset's own title/row-count is
+    // sufficient labeling. "Supplier Risk" also names its own Visual Evidence chart card header
+    // (the dataset's real title threaded through to the chart, per spec) in addition to the
+    // dataset section itself — a deliberate duplication across the two regions, not a bug.
+    expect(screen.getAllByText('Supplier Risk').length).toBeGreaterThan(0);
     expect(screen.getByText('Acme')).toBeTruthy();
     expect(screen.getByText(/Investigated by Supply Chain Agent/)).toBeTruthy();
     // Investigation context only shows real fields — "Answered by" here, never a fabricated
@@ -170,8 +176,11 @@ describe('artifacts.sections — authoritative rendering', () => {
       }] },
     });
     render(<IntelligenceResponse finding={null} messages={messages} onAsk={() => {}} />);
-    expect(screen.getByText('Evidence')).toBeTruthy();
-    expect(screen.getByText('Open Purchase Orders')).toBeTruthy();
+    // The generic "Evidence" heading was removed — the dataset's own title/purpose/row-count is
+    // sufficient labeling. Also names the Visual Evidence chart card built from this same
+    // dataset (its real title threaded through, per spec) — so this text can legitimately
+    // appear more than once.
+    expect(screen.getAllByText('Open Purchase Orders').length).toBeGreaterThan(0);
     expect(screen.getByText('All open purchase orders')).toBeTruthy();
     expect(screen.getByText('PO-1')).toBeTruthy();
   });
@@ -190,8 +199,9 @@ describe('artifacts.sections — authoritative rendering', () => {
       ] },
     });
     render(<IntelligenceResponse finding={null} messages={messages} onAsk={() => {}} />);
-    expect(screen.getByText('Open Purchase Orders')).toBeTruthy();
-    expect(screen.getByText('Most Ordered Item')).toBeTruthy();
+    // Titles may also appear as a chart card header in Visual Evidence above — see note above.
+    expect(screen.getAllByText('Open Purchase Orders').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Most Ordered Item').length).toBeGreaterThan(0);
     expect(screen.getByText('PO-1')).toBeTruthy();
     expect(screen.getByText("Men's Leather Chelsea Boot")).toBeTruthy();
     // Both survive — neither the 5-row dataset nor the 1-row "final" dataset wins alone.
@@ -210,12 +220,14 @@ describe('artifacts.sections — authoritative rendering', () => {
       ] },
     });
     render(<IntelligenceResponse finding={null} messages={messages} onAsk={() => {}} />);
-    expect(screen.getByText('First Dataset')).toBeTruthy();
-    expect(screen.getByText('Second Dataset')).toBeTruthy();
-    expect(screen.getByText('Third Dataset')).toBeTruthy();
+    // Each single-row dataset is chartable as a stat card (DataViz's n===1 rule), whose card now
+    // carries the dataset's own real title too — so these can legitimately appear more than once.
+    expect(screen.getAllByText('First Dataset').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Second Dataset').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Third Dataset').length).toBeGreaterThan(0);
   });
 
-  it('preserves the model-supplied section order (DATASET then HIGHLIGHT, not grouped by type)', () => {
+  it('HIGHLIGHT sections render as narrative near Key Findings, never inside Evidence (which is DATASET-only)', () => {
     const messages = answered({
       artifacts: { sections: [
         { type: 'HIGHLIGHT', title: 'Leads with the highlight', purpose: null, display: true, items: [],
@@ -225,9 +237,42 @@ describe('artifacts.sections — authoritative rendering', () => {
       ] },
     });
     render(<IntelligenceResponse finding={null} messages={messages} onAsk={() => {}} />);
-    const evidence = screen.getByText('Evidence').closest('section');
-    const html = evidence.innerHTML;
-    expect(html.indexOf('Leads with the highlight')).toBeLessThan(html.indexOf('Dataset second'));
+    // The narrative renders somewhere on the page (with the other Key-Findings-adjacent
+    // content)...
+    expect(screen.getByText('Leads with the highlight')).toBeTruthy();
+    // ...but NOT inside the evidence section (the DATASET-only raw-data section, no longer
+    // labeled "Evidence" — located by its own row-count marker, since "Dataset second" also
+    // legitimately names its own Visual Evidence chart card elsewhere on the page), which shows
+    // the DATASET section only.
+    const evidence = screen.getAllByText('Dataset second')
+      .map((el) => el.closest('section'))
+      .find((section) => within(section).queryByText(/row/) != null);
+    expect(evidence).toBeTruthy();
+    expect(evidence.innerHTML).not.toContain('Leads with the highlight');
+    expect(evidence.innerHTML).toContain('Dataset second');
+  });
+
+  it('labels a HIGHLIGHT/TEXT narrative card with a quiet "Additional Insight" heading', () => {
+    const messages = answered({
+      artifacts: { sections: [
+        { type: 'HIGHLIGHT', title: null, purpose: null, display: true, items: [],
+          content: 'Marcus Webb is the buyer for 3 out of 5 open purchase orders.', datasets: [] },
+      ] },
+    });
+    render(<IntelligenceResponse finding={null} messages={messages} onAsk={() => {}} />);
+    expect(screen.getByText('Additional Insight')).toBeTruthy();
+    expect(screen.getByText(/Marcus Webb is the buyer/)).toBeTruthy();
+  });
+
+  it('does not render an "Additional Insight" heading when there is no HIGHLIGHT/TEXT content', () => {
+    const messages = answered({
+      artifacts: { sections: [
+        { type: 'DATASET', title: 'Open Orders', purpose: null, display: true, items: [], content: null,
+          datasets: [{ step_no: 1, rows: [poRow(1)] }] },
+      ] },
+    });
+    render(<IntelligenceResponse finding={null} messages={messages} onAsk={() => {}} />);
+    expect(screen.queryByText('Additional Insight')).toBeNull();
   });
 
   it('preserves dataset identity (step number) and never flattens two datasets into one', () => {
@@ -257,7 +302,7 @@ describe('artifacts.sections — authoritative rendering', () => {
     expect(screen.queryByText('Hidden dataset')).toBeNull();
   });
 
-  it('renders FINDINGS, RELATED_FACTS, RECOMMENDATION, and NEXT_STEPS directly from sections', () => {
+  it('renders FINDINGS, RELATED_FACTS, RECOMMENDATION, and FOLLOW_UP_QUESTIONS directly from sections', () => {
     const messages = answered({
       artifacts: { sections: [
         { type: 'FINDINGS', title: null, purpose: null, display: null, content: null,
@@ -274,19 +319,56 @@ describe('artifacts.sections — authoritative rendering', () => {
     expect(screen.getByText('Review inventory for Widget A.')).toBeTruthy();
   });
 
-  it('NEXT_STEPS from sections reach composeResponse for the composer bar', () => {
+  it('FOLLOW_UP_QUESTIONS from sections reach composeResponse for the composer bar', () => {
     const msg = {
       role: 'assistant', loading: false, content: 'a',
       artifacts: { sections: [
-        { type: 'NEXT_STEPS', title: null, purpose: null, display: null, content: null,
+        { type: 'FOLLOW_UP_QUESTIONS', title: null, purpose: null, display: null, content: null,
           items: ['Break down by supplier'] },
       ] },
     };
     const r = composeResponse(msg, null, 'q');
-    expect(r.nextSteps).toEqual([{ label: 'Break down by supplier', prompt: 'Break down by supplier' }]);
+    expect(r.followUpQuestions).toEqual([{ label: 'Break down by supplier', prompt: 'Break down by supplier' }]);
   });
 
-  it('Case B — no NEXT_STEPS section produces an empty nextSteps array, never quickRefinements-derived suggestions', () => {
+  // Structural fix: "reasoning" is a property of the SAME FOLLOW_UP_QUESTIONS section object as
+  // "items" (see StructuredAnswer.Section's javadoc) — never an independent top-level
+  // follow_up_questions_reasoning field. normalizeSections carries it through unchanged.
+  it('FOLLOW_UP_QUESTIONS reasoning is structurally attached to the same section as items', () => {
+    const msg = {
+      role: 'assistant', loading: false, content: 'a',
+      artifacts: { sections: [
+        { type: 'FOLLOW_UP_QUESTIONS', title: null, purpose: null, display: null, content: null,
+          items: ['Break down by supplier', 'Show overdue orders'],
+          reasoning: 'These explore supplier distribution and delivery timing.' },
+      ] },
+    };
+    const r = composeResponse(msg, null, 'q');
+    expect(r.followUpQuestions).toEqual([
+      { label: 'Break down by supplier', prompt: 'Break down by supplier' },
+      { label: 'Show overdue orders', prompt: 'Show overdue orders' },
+    ]);
+    const followUpSection = r.sections.find((s) => s.type === 'FOLLOW_UP_QUESTIONS');
+    expect(followUpSection.reasoning).toBe('These explore supplier distribution and delivery timing.');
+  });
+
+  it('no top-level follow_up_questions_reasoning field survives into the composed response', () => {
+    const msg = {
+      role: 'assistant', loading: false, content: 'a',
+      artifacts: {
+        follow_up_questions_reasoning: 'a legacy top-level field that should no longer appear',
+        sections: [
+          { type: 'FOLLOW_UP_QUESTIONS', title: null, purpose: null, display: null, content: null,
+            items: ['Break down by supplier'], reasoning: 'Grounded in the same evidence.' },
+        ],
+      },
+    };
+    const r = composeResponse(msg, null, 'q');
+    expect(r.followUpQuestionsReasoning).toBeUndefined();
+    expect(r.artifacts?.follow_up_questions_reasoning).toBeUndefined();
+  });
+
+  it('Case B — no FOLLOW_UP_QUESTIONS section produces an empty followUpQuestions array, never quickRefinements-derived suggestions', () => {
     const msg = {
       role: 'assistant', loading: false, content: 'a',
       quickRefinements: [
@@ -300,20 +382,20 @@ describe('artifacts.sections — authoritative rendering', () => {
       ] },
     };
     const r = composeResponse(msg, null, 'q');
-    expect(r.nextSteps).toEqual([]);
-    expect(r.nextSteps.some((s) => s.label === 'Run in background')).toBe(false);
+    expect(r.followUpQuestions).toEqual([]);
+    expect(r.followUpQuestions.some((s) => s.label === 'Run in background')).toBe(false);
   });
 
-  it('quickRefinements never populate NEXT_STEPS even when the model list is present but empty', () => {
+  it('quickRefinements never populate FOLLOW_UP_QUESTIONS even when the model list is present but empty', () => {
     const msg = {
       role: 'assistant', loading: false, content: 'a',
       quickRefinements: [{ label: 'Show exceptions only', prompt: 'a — show only exceptions' }],
       artifacts: { sections: [
-        { type: 'NEXT_STEPS', title: null, purpose: null, display: null, content: null, items: [] },
+        { type: 'FOLLOW_UP_QUESTIONS', title: null, purpose: null, display: null, content: null, items: [] },
       ] },
     };
     const r = composeResponse(msg, null, 'q');
-    expect(r.nextSteps).toEqual([]);
+    expect(r.followUpQuestions).toEqual([]);
   });
 
   it('fields analyzed come from the rendered DATASET sections, never queryData[0]', () => {
@@ -351,7 +433,9 @@ describe('artifacts.sections — authoritative rendering', () => {
       ] },
     });
     render(<IntelligenceResponse finding={null} messages={messages} onAsk={() => {}} />);
-    expect(screen.getByText('Real Dataset')).toBeTruthy();
+    // Also names its own chart card (a chartable single-row stat-card dataset), so this can
+    // legitimately appear more than once.
+    expect(screen.getAllByText('Real Dataset').length).toBeGreaterThan(0);
     expect(screen.queryByText('legacy dataset — must not render')).toBeNull();
   });
 
@@ -381,23 +465,27 @@ describe('artifacts.sections — authoritative rendering', () => {
               { step_no: 5, rows: [{ name: "Men's Leather Chelsea Boot", sku: 'CHB-001' }] },
             ],
           },
-          { type: 'NEXT_STEPS', title: null, purpose: null, display: null, content: null,
+          { type: 'FOLLOW_UP_QUESTIONS', title: null, purpose: null, display: null, content: null,
             items: ['Review supplier lead times for this item'] },
         ],
       },
     });
     render(<IntelligenceResponse finding={null} messages={messages} onAsk={() => {}} />);
 
-    expect(screen.getByText('Open Purchase Orders')).toBeTruthy();
+    // "Open Purchase Orders" now also names its own Visual Evidence chart card (its real title
+    // threaded through, per spec) in addition to the dataset section itself (no "Evidence"
+    // heading any more — see the label-removal note above).
+    expect(screen.getAllByText('Open Purchase Orders').length).toBeGreaterThan(0);
     // "Most Ordered Item" titles both the DATASET section and the HIGHLIGHT section — both
-    // must survive independently.
+    // must survive independently. (Its DATASET has no numeric column, so it never charts, and
+    // this count stays exactly 2 — unlike "Open Purchase Orders" above.)
     expect(screen.getAllByText('Most Ordered Item').length).toBe(2);
     expect(screen.getByText('PO-1')).toBeTruthy();
     expect(screen.getByText(/Men's Leather Chelsea Boot was ordered most/)).toBeTruthy();
     expect(screen.queryByText('Dataset (5)')).toBeNull();
 
     const r = composeResponse(messages[1], null, 'q');
-    expect(r.nextSteps).toEqual([
+    expect(r.followUpQuestions).toEqual([
       { label: 'Review supplier lead times for this item', prompt: 'Review supplier lead times for this item' },
     ]);
   });

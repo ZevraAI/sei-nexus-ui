@@ -6,6 +6,7 @@ import { useTheme } from '../context/ThemeContext.jsx';
 import { useTenant } from '../context/TenantContext.jsx';
 import { api } from '../api.js';
 import InvestigationComposer from './InvestigationComposer.jsx';
+import { slashQueryFor } from '../lib/slashCommands.js';
 import { ThemeToggle } from './ThemeToggle.jsx';
 import {
   Building2, ChevronDown, LogOut, ArrowLeftRight, X,
@@ -326,6 +327,16 @@ export default function Layout({ children, currentPath }) {
     navigate('/chat');
   };
 
+  // Slash-command launcher, Home Search side: a 'modal' command (today, only /TeachZevra)
+  // has no modal mounted on this page, so it hands off through the same cross-page prefill
+  // plumbing as a normal launch — Chat.jsx's own sendQuestion() interception (unchanged)
+  // recognizes the command text on arrival and opens TeachZevraModal instead of asking it.
+  const launchSlashCommandFromShell = (cmd) => {
+    localStorage.setItem('zevra_chat_prefill', cmd.command);
+    setShellQuery('');
+    navigate('/chat');
+  };
+
   // Suggested questions — surfaced as a dropdown when the composer is focused (fetched once).
   const [suggestions, setSuggestions] = useState([]);
   const [suggestOpen, setSuggestOpen] = useState(false);
@@ -425,6 +436,7 @@ export default function Layout({ children, currentPath }) {
                 value={shellQuery}
                 onChange={setShellQuery}
                 onSubmit={launchFromShell}
+                onSlashCommand={launchSlashCommandFromShell}
                 onFocus={openSuggest}
                 placeholder="Ask the enterprise, or commission an investigation…"
                 disabled={!shellQuery.trim()}
@@ -436,7 +448,9 @@ export default function Layout({ children, currentPath }) {
                     : 'shadow-[0_0_0_1px_rgba(16,24,40,0.06),0_6px_16px_-10px_rgba(16,24,40,0.18)]'
                 }`}
               />
-              {suggestOpen && suggestions.length > 0 && (
+              {/* Suppressed while the slash-command launcher is active — both dropdowns
+                  render at the same top-full spot, and the launcher takes precedence. */}
+              {suggestOpen && suggestions.length > 0 && slashQueryFor(shellQuery) === null && (
                 <div className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-z-lg border border-z-border bg-z-card shadow-z-2">
                   <div className="px-3 pb-1 pt-2.5 font-z-mono text-[10px] uppercase tracking-[0.14em] text-z-text-3">
                     Suggested questions
