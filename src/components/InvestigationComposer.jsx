@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Send, Paperclip } from 'lucide-react';
 import { ComposerSurface } from '../ds/intelligence';
 import SlashCommandMenu from './SlashCommandMenu.jsx';
@@ -45,6 +45,15 @@ export default function InvestigationComposer({
 }) {
   const ownInputRef = useRef(null);
   const textareaRef = inputRef || ownInputRef;
+
+  // Grow with the text, up to a cap, so a multi-line investigation is fully visible while typing.
+  // (Enter sends; Shift+Enter adds a line.)
+  useLayoutEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value, textareaRef]);
 
   const [menuIndex, setMenuIndex] = useState(0);
   // Escape dismisses the launcher for the *current* command token without touching what
@@ -131,7 +140,7 @@ export default function InvestigationComposer({
           role={menuOpen ? 'combobox' : undefined}
           aria-expanded={menuOpen}
           aria-haspopup={menuOpen ? 'listbox' : undefined}
-          className={`max-h-32 flex-1 resize-none overflow-y-auto bg-transparent text-z-text outline-none placeholder:text-z-text-3 ${compact ? 'text-[14px]' : 'text-[16px]'}`}
+          className={`${compact ? 'max-h-32' : 'max-h-[40vh]'} flex-1 resize-none overflow-y-auto bg-transparent text-z-text outline-none placeholder:text-z-text-3 ${compact ? 'text-[14px]' : 'text-[16px]'}`}
           style={{ lineHeight: compact ? '1.4' : '1.6' }}
         />
         <button

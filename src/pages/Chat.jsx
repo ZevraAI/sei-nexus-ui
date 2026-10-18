@@ -1244,6 +1244,10 @@ function InvestigationProgress({ milestones, loading }) {
 // answered it, when). No domain/connection/analyst fields are shown — this data model has no
 // such fields today, and inventing them would violate spec §19's "no fabricated information".
 function InvestigationHeader({ finding, loading, title, question, startedLabel, answeredBy }) {
+  // An investigation can be several lines long: the header shows one line, with the full text one click away.
+  const [expanded, setExpanded] = useState(false);
+  const longest = [title, question].reduce((a, b) => ((b || '').length > a.length ? b : a), '');
+  const collapsible = longest.length > 110 || /\n/.test(longest);
   return (
     <header className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
       {loading && (
@@ -1256,11 +1260,18 @@ function InvestigationHeader({ finding, loading, title, question, startedLabel, 
       )}
       {finding && <span className="shrink-0 text-[11px] uppercase tracking-[0.08em] text-z-primary">{reportStatus(finding.status)}</span>}
 
-      <h1 className="min-w-0 flex-1 truncate font-z-serif text-[16px] font-medium leading-[1.2] tracking-[-0.005em] text-z-text sm:text-[18px]" title={title}>
+      <h1 className={cn('min-w-0 flex-1 font-z-serif text-[16px] font-medium leading-[1.2] tracking-[-0.005em] text-z-text sm:text-[18px]',
+        expanded ? 'whitespace-pre-wrap break-words' : 'truncate')} title={expanded ? undefined : title}>
         {title}
       </h1>
       {question && question !== title && (
-        <p className="min-w-0 basis-full truncate text-[12.5px] text-z-text-2">{question}</p>
+        <p className={cn('min-w-0 basis-full text-[12.5px] text-z-text-2', expanded ? 'whitespace-pre-wrap break-words' : 'truncate')}>{question}</p>
+      )}
+      {collapsible && (
+        <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}
+          className="shrink-0 text-[11px] text-z-primary hover:underline">
+          {expanded ? 'Show less' : 'Show full question'}
+        </button>
       )}
       {(answeredBy || startedLabel) && (
         <p className="ml-auto flex shrink-0 flex-wrap items-center gap-x-2 font-z-mono text-[10.5px] uppercase tracking-[0.1em] text-z-text-3">
