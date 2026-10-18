@@ -257,7 +257,7 @@ ZG.guards = [
  ['Approved-objects gate','Every table in the query must be on the list approved for this question (the contract). A table outside it is rejected.'],
  ['Read-only rule','The query must begin with SELECT. Semicolons, INSERT, UPDATE, DELETE, DROP, CREATE, ALTER, TRUNCATE, EXEC/EXECUTE, MERGE, GRANT and REVOKE are rejected, and so is <code>SELECT *</code>.'],
  ['Connection allow-list','Each connection lists the tables Zevra may use. Anything else is rejected.'],
- ['Join limit','At most 4 joins in a query. A blocked query is shown back to the AI, which may rewrite it (at most twice) and is checked again.'],
+ ['Join limit','At most 8 joins in a query. A blocked query is shown back to the AI, which may rewrite it (at most twice) and is checked again.'],
  ['Row and time limits','A row limit is added automatically by kind of query: 50 for a single-record lookup, 100 for lists and joins, 200 for totals and counts, and never above 500. Very large or unfiltered queries on big tables are routed to a background run instead of answering inline. Time limits are 10, 30 or 90 seconds depending on the kind of query.'],
  ['Data contracts','Company-defined rules on specific tables: require a date filter, require a particular filter column, require a limit, or block full scans. A rule can block, warn, or add the missing constraint automatically.'],
  ['Row-level security','A rule can add a condition such as "only this person\'s region" to every query on a table, based on the signed-in person\'s attributes. If the attribute is missing, access is denied.'],
