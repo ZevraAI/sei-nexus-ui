@@ -5,8 +5,8 @@ import { ZevraLogo } from './ZevraLogo.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { useTenant } from '../context/TenantContext.jsx';
 import { api } from '../api.js';
-import InvestigationComposer from './InvestigationComposer.jsx';
-import { slashQueryFor } from '../lib/slashCommands.js';
+import InvestigationPopup from './InvestigationPopup.jsx';
+import { SearchIcon } from '../ds/components/Input';
 import { ThemeToggle } from './ThemeToggle.jsx';
 import {
   Building2, ChevronDown, LogOut, ArrowLeftRight, X,
@@ -315,78 +315,75 @@ export default function Layout({ children, currentPath }) {
     return false;
   };
 
-  // ── Shell Investigation Composer — the application-level launch point ─────────
-  // The same InvestigationComposer used inside the workspace. Typing here starts a NEW
-  // investigation and hands off to the workspace via the existing prefill plumbing.
+  // ── Shell search — the application-level launch point ───────────────────────────
+  // The top bar shows a search field that opens a popup holding the brief editor (the same editor
+  // as the empty investigation page). Typing in the popup starts a NEW investigation and hands off
+  // to the workspace through the existing prefill plumbing. The draft survives closing the popup.
   const [shellQuery, setShellQuery] = useState('');
-  const shellComposerRef = useRef(null);
-  const showShellComposer = !currentPath.startsWith('/chat');
+  const [popupOpen, setPopupOpen] = useState(false);
+  const launcherRef = useRef(null);
+  const showShellSearch = !currentPath.startsWith('/chat');
+
+  const closePopup = useCallback(() => {
+    setPopupOpen(false);
+    requestAnimationFrame(() => launcherRef.current?.focus());
+  }, []);
 
   const launchFromShell = () => {
     const q = shellQuery.trim();
     if (!q) return;
     localStorage.setItem('zevra_chat_prefill', q); // Chat auto-fires it as a new investigation
     setShellQuery('');
+    setPopupOpen(false);
     navigate('/chat');
   };
 
-  // Slash-command launcher, Home Search side: a 'modal' command (today, only /TeachZevra)
-  // has no modal mounted on this page, so it hands off through the same cross-page prefill
-  // plumbing as a normal launch — Chat.jsx's own sendQuestion() interception (unchanged)
-  // recognizes the command text on arrival and opens TeachZevraModal instead of asking it.
+  // Slash-command launcher: a 'modal' command (today, only /TeachZevra) has no modal mounted on this
+  // page, so it hands off through the same cross-page prefill plumbing as a normal launch — Chat.jsx's
+  // own sendQuestion() interception recognizes the command text on arrival and opens TeachZevraModal.
   const launchSlashCommandFromShell = (cmd) => {
     localStorage.setItem('zevra_chat_prefill', cmd.command);
     setShellQuery('');
+    setPopupOpen(false);
     navigate('/chat');
   };
 
-  // Suggested questions — surfaced as a dropdown when the composer is focused (fetched once).
+  // Suggested questions — shown in the popup (fetched once, when it first opens).
   const [suggestions, setSuggestions] = useState([]);
-  const [suggestOpen, setSuggestOpen] = useState(false);
   const suggestLoadedRef = useRef(false);
-  const composerWrapRef = useRef(null);
-
-  const openSuggest = () => {
-    setSuggestOpen(true);
-    if (suggestLoadedRef.current) return;
+  useEffect(() => {
+    if (!popupOpen || suggestLoadedRef.current) return;
     suggestLoadedRef.current = true;
     api.onboarding.status()
-      .then((s) => { if (s?.suggested_questions?.length) setSuggestions(s.suggested_questions.slice(0, 6)); })
+      .then((st) => { if (st?.suggested_questions?.length) setSuggestions(st.suggested_questions.slice(0, 6)); })
       .catch(() => {});
-  };
+  }, [popupOpen]);
 
-  const launchSuggestion = (q) => {
-    localStorage.setItem('zevra_chat_prefill', q);
-    setSuggestOpen(false);
-    setShellQuery('');
-    navigate('/chat');
-  };
-
-  // Close the dropdown on Esc / click-outside.
-  useEffect(() => {
-    if (!suggestOpen) return;
-    const onKey = (e) => { if (e.key === 'Escape') setSuggestOpen(false); };
-    const onDown = (e) => { if (composerWrapRef.current && !composerWrapRef.current.contains(e.target)) setSuggestOpen(false); };
-    document.addEventListener('keydown', onKey);
-    document.addEventListener('mousedown', onDown);
-    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onDown); };
-  }, [suggestOpen]);
-
-  // ⌘K / Ctrl+K focuses the shell composer (or opens the workspace if it isn't shown).
+  // ⌘K / Ctrl+K opens the search popup (or the workspace if the search isn't shown).
   useEffect(() => {
     const onKey = (e) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault();
-        if (shellComposerRef.current) shellComposerRef.current.focus();
+        if (showShellSearch) setPopupOpen(true);
         else navigate('/chat');
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [showShellSearch]);
 
   return (
     <div className="flex flex-col h-screen">
+
+      <InvestigationPopup
+        open={popupOpen && showShellSearch}
+        onClose={closePopup}
+        value={shellQuery}
+        onChange={setShellQuery}
+        onSubmit={launchFromShell}
+        onSlashCommand={launchSlashCommandFromShell}
+        suggestions={suggestions}
+      />
 
       {/* ── Impersonation banner ────────────────────────────────────── */}
       {impersonation && (
@@ -429,51 +426,23 @@ export default function Layout({ children, currentPath }) {
           </span>
         </button>
 
-        {/* Global composer — the single, first-class launch point, inline in the bar
-            (hidden on the workspace, which owns its own input). Focus reveals suggestions. */}
-        <div ref={composerWrapRef} className="relative flex min-w-0 flex-1 justify-center">
-          {showShellComposer && (
-            <div className="relative w-full max-w-[620px]">
-              <InvestigationComposer
-                inputRef={shellComposerRef}
-                value={shellQuery}
-                onChange={setShellQuery}
-                onSubmit={launchFromShell}
-                onSlashCommand={launchSlashCommandFromShell}
-                onFocus={openSuggest}
-                placeholder="Ask the enterprise, or commission an investigation…"
-                disabled={!shellQuery.trim()}
-                align="center"
-                compact
-                className={`w-full rounded-z-lg ${
-                  isDark
-                    ? 'shadow-[0_0_0_1px_rgba(255,255,255,0.07),0_8px_20px_-10px_rgba(0,0,0,0.6)]'
-                    : 'shadow-[0_0_0_1px_rgba(16,24,40,0.06),0_6px_16px_-10px_rgba(16,24,40,0.18)]'
-                }`}
-              />
-              {/* Suppressed while the slash-command launcher is active — both dropdowns
-                  render at the same top-full spot, and the launcher takes precedence. */}
-              {suggestOpen && suggestions.length > 0 && slashQueryFor(shellQuery) === null && (
-                <div className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-z-lg border border-z-border bg-z-card shadow-z-2">
-                  <div className="px-3 pb-1 pt-2.5 font-z-mono text-[10px] uppercase tracking-[0.14em] text-z-text-3">
-                    Suggested questions
-                  </div>
-                  <div className="pb-1.5">
-                    {suggestions.map((q, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => launchSuggestion(q)}
-                        className="block w-full px-3 py-2 text-left text-[13px] text-z-text-2 transition-colors hover:bg-z-hover hover:text-z-text"
-                      >
-                        {q}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+        {/* Global search — the single, first-class launch point, inline in the bar (hidden on the
+            workspace, which owns its own input). It opens the brief-editor popup. */}
+        <div className="relative flex min-w-0 flex-1 justify-center">
+          {showShellSearch && (
+            <button
+              ref={launcherRef}
+              type="button"
+              onClick={() => setPopupOpen(true)}
+              aria-haspopup="dialog"
+              className="flex w-full max-w-[620px] items-center gap-3 rounded-z-md border border-z-border bg-z-surface px-3.5 py-2 text-left text-[14px] text-z-text-3 shadow-z-1 transition-colors hover:border-z-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-z-focus-ring"
+            >
+              <SearchIcon />
+              <span className="min-w-0 flex-1 truncate">
+                {shellQuery.trim() ? `Draft: ${shellQuery.trim().split('\n')[0]}` : 'Ask the enterprise, or commission an investigation…'}
+              </span>
+              <kbd className="rounded-z-xs border border-z-border bg-z-card-2 px-1.5 py-0.5 text-[11px] text-z-text-3">Ctrl K</kbd>
+            </button>
           )}
         </div>
 

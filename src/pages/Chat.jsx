@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { marked } from 'marked';
 import {
   ArrowLeft, ArrowUpRight, Activity, Award, BarChart3, Bot, CalendarClock, Check, ChevronDown, Clipboard, Clock, Compass,
@@ -8,6 +8,7 @@ import { api } from '../api.js';
 import { openEventStream } from '../lib/sse.js';
 import { useAuth } from '../App.jsx';
 import { cn } from '../utils/cn';
+import { briefTitle, hasManyLines } from '../lib/brief.js';
 import {
   Button, IconButton, Field, Input, SegmentedControl, Dialog,
   InlineAlert, Spinner, Spine, TableWrap, Table, THead, TBody, Th, Tr, Td,
@@ -1243,11 +1244,7 @@ function InvestigationProgress({ milestones, loading }) {
 // and a compact metadata line built ONLY from fields the response actually carries (who
 // answered it, when). No domain/connection/analyst fields are shown — this data model has no
 // such fields today, and inventing them would violate spec §19's "no fabricated information".
-function InvestigationHeader({ finding, loading, title, question, startedLabel, answeredBy }) {
-  // An investigation can be several lines long: the header shows one line, with the full text one click away.
-  const [expanded, setExpanded] = useState(false);
-  const longest = [title, question].reduce((a, b) => ((b || '').length > a.length ? b : a), '');
-  const collapsible = longest.length > 110 || /\n/.test(longest);
+function InvestigationHeader({ finding, loading, title, startedLabel, answeredBy }) {
   return (
     <header className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
       {loading && (
@@ -1260,19 +1257,9 @@ function InvestigationHeader({ finding, loading, title, question, startedLabel, 
       )}
       {finding && <span className="shrink-0 text-[11px] uppercase tracking-[0.08em] text-z-primary">{reportStatus(finding.status)}</span>}
 
-      <h1 className={cn('min-w-0 flex-1 font-z-serif text-[16px] font-medium leading-[1.2] tracking-[-0.005em] text-z-text sm:text-[18px]',
-        expanded ? 'whitespace-pre-wrap break-words' : 'truncate')} title={expanded ? undefined : title}>
+      <h1 className="min-w-0 flex-1 truncate font-z-serif text-[16px] font-medium leading-[1.2] tracking-[-0.005em] text-z-text sm:text-[18px]" title={title}>
         {title}
       </h1>
-      {question && question !== title && (
-        <p className={cn('min-w-0 basis-full text-[12.5px] text-z-text-2', expanded ? 'whitespace-pre-wrap break-words' : 'truncate')}>{question}</p>
-      )}
-      {collapsible && (
-        <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}
-          className="shrink-0 text-[11px] text-z-primary hover:underline">
-          {expanded ? 'Show less' : 'Show full question'}
-        </button>
-      )}
       {(answeredBy || startedLabel) && (
         <p className="ml-auto flex shrink-0 flex-wrap items-center gap-x-2 font-z-mono text-[10.5px] uppercase tracking-[0.1em] text-z-text-3">
           {answeredBy && <span>{answeredBy}</span>}
@@ -1281,6 +1268,74 @@ function InvestigationHeader({ finding, loading, title, question, startedLabel, 
         </p>
       )}
     </header>
+  );
+}
+
+// The brief — the full text the person wrote, shown in full under the short title (line breaks kept).
+// Clamped only when it runs past about six lines. "Edit and re-run" opens it for editing and runs the
+// edited text as a new investigation (the original stays in the history).
+export function BriefCard({ question, onRerun }) {
+  const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [overflowing, setOverflowing] = useState(false);
+  const bodyRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    if (el && !expanded) setOverflowing(el.scrollHeight > el.clientHeight + 1);
+  }, [question, expanded, editing]);
+
+  const long = overflowing || hasManyLines(question);
+  const rerun = () => {
+    const text = draft.trim();
+    if (!text) return;
+    setEditing(false);
+    onRerun(text);
+  };
+
+  return (
+    <section aria-label="Brief" className="mb-3 rounded-z-lg border border-z-border bg-z-card-2 px-4 py-3">
+      <div className="mb-1 flex items-center justify-between gap-3">
+        <span className="font-z-mono text-[10px] uppercase tracking-[0.14em] text-z-text-3">Brief</span>
+        {onRerun && !editing && (
+          <button type="button" onClick={() => { setDraft(question); setEditing(true); }}
+            className="text-[12px] text-z-primary hover:underline">
+            Edit and re-run
+          </button>
+        )}
+      </div>
+      {editing ? (
+        <>
+          <label htmlFor="brief-edit" className="sr-only">Edit the brief</label>
+          <textarea
+            id="brief-edit"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); rerun(); } }}
+            rows={Math.min(12, Math.max(4, draft.split('\n').length + 1))}
+            className="w-full resize-y rounded-z-md border border-z-border-strong bg-z-surface p-2.5 text-[14.5px] leading-[1.6] text-z-text outline-none focus:border-z-primary"
+          />
+          <div className="mt-2 flex gap-2">
+            <Button size="sm" onClick={rerun} disabled={!draft.trim()}>Re-run</Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p ref={bodyRef}
+            className={cn('max-w-[78ch] whitespace-pre-wrap break-words text-[14.5px] leading-[1.6] text-z-text', !expanded && 'line-clamp-6')}>
+            {question}
+          </p>
+          {long && (
+            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}
+              className="mt-1 text-[12px] text-z-primary hover:underline">
+              {expanded ? 'Show less' : 'Show more'}
+            </button>
+          )}
+        </>
+      )}
+    </section>
   );
 }
 
@@ -1870,7 +1925,7 @@ function InvestigationReasoning({ reasoningSteps, artifactTrail, runKey, agentSe
 // `primary` is always the newest turn; in Report Mode (opened from the Executive Brief) `primary`
 // stays the original investigation the finding came from. Earlier turns remain fully visible
 // above it via the unchanged UserMessage/AssistantMessage list.
-export function IntelligenceResponse({ finding, messages, onAsk }) {
+export function IntelligenceResponse({ finding, messages, onAsk, onRerun }) {
   const assistantIdxs = messages.reduce((acc, m, i) => (m.role === 'assistant' ? [...acc, i] : acc), []);
   const pIdx = finding
     ? assistantIdxs[0] ?? -1               // report mode: the original investigation the finding came from
@@ -1879,7 +1934,7 @@ export function IntelligenceResponse({ finding, messages, onAsk }) {
   const question = pIdx > 0 ? messages[pIdx - 1]?.content : messages.find((m) => m.role === 'user')?.content;
   const earlier = pIdx > 0 ? messages.slice(0, pIdx - 1) : [];
   const loading = !!primary?.loading;
-  const title = finding?.title || question || 'Investigation';
+  const title = briefTitle(finding?.title || question) || 'Investigation';
   const startedLabel = primary?.startedAt ? timeAgo(primary.startedAt) : null;
   const milestones = useMemo(() => deriveMilestones(safeArray(primary?.phaseSteps)), [primary?.phaseSteps]);
   const r = useMemo(() => composeResponse(primary, finding, question), [primary, finding, question]);
@@ -1917,10 +1972,12 @@ export function IntelligenceResponse({ finding, messages, onAsk }) {
           the rest of the investigation scrolls beneath it — a compact ~44px bar, not a masthead. */}
       <div className="sticky top-0 z-20 -mx-1 mb-2 bg-z-bg/95 px-1 py-1.5 backdrop-blur-sm">
         <InvestigationHeader
-          finding={finding} loading={loading} title={title} question={question}
+          finding={finding} loading={loading} title={title}
           startedLabel={!loading ? startedLabel : null} answeredBy={!loading ? r.answeredBy : null}
         />
       </div>
+
+      {question && <BriefCard key={question} question={question} onRerun={onRerun} />}
 
       {loading ? (
         <div className="mb-8">
@@ -2663,7 +2720,9 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
               onChange={setLandingQuery}
               onSubmit={handleLandingSubmit}
               onSlashCommand={handleSlashCommand}
-              placeholder="Investigate anything — sales, operations, finance, suppliers…"
+              placeholder="Describe it the way you would brief an analyst — sales, operations, finance, suppliers… Several lines are fine."
+              submitKey="mod-enter"
+              minRows={4}
               autoFocus
               disabled={submitting || (!landingQuery.trim() && !attachment)}
               allowAttachments
@@ -2728,7 +2787,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                   entirely to the center column since left/right are fixed-width and center is
                   `minmax(0,1fr)`. */}
               <ReadingColumn measure="wide" className="relative z-[1] pb-5" style={{ maxWidth: '1600px' }}>
-                <IntelligenceResponse finding={presentationMode === 'report' ? reportFinding : null} messages={messages} onAsk={q => sendQuestion(q)} />
+                <IntelligenceResponse finding={presentationMode === 'report' ? reportFinding : null} messages={messages} onAsk={q => sendQuestion(q)} onRerun={q => sendQuestion(q, true)} />
                 {submitError && (
                   <p className="text-center text-z-caption text-z-critical-on">{submitError}</p>
                 )}

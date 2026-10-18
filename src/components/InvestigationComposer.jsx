@@ -37,7 +37,12 @@ export default function InvestigationComposer({
   onAttachClick,
   attachmentBusy = false,
   align = 'end',
-  compact = false,   // slim, single-line bar composer (the shell)
+  // How a message is sent. 'enter' (follow-ups): Enter sends while the text is a single line; once
+  // it has a second line Enter adds a line. 'mod-enter' (the brief editor): Enter always adds a
+  // line. In both, Ctrl/Cmd+Enter sends and Shift+Enter adds a line.
+  submitKey = 'enter',
+  minRows = 1,
+  menuPlacement = 'top',   // where the slash-command menu opens relative to the box
   inputRef,
   className,
   enableSlashCommands = true,
@@ -86,7 +91,7 @@ export default function InvestigationComposer({
 
   return (
     <form onSubmit={submit} className={`relative ${className || ''}`}>
-      <ComposerSurface align={align} size={compact ? 'sm' : 'md'}>
+      <ComposerSurface align={align} size="md">
         {allowAttachments && (
           <button
             type="button"
@@ -126,9 +131,17 @@ export default function InvestigationComposer({
                 return;
               }
             }
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              submit();
+            if (e.key === 'Enter') {
+              if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                submit();
+                return;
+              }
+              if (e.shiftKey) return;   // a new line
+              if (submitKey === 'enter' && !value.includes('\n')) {
+                e.preventDefault();
+                submit();
+              }
             }
           }}
           onPaste={onPaste}
@@ -136,22 +149,27 @@ export default function InvestigationComposer({
           onBlur={onBlur}
           autoFocus={autoFocus}
           placeholder={placeholder}
-          rows={1}
+          rows={minRows}
           role={menuOpen ? 'combobox' : undefined}
           aria-expanded={menuOpen}
           aria-haspopup={menuOpen ? 'listbox' : undefined}
-          className={`${compact ? 'max-h-32' : 'max-h-[40vh]'} flex-1 resize-none overflow-y-auto bg-transparent text-z-text outline-none placeholder:text-z-text-3 ${compact ? 'text-[14px]' : 'text-[16px]'}`}
-          style={{ lineHeight: compact ? '1.4' : '1.6' }}
+          className="max-h-[40vh] flex-1 resize-none overflow-y-auto bg-transparent text-[16px] text-z-text outline-none placeholder:text-z-text-3"
+          style={{ lineHeight: '1.6' }}
         />
         <button
           type="submit"
           disabled={disabled}
           aria-label="Send"
-          className={`grid flex-none place-items-center rounded-z-md bg-z-primary text-z-on-accent shadow-z-1 transition-all hover:bg-z-primary-hover disabled:cursor-not-allowed disabled:opacity-40 ${compact ? 'h-7 w-7' : 'mb-0.5 h-9 w-9'}`}
+          title={submitKey === 'mod-enter' ? 'Investigate (Ctrl+Enter)' : undefined}
+          className="mb-0.5 grid h-9 w-9 flex-none place-items-center rounded-z-md bg-z-primary text-z-on-accent shadow-z-1 transition-all hover:bg-z-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <Send size={compact ? 13 : 15} />
+          <Send size={15} />
         </button>
       </ComposerSurface>
+
+      {submitKey === 'mod-enter' && (
+        <p className="mt-1.5 text-z-caption text-z-text-3">Enter adds a line · Ctrl+Enter (\u2318+Enter on Mac) to investigate</p>
+      )}
 
       {menuOpen && (
         <SlashCommandMenu
@@ -159,9 +177,7 @@ export default function InvestigationComposer({
           activeIndex={menuIndex}
           onSelect={selectCommand}
           onHoverIndex={setMenuIndex}
-          // The slim shell composer sits at the very top of the page — there's no room to
-          // open upward there, so it drops below instead; every other composer opens above.
-          placement={compact ? 'bottom' : 'top'}
+          placement={menuPlacement}
         />
       )}
     </form>
