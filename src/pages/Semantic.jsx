@@ -1316,7 +1316,7 @@ export default function Semantic() {
                 </div>
                 <p className="text-[11px] font-mono text-gray-500 mt-0.5 truncate">{m.sql_pattern}</p>
                 {/* concept_key: null = promoted but not yet classified, so a promoted learning
-                    stays excluded from Vector Store projection until an admin picks a concept. */}
+                    stays excluded from the concept index until an admin picks a concept. */}
                 <div className="mt-1">
                   {m.concept_key ? (
                     <span className="text-[10px] font-medium text-gray-500">Concept: {m.concept_key}</span>
