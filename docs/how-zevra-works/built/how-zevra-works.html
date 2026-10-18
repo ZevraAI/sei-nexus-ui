@@ -1023,7 +1023,7 @@ ZG.bg = [
   ai:[`Each agent uses the agent loop (flow 4), so it sees the rows its queries return, up to the row limit.`,`One more AI step combines the findings into the final brief.`]},
  {name:'Automations',what:`Visual workflows: a chain of steps that run in order, with branches.`,tags:['ai:gpt-4o','rule'],
   how:[`A workflow is a graph of steps: trigger, database query, AI reasoning, condition (which branches), transform, image analysis, response.`,`Zevra runs the steps in order and records what each one did.`,`A person can describe the automation in plain English and have an AI draft the workflow, then review and edit it.`],
-  ai:[`AI is used only in AI steps (and to draft a workflow when asked). Drafting sees your written requirement and the registered table and column names of the databases you pick, never rows of data.`,`Conditions, transforms and queries are plain rules.`]}
+  ai:[`AI is used only in AI steps (and to draft a workflow when asked). Drafting sees your written requirement and the registered table and column names of the databases you pick (plus the allowed values of enum columns), never rows of data.`,`Conditions, transforms and queries are plain rules.`]}
 ];
 
 /* =========================== FLOW 5: LEARNING =========================== */
