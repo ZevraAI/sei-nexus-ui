@@ -1,0 +1,7 @@
+{
+  "name": "how-zevra-works-tools",
+  "private": true,
+  "description": "Test tooling for the How Zevra Works guide. Not part of the product.",
+  "scripts": { "smoke": "node smoke.js" },
+  "devDependencies": { "jsdom": "^24.0.0" }
+}

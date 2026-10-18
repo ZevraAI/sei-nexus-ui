@@ -1,0 +1,148 @@
+<div class="bar"><div class="bar-in">
+  <div class="brand"><i></i>Zevra</div>
+  <div class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab" role="tab" data-tab="overview"><b>★</b>Big picture</button>
+    <button class="tab" role="tab" data-tab="f1"><b>1</b>Company setup</button>
+    <button class="tab" role="tab" data-tab="f2"><b>2</b>Discovering data</button>
+    <button class="tab" role="tab" data-tab="f3"><b>3</b>Asking a question</button>
+    <button class="tab" role="tab" data-tab="f4"><b>4</b>Agents</button>
+    <button class="tab" role="tab" data-tab="f5"><b>5</b>Self-learning</button>
+    <button class="tab" role="tab" data-tab="trust"><b>✓</b>Your data &amp; trust</button>
+  </div>
+  <button class="theme" id="themeBtn" type="button" aria-label="Change colour theme">Theme: auto</button>
+</div></div>
+
+<main class="wrap">
+
+<!-- ============ BIG PICTURE ============ -->
+<section class="panel" id="p-overview" role="tabpanel" aria-label="Big picture">
+  <div class="hero">
+    <div class="eyebrow">Product walkthrough</div>
+    <h1>How Zevra works, step by step</h1>
+    <p>Zevra lets people ask questions about their business in everyday language and get answers straight from the company's own databases. This page shows every step: where each piece of information lives, <strong>where an AI model is used</strong>, and exactly what it can and cannot see. Nothing is left out.</p>
+  </div>
+
+  <div class="sec" style="margin-top:18px">
+    <h3>Five places, and what happens in each</h3>
+    <p class="muted">Every flow in this guide moves between these five places. Tap one to see what lives there and what it never holds.</p>
+    <div class="places" id="places"></div>
+    <div class="placebox" id="placebox" style="--c:var(--app)"></div>
+  </div>
+
+  <div class="sec">
+    <h3>How to read the diagrams</h3>
+    <p class="muted">Each step shows who does the work. Colour helps, but every label is also written out.</p>
+    <div class="legend">
+      <span class="tag t-ai">AI call · model name</span>
+      <span class="tag t-rule">Zevra rule · no AI</span>
+      <span class="tag t-src">Reads your database</span>
+      <span class="tag t-zdb">Zevra database</span>
+      <span class="tag t-vec">Vector search</span>
+      <span class="tag t-human">A person decides</span>
+    </div>
+    <div class="grid2" style="margin-top:14px">
+      <div class="card"><h4>What is a "vector search"?</h4><p style="margin-top:8px">An AI model can turn a piece of text into a list of numbers (an <em>embedding</em>) that captures its meaning. Texts with similar meaning get similar numbers. Zevra stores those numbers in its own database and compares them to find the closest matches, for example "which of our 54 business concepts is this question closest to?". The comparison runs inside Zevra's database, not at OpenAI.</p></div>
+      <div class="card"><h4>What is "AI" doing, and what is it not?</h4><p style="margin-top:8px">AI models <strong>interpret and write</strong>: they work out what a question means, draft a database query, judge whether the evidence is enough, and phrase the answer. Zevra's own rules <strong>enforce</strong>: only read-only queries, only approved tables, row limits, masking, auditing. The AI proposes; the rules decide what is allowed to run.</p></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h3>The five flows</h3>
+    <div class="grid3" id="flowcards" style="margin-top:12px"></div>
+  </div>
+
+  <div class="sec">
+    <h3>Every place Zevra calls an AI model</h3>
+    <p class="muted">This is the complete list. Models shown are today's defaults and can be changed in Zevra's configuration. Zevra sends these requests from its server to OpenAI's API; browsers never talk to OpenAI.</p>
+    <div class="chips" id="aiFilter" role="group" aria-label="Filter AI uses"></div>
+    <div class="tw"><table id="aiTable"><thead><tr><th>#</th><th>What it does</th><th>Model</th><th>When</th><th>What it sees</th><th>What it decides</th></tr></thead><tbody></tbody></table></div>
+  </div>
+</section>
+
+<!-- ============ FLOW 1 ============ -->
+<section class="panel" id="p-f1" role="tabpanel" aria-label="Company setup">
+  <div class="eyebrow">Flow 1 of 5</div>
+  <h2>Setting up a new company (tenant)</h2>
+  <p class="lede">Before anyone can ask a question, Zevra creates a private space for the company, signs the first administrator in, and connects the company's database. This flow has almost no AI: it is mostly careful bookkeeping and isolation.</p>
+  <div class="card scenario"><span class="pill">Example</span><div><div class="who">Acme Retail joins Zevra</div><p style="margin:4px 0 0" class="muted">Acme sells clothing and homeware. Its administrator is Ana (ana@acmeretail.com). Acme keeps its sales, stock and supplier data in a PostgreSQL database called <code>retail_core</code>. We follow Acme from sign-up to "ready to ask questions".</p></div></div>
+  <div class="legend"><span class="tag t-ai">AI calls in this flow: none</span><span class="tag t-rule">Zevra rule · no AI</span><span class="tag t-zdb">Zevra database</span><span class="tag t-src">Reads your database</span></div>
+  <div id="flow-f1"></div>
+</section>
+
+<!-- ============ FLOW 2 ============ -->
+<section class="panel" id="p-f2" role="tabpanel" aria-label="Discovering data">
+  <div class="eyebrow">Flow 2 of 5</div>
+  <h2>Discovering a new object from the company's database</h2>
+  <p class="lede">Zevra does not copy the company's data. It learns what the data <em>means</em>: which tables exist, what each one is for, what the columns are, and how the tables connect. The same pipeline runs during first setup and whenever someone adds a new table later ("Discover from DB").</p>
+  <div class="card scenario"><span class="pill">Example</span><div><div class="who">Acme adds <code>purchase_order_lines</code></div><p style="margin:4px 0 0" class="muted">Acme already has Zevra connected to <code>retail_core</code>. A new table, <code>purchase_order_lines</code> (the individual products on each purchase order), now needs to be understood. The output shown for the AI step is an <strong>illustration</strong> of its structure.</p></div></div>
+  <div class="legend"><span class="tag t-ai">AI · gpt-4o-mini · table names, columns and comments only</span><span class="tag t-src">Reads your database</span><span class="tag t-rule">Zevra rule · no AI</span><span class="tag t-vec">Vector search</span></div>
+  <div id="flow-f2"></div>
+  <div class="sec"><h3>See exactly what leaves the database</h3><p class="muted">Pick a moment from this flow and see which parts of a table go to OpenAI and which stay put.</p><div id="bnd-f2"></div></div>
+</section>
+
+<!-- ============ FLOW 3 ============ -->
+<section class="panel" id="p-f3" role="tabpanel" aria-label="Asking a question">
+  <div class="eyebrow">Flow 3 of 5</div>
+  <h2>What happens when someone asks a question</h2>
+  <p class="lede">A question passes through about a dozen steps (20 to 60 seconds in our test run). Some are AI, many are plain rules. Pick an example below: the steps, the queries and the AI-call counts change to match what really happened for that question.</p>
+  <div class="qpick" id="qpick" role="group" aria-label="Example questions"></div>
+  <div class="card" id="qintro"></div>
+  <div class="legend"><span class="tag t-ai">AI call · model name</span><span class="tag t-rule">Zevra rule · no AI</span><span class="tag t-vec">Vector search</span><span class="tag t-src">Reads your database</span><span class="tag t-zdb">Zevra database</span></div>
+  <div id="flow-f3"></div>
+  <div class="sec"><h3>The AI calls behind this answer</h3><p class="muted">Counted from the real log of this question. Embedding calls turn text into numbers for searching; they return no words.</p><div id="ledger" class="card ledger"></div></div>
+</section>
+
+<!-- ============ FLOW 4 ============ -->
+<section class="panel" id="p-f4" role="tabpanel" aria-label="Agents">
+  <div class="eyebrow">Flow 4 of 5</div>
+  <h2>How an agent works</h2>
+  <p class="lede">An ordinary question is answered by a fixed pipeline. An <strong>agent</strong> is for open-ended work ("which suppliers are putting us at risk?"): it decides for itself which look-ups to run, one at a time, until it can answer. It uses the same safety rules as chat, plus a read-only database session.</p>
+  <div class="card scenario"><span class="pill">Example</span><div><div class="who">"Procurement Watch" at Acme</div><p style="margin:4px 0 0" class="muted">An agent has a name, a persona ("careful procurement analyst"), a goal, a list of databases it may use, and a limit on how many steps it may take. The agent below is an illustration; the figures come from the demo retail data.</p></div></div>
+  <div class="legend"><span class="tag t-ai">AI · gpt-4o · the agent's reasoning loop</span><span class="tag t-rule">Zevra rule · no AI</span><span class="tag t-src">Reads your database</span></div>
+  <div id="flow-f4"></div>
+  <div class="sec"><h3>Watch an agent think</h3><p class="muted">Step through one example run. Each box is one thing the agent asked for or received. Tap <em>Next</em> to advance.</p><div id="agentsim"></div></div>
+  <div class="sec"><h3>Work that happens without anyone asking</h3><p class="muted">Agents and questions can also run on a schedule. These background features are separate from the chat flow. Tap one to see where AI is, and is not, involved.</p><div id="bg"></div></div>
+</section>
+
+<!-- ============ FLOW 5 ============ -->
+<section class="panel" id="p-f5" role="tabpanel" aria-label="Self-learning">
+  <div class="eyebrow">Flow 5 of 5</div>
+  <h2>How Zevra learns a company's language</h2>
+  <p class="lede">Every company has its own words. "Overdue" at Acme means "expected delivery date has passed and nothing arrived". Zevra picks up such definitions from how people use it, but only through a short list of signals, and a definition must <strong>earn</strong> its place through repeated use before it becomes part of the company's vocabulary.</p>
+  <div class="card scenario"><span class="pill">Example</span><div><div class="who">Teaching Zevra what "overdue" means</div><p style="margin:4px 0 0" class="muted">Acme's buyers keep asking about overdue orders. Use the simulator below to see how one learned definition grows, gets promoted, or is dropped.</p></div></div>
+  <div class="legend"><span class="tag t-ai">AI · extracts and tidies wording only</span><span class="tag t-rule">Zevra rule · no AI</span><span class="tag t-human">A person confirms</span></div>
+  <div id="flow-f5"></div>
+  <div class="sec"><h3>Try it: watch one learned term earn its place</h3><div id="learnsim"></div></div>
+  <div class="sec grid2">
+    <div class="card"><h4>What learning never does</h4><ul style="margin:8px 0 0;padding-left:1.1em"><li>It never changes data in the company's database.</li><li>It does not learn from every successful query. Only the signals above count.</li><li>It does not share one company's learned terms with another: they live in that company's private space.</li><li>It does not treat a learned term as an instruction. The AI is told it is <em>evidence</em> to weigh, not a rule to apply.</li></ul></div>
+    <div class="card"><h4>Where a learned term shows up next</h4><ul style="margin:8px 0 0;padding-left:1.1em"><li><strong>Vocabulary:</strong> once promoted, the term becomes company vocabulary. Zevra's word-matching step spots it in later questions and tells the query-writing AI what it means.</li><li><strong>Concept knowledge:</strong> if the term belongs to a business concept, it is added to that concept's text, so the concept-picking step can see it, and is shown to the query-writing AI as "learned business knowledge".</li><li><strong>Review:</strong> administrators can see learned terms and assign a concept to those that have none.</li></ul></div>
+  </div>
+</section>
+
+<!-- ============ TRUST ============ -->
+<section class="panel" id="p-trust" role="tabpanel" aria-label="Your data and trust">
+  <div class="eyebrow">Plain answers</div>
+  <h2>Where your data lives, and what the AI sees</h2>
+  <p class="lede">Customers usually ask the same questions. This page answers them using what the product actually does today, including the limits.</p>
+
+  <div class="sec"><h3>What leaves your database, moment by moment</h3><p class="muted">Pick a moment. Highlighted cells are the only parts sent to OpenAI.</p><div id="bnd-trust"></div></div>
+
+  <div class="sec"><h3>Where each kind of information is kept</h3>
+    <div class="tw"><table id="storeTable"><thead><tr><th>Information</th><th>Your database</th><th>Zevra database (your private space)</th><th>OpenAI</th></tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="sec"><h3>The safety checks every query passes</h3>
+    <p class="muted">These are plain rules, not AI. They run in this order on every query the AI proposes, in chat and in agents.</p>
+    <div id="guards" class="grid2" style="margin-top:12px"></div>
+  </div>
+
+  <div class="sec"><h3>Known limits, stated plainly</h3>
+    <div class="callout warn"><strong>Read this before relying on it.</strong> These are facts about the product as it stands, found by reviewing its code on <span class="js-reviewed">18 October 2026</span>.</div>
+    <div id="limits" class="grid2"></div>
+  </div>
+
+  <div class="sec faq"><h3>Questions customers ask</h3><div id="faq" style="margin-top:8px"></div></div>
+</section>
+
+<div class="foot">Built from a review of Zevra's own code and a real 15-question test run, last reviewed <span class="js-reviewed">18 October 2026</span>. Model names are defaults and can change. Illustrative examples are labelled; the question results, SQL and call counts shown for the chat examples are real.</div>
+</main>

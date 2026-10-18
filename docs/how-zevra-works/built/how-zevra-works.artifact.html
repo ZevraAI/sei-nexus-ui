@@ -1,0 +1,1460 @@
+<title>How Zevra Works</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap">
+<style>
+/* Layout concept: a guided walk-through. A sticky tab bar picks one of five flows; every flow is a
+   "lane diagram" (people, Zevra app, Zevra database, your database, OpenAI) whose steps open in place.
+   Type: Newsreader for headings and verdicts, Inter for reading, JetBrains Mono for SQL and data.
+   Palette: porcelain and graphite neutrals (Zevra's own), emerald for Zevra itself, and one distinct
+   hue per place so "where is this happening" is readable at a glance (always paired with a text label). */
+:root{
+  --bg:#f5f2ea; --surface:#fffdf8; --surface2:#efeadd; --ink:#1c2420; --ink2:#4a5650; --line:#d9d3c3; --line2:#c9c2af;
+  --em:#0f7a58; --em-bg:#dcf0e7; --brass:#8c6a2b;
+  --you:#3f4d47;  --you-bg:#e4e8e3;
+  --app:#0f7a58;  --app-bg:#dcf0e7;
+  --zdb:#2a5c9c;  --zdb-bg:#e0eaf7;
+  --src:#935f14;  --src-bg:#f6e8cf;
+  --ai:#6a45c0;   --ai-bg:#ebe4fa;
+  --bad:#b3261e;  --bad-bg:#fbe6e3; --good:#17683f; --good-bg:#def3e6; --warn:#8a5a00; --warn-bg:#fbefd0;
+  --shadow:0 1px 0 rgba(255,255,255,.9) inset,0 14px 34px -24px rgba(70,56,30,.28);
+  --f-body:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --f-head:"Newsreader",Georgia,"Times New Roman",serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1412; --surface:#171e1b; --surface2:#1f2824; --ink:#e8efe9; --ink2:#a9b6af; --line:#2b3732; --line2:#3a4841;
+  --em:#34d3a0; --em-bg:#12392d; --brass:#c9a86a;
+  --you:#b4c0ba; --you-bg:#252e2a; --app:#34d3a0; --app-bg:#12392d; --zdb:#86b4f0; --zdb-bg:#172a43;
+  --src:#e3b568; --src-bg:#3a2a10; --ai:#b9a0f7; --ai-bg:#2b2147;
+  --bad:#ff9087; --bad-bg:#3d1a17; --good:#7be0a6; --good-bg:#133324; --warn:#f0c15a; --warn-bg:#39290a;
+  --shadow:0 1px 0 rgba(255,255,255,.04) inset,0 18px 40px -26px rgba(0,0,0,.8); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1412; --surface:#171e1b; --surface2:#1f2824; --ink:#e8efe9; --ink2:#a9b6af; --line:#2b3732; --line2:#3a4841;
+  --em:#34d3a0; --em-bg:#12392d; --brass:#c9a86a;
+  --you:#b4c0ba; --you-bg:#252e2a; --app:#34d3a0; --app-bg:#12392d; --zdb:#86b4f0; --zdb-bg:#172a43;
+  --src:#e3b568; --src-bg:#3a2a10; --ai:#b9a0f7; --ai-bg:#2b2147;
+  --bad:#ff9087; --bad-bg:#3d1a17; --good:#7be0a6; --good-bg:#133324; --warn:#f0c15a; --warn-bg:#39290a;
+  --shadow:0 1px 0 rgba(255,255,255,.04) inset,0 18px 40px -26px rgba(0,0,0,.8); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+.wrap{max-width:1120px;margin:0 auto}
+h1,h2,h3,h4{font-family:var(--f-head);font-weight:600;line-height:1.15;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:clamp(2rem,5vw,3.1rem)} h2{font-size:clamp(1.5rem,3vw,2rem)} h3{font-size:1.25rem} h4{font-size:1.05rem}
+p{margin:0 0 .8em;max-width:68ch}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+a{color:var(--em)}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--em);outline-offset:2px;border-radius:6px}
+.muted{color:var(--ink2)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* top bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line);margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px))}
+.bar-in{max-width:1120px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:10px 0}
+.brand{font-family:var(--f-head);font-weight:600;font-size:1.25rem;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.brand i{width:10px;height:10px;border-radius:50%;background:var(--em);box-shadow:0 0 0 4px var(--em-bg)}
+.tabs{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:thin;padding:2px}
+.tab{border:1px solid transparent;background:none;border-radius:999px;padding:7px 13px;white-space:nowrap;font-weight:500;font-size:.9rem;color:var(--ink2)}
+.tab b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--surface2);font-size:.75rem;margin-right:7px;color:var(--ink)}
+.tab:hover{background:var(--surface2)}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tab[aria-selected="true"] b{background:var(--em);color:#fff}
+.bar-in{flex-wrap:wrap;row-gap:6px}.tabs{order:3;flex:1 0 100%}.theme{margin-left:auto}
+.theme{border:1px solid var(--line2);background:var(--surface);border-radius:999px;padding:6px 11px;font-size:.8rem;color:var(--ink2);white-space:nowrap}
+
+/* sections */
+.panel{display:none;padding-top:30px}.panel.on{display:block}
+.eyebrow{font-size:.75rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--em);margin-bottom:8px}
+.lede{font-size:1.1rem;color:var(--ink2);max-width:62ch}
+.sec{margin-top:40px}
+.sec>h3{margin-bottom:6px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media(max-width:820px){.grid2,.grid3{grid-template-columns:minmax(0,1fr)}}
+
+/* tags: always a text label, colour is only a helper */
+.tag{display:inline-flex;align-items:center;gap:6px;border-radius:7px;padding:3px 9px;font-size:.74rem;font-weight:600;line-height:1.3;border:1px solid transparent;white-space:nowrap}
+.tag::before{content:"";width:7px;height:7px;border-radius:2px;background:currentColor}
+.t-ai{background:var(--ai-bg);color:var(--ai);border-color:color-mix(in srgb,var(--ai) 35%,transparent)}
+.t-ai::before{border-radius:50%}
+.t-rule{background:var(--app-bg);color:var(--app);border-color:color-mix(in srgb,var(--app) 35%,transparent)}
+.t-src{background:var(--src-bg);color:var(--src);border-color:color-mix(in srgb,var(--src) 35%,transparent)}
+.t-zdb{background:var(--zdb-bg);color:var(--zdb);border-color:color-mix(in srgb,var(--zdb) 35%,transparent)}
+.t-vec{background:var(--zdb-bg);color:var(--zdb);border-color:color-mix(in srgb,var(--zdb) 35%,transparent)}
+.t-vec::before{border-radius:0;transform:rotate(45deg)}
+.t-human{background:var(--you-bg);color:var(--you);border-color:color-mix(in srgb,var(--you) 35%,transparent)}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+
+/* lane diagram */
+.lanes{margin-top:22px;border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+.lane-head{display:grid;grid-template-columns:2.4rem minmax(250px,380px) minmax(0,1fr);gap:0 14px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--surface2);position:relative}
+.lane-head .cols{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-column:2}
+.lane-head .cols span{font-size:.68rem;font-weight:700;text-align:center;line-height:1.2;padding:0 2px;text-wrap:balance}
+.lane-head .tools{grid-column:3;display:flex;justify-content:flex-end;gap:8px;align-items:center;flex-wrap:wrap}
+.cA{color:var(--you)}.cB{color:var(--app)}.cC{color:var(--zdb)}.cD{color:var(--src)}.cE{color:var(--ai)}
+.btn{border:1px solid var(--line2);background:var(--surface);border-radius:9px;padding:6px 12px;font-size:.82rem;font-weight:600}
+.btn:hover{background:var(--surface2)}
+.btn.pri{background:var(--em);border-color:var(--em);color:#fff}
+.btn.pri:hover{filter:brightness(1.06)}
+.btn[disabled]{opacity:.45;cursor:default}
+.step{border-bottom:1px solid var(--line)}
+.step:last-child{border-bottom:0}
+.srow{display:grid;grid-template-columns:2.4rem minmax(250px,380px) minmax(0,1fr);gap:4px 14px;align-items:center;width:100%;text-align:left;background:none;border:0;padding:11px 14px}
+.srow:hover{background:color-mix(in srgb,var(--surface2) 55%,transparent)}
+.step.open>.srow{background:color-mix(in srgb,var(--em-bg) 40%,var(--surface))}
+.num{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:.8rem;background:var(--ink);color:var(--bg)}
+.step.open .num{background:var(--em);color:#fff}
+.track{position:relative;height:30px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+  background:linear-gradient(to right,transparent calc(10% - .5px),var(--line) calc(10% - .5px),var(--line) calc(10% + .5px),transparent calc(10% + .5px),transparent calc(30% - .5px),var(--line) calc(30% - .5px),var(--line) calc(30% + .5px),transparent calc(30% + .5px),transparent calc(50% - .5px),var(--line) calc(50% - .5px),var(--line) calc(50% + .5px),transparent calc(50% + .5px),transparent calc(70% - .5px),var(--line) calc(70% - .5px),var(--line) calc(70% + .5px),transparent calc(70% + .5px),transparent calc(90% - .5px),var(--line) calc(90% - .5px),var(--line) calc(90% + .5px),transparent calc(90% + .5px))}
+.bar-line{position:absolute;top:50%;height:3px;margin-top:-1.5px;border-radius:2px;background:var(--line2)}
+.bar-line.k-ai{background:var(--ai)}.bar-line.k-src{background:var(--src)}.bar-line.k-zdb{background:var(--zdb)}.bar-line.k-rule{background:var(--app)}.bar-line.k-human{background:var(--you)}
+.bar-line::after{content:"";position:absolute;top:50%;margin-top:-5px;border:5px solid transparent}
+.bar-line.r::after{right:-2px;border-left:8px solid currentColor;border-right:0}
+.bar-line.l::after{left:-2px;border-right:8px solid currentColor;border-left:0}
+.bar-line.k-ai{color:var(--ai)}.bar-line.k-src{color:var(--src)}.bar-line.k-zdb{color:var(--zdb)}.bar-line.k-rule{color:var(--app)}.bar-line.k-human{color:var(--you)}
+.node{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--surface);border:3px solid var(--app)}
+.node.k-ai{border-color:var(--ai)}.node.k-src{border-color:var(--src)}.node.k-zdb{border-color:var(--zdb)}.node.k-human{border-color:var(--you)}
+.stitle{min-width:0}
+.stitle strong{display:block;font-weight:600;font-size:.95rem;line-height:1.3}
+.stitle .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.step.skip .srow,.step.dim .srow{opacity:.45}
+.step.skip .stitle strong{text-decoration:line-through;text-decoration-thickness:1px}
+.step .cond{font-size:.78rem;color:var(--ink2);font-weight:400}
+.detail{padding:4px 14px 20px calc(14px + 2.4rem + 14px);display:none}
+.step.open>.detail{display:block}
+.dgrid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px 20px}
+.blk{background:var(--surface2);border-radius:11px;padding:12px 14px;min-width:0}
+.blk h5{margin:0 0 6px;font-size:.7rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2)}
+.blk p:last-child,.blk ul:last-child{margin-bottom:0}
+.blk ul{margin:0;padding-left:1.1em}.blk li{margin:2px 0}
+.exbox{background:var(--surface);border:1px dashed var(--line2)}
+.exbox pre,.exbox .q{margin:0;white-space:pre-wrap;word-break:break-word;font-family:var(--f-mono);font-size:.8rem;line-height:1.5}
+.exbox .q.say{font-family:var(--f-head);font-size:1.12rem;line-height:1.35}
+.moves li{list-style:none;margin-left:-1.1em;display:flex;gap:8px;align-items:flex-start}
+.mv{flex:0 0 auto;font-size:.7rem;font-weight:700;border-radius:6px;padding:2px 7px;margin-top:2px;white-space:nowrap}
+.mv.out{background:var(--ai-bg);color:var(--ai)}.mv.in{background:var(--src-bg);color:var(--src)}.mv.stay{background:var(--zdb-bg);color:var(--zdb)}.mv.no{background:var(--bad-bg);color:var(--bad)}.mv.ok{background:var(--good-bg);color:var(--good)}
+.aicard{grid-column:1/-1;background:var(--ai-bg);border:1px solid color-mix(in srgb,var(--ai) 30%,transparent);border-radius:12px;padding:12px 14px}
+.aicard h5{color:var(--ai);margin:0 0 8px;font-size:.72rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
+.aicard dl{display:grid;grid-template-columns:7.5rem minmax(0,1fr);gap:6px 14px;margin:0}
+.aicard dt{font-weight:600;font-size:.82rem}.aicard dd{margin:0;font-size:.9rem}
+.skipnote{font-size:.85rem;color:var(--ink2);padding:2px 14px 12px calc(14px + 2.4rem + 14px);display:none}
+.step.skip .skipnote,.step.dim .skipnote{display:block}
+.pager{display:flex;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap}
+details.peek{margin-top:10px}
+details.peek summary{cursor:pointer;font-weight:600;font-size:.85rem;color:var(--ai)}
+details.peek pre{margin:8px 0 0;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-family:var(--f-mono);font-size:.76rem;white-space:pre-wrap;word-break:break-word}
+
+@media(max-width:860px){
+  .lane-head{grid-template-columns:2.4rem minmax(0,1fr)}
+  .lane-head .cols{grid-column:2}.lane-head .tools{grid-column:1/-1;justify-content:flex-start;margin-top:8px}
+  .srow{grid-template-columns:2.4rem minmax(0,1fr)}
+  .srow .stitle{grid-column:1/-1;padding-left:calc(2.4rem + 14px)}
+  .detail,.skipnote{padding-left:14px}
+  .dgrid{grid-template-columns:minmax(0,1fr)}
+  .aicard dl{grid-template-columns:minmax(0,1fr)}
+}
+
+/* hero / intro */
+.hero{padding:34px 0 8px}
+.hero p{font-size:1.12rem;color:var(--ink2)}
+.scenario{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 16px;align-items:start;margin-top:18px}
+.scenario .who{font-family:var(--f-head);font-size:1.15rem;font-weight:600}
+.pill{display:inline-block;font-size:.72rem;font-weight:700;border-radius:999px;padding:2px 9px;background:var(--warn-bg);color:var(--warn);letter-spacing:.04em;text-transform:uppercase}
+
+/* places (overview) */
+.places{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-top:14px}
+.place{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:14px;text-align:left;box-shadow:var(--shadow);border-top:4px solid var(--c)}
+.place[aria-pressed="true"]{outline:2px solid var(--c);outline-offset:2px}
+.place small{display:block;color:var(--ink2);margin-top:4px;line-height:1.4}
+.place strong{display:block;font-family:var(--f-head);font-size:1.12rem;line-height:1.2}
+.place[data-p="A"]{--c:var(--you)}.place[data-p="B"]{--c:var(--app)}.place[data-p="C"]{--c:var(--zdb)}.place[data-p="D"]{--c:var(--src)}.place[data-p="E"]{--c:var(--ai)}
+@media(max-width:900px){.places{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.places{grid-template-columns:minmax(0,1fr)}}
+.placebox{margin-top:12px;border-left:5px solid var(--c);border-radius:12px;background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--c);padding:16px 18px;box-shadow:var(--shadow)}
+.placebox h4{color:var(--c)}
+.cols2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 22px;margin-top:10px}
+@media(max-width:720px){.cols2{grid-template-columns:minmax(0,1fr)}}
+.cols2 h5{margin:6px 0 4px;font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2)}
+.cols2 ul{margin:0;padding-left:1.1em}.cols2 li{margin:3px 0}
+
+/* tables */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:.88rem}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);background:var(--surface2);position:sticky;top:0}
+tr:last-child td{border-bottom:0}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}
+.chip{border:1px solid var(--line2);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:.84rem;font-weight:500}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* boundary widget */
+.bnd{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:12px}
+@media(max-width:860px){.bnd{grid-template-columns:minmax(0,1fr)}}
+.dt{width:100%;min-width:0;border-collapse:separate;border-spacing:0;font-family:var(--f-mono);font-size:.78rem}
+.dt td,.dt th{border:1px solid var(--line);padding:6px 9px;border-top-width:0;border-left-width:0}
+.dt tr:first-child th{border-top-width:1px}.dt th:first-child,.dt td:first-child{border-left-width:1px}
+.dt th{background:var(--surface2);color:var(--ink);text-transform:none;letter-spacing:0;font-size:.76rem;position:static}
+.cell-out{background:var(--ai-bg);color:var(--ai);font-weight:600}
+.dt th.cell-out{background:var(--ai-bg);color:var(--ai)}
+.dt th.cell-stay{background:var(--surface2);color:var(--ink2)}
+.cell-stay{background:var(--surface);color:var(--ink2)}
+.cell-sum{background:var(--warn-bg);color:var(--warn);font-weight:600}
+.rcv{background:var(--surface);border:1px dashed color-mix(in srgb,var(--ai) 55%,transparent);border-radius:12px;padding:12px 14px;font-family:var(--f-mono);font-size:.78rem;white-space:pre-wrap;word-break:break-word;min-width:0}
+
+/* simulators */
+.sim{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;margin-top:12px}
+@media(max-width:860px){.sim{grid-template-columns:minmax(0,1fr)}}
+.meter{position:relative;height:16px;border-radius:99px;background:var(--surface2);border:1px solid var(--line);margin:26px 0 30px}
+.meter>i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--em);transition:width .35s}
+.meter .mk{position:absolute;top:-18px;bottom:-18px;width:0;border-left:2px dashed var(--ink2)}
+.meter .mk span{position:absolute;font-size:.68rem;white-space:nowrap;font-weight:600;color:var(--ink2)}
+.meter .mk.lo span{top:-2px;left:4px}.meter .mk.hi span{bottom:-2px;right:6px;text-align:right}
+.stat{display:flex;gap:18px;flex-wrap:wrap;margin:6px 0 12px}
+.stat div{min-width:80px}.stat b{display:block;font-family:var(--f-head);font-size:1.6rem;line-height:1}.stat small{color:var(--ink2);font-size:.75rem}
+.state{display:inline-block;border-radius:999px;padding:3px 12px;font-weight:700;font-size:.78rem}
+.state.cand{background:var(--warn-bg);color:var(--warn)}.state.prom{background:var(--good-bg);color:var(--good)}.state.purge{background:var(--bad-bg);color:var(--bad)}
+.log{margin:10px 0 0;padding:0;list-style:none;font-size:.84rem;max-height:210px;overflow:auto}
+.log li{padding:5px 0;border-bottom:1px solid var(--line)}
+.sees{display:grid;gap:6px;margin-top:10px}
+.sees div{display:flex;gap:8px;align-items:center;padding:7px 10px;border-radius:9px;background:var(--surface2);font-size:.86rem}
+.sees .yes{background:var(--good-bg);color:var(--good)}.sees .no{opacity:.7}
+.term{font-family:var(--f-head);font-size:1.4rem;font-weight:600}
+.thought{padding:10px 12px;border-radius:10px;margin:8px 0;background:var(--surface2);font-size:.88rem;min-width:0}
+.thought b{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:3px}
+.thought.ai{background:var(--ai-bg)}.thought.ai b{color:var(--ai)}
+.thought.tool{background:var(--app-bg)}.thought.tool b{color:var(--app)}
+.thought.obs{background:var(--src-bg)}.thought.obs b{color:var(--src)}
+.thought.fin{background:var(--good-bg)}.thought.fin b{color:var(--good)}
+.thought pre{margin:4px 0 0;white-space:pre-wrap;word-break:break-word;font-family:var(--f-mono);font-size:.78rem}
+.ledger{margin-top:12px}
+.lrow{display:grid;grid-template-columns:minmax(9rem,16rem) minmax(0,1fr) 4.5rem;gap:10px;align-items:center;font-size:.82rem;padding:3px 0}
+.lrow i{display:block;height:9px;border-radius:5px;background:var(--ai)}
+.lrow .e{background:var(--zdb)}.lrow .m{background:var(--src)}
+.lrow span:last-child{text-align:right;color:var(--ink2);font-variant-numeric:tabular-nums}
+@media(max-width:560px){.lrow{grid-template-columns:minmax(0,1fr) 3.5rem}.lrow i{grid-column:1/-1;grid-row:2}}
+.qpick{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 6px}
+.qpick .chip{max-width:100%;text-align:left}
+.say{font-family:var(--f-head)}
+.callout{border-radius:12px;padding:12px 15px;font-size:.92rem;margin:14px 0}
+.callout.warn{background:var(--warn-bg);color:var(--ink)}.callout.warn strong{color:var(--warn)}
+.callout.good{background:var(--good-bg)}.callout.info{background:var(--zdb-bg)}
+.faq details{border-bottom:1px solid var(--line);padding:11px 2px}
+.faq summary{cursor:pointer;font-weight:600}
+.faq p{margin:8px 0 0;color:var(--ink2)}
+.foot{margin-top:60px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink2);font-size:.82rem}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+</style>
+
+<div class="bar"><div class="bar-in">
+  <div class="brand"><i></i>Zevra</div>
+  <div class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab" role="tab" data-tab="overview"><b>★</b>Big picture</button>
+    <button class="tab" role="tab" data-tab="f1"><b>1</b>Company setup</button>
+    <button class="tab" role="tab" data-tab="f2"><b>2</b>Discovering data</button>
+    <button class="tab" role="tab" data-tab="f3"><b>3</b>Asking a question</button>
+    <button class="tab" role="tab" data-tab="f4"><b>4</b>Agents</button>
+    <button class="tab" role="tab" data-tab="f5"><b>5</b>Self-learning</button>
+    <button class="tab" role="tab" data-tab="trust"><b>✓</b>Your data &amp; trust</button>
+  </div>
+  <button class="theme" id="themeBtn" type="button" aria-label="Change colour theme">Theme: auto</button>
+</div></div>
+
+<main class="wrap">
+
+<!-- ============ BIG PICTURE ============ -->
+<section class="panel" id="p-overview" role="tabpanel" aria-label="Big picture">
+  <div class="hero">
+    <div class="eyebrow">Product walkthrough</div>
+    <h1>How Zevra works, step by step</h1>
+    <p>Zevra lets people ask questions about their business in everyday language and get answers straight from the company's own databases. This page shows every step: where each piece of information lives, <strong>where an AI model is used</strong>, and exactly what it can and cannot see. Nothing is left out.</p>
+  </div>
+
+  <div class="sec" style="margin-top:18px">
+    <h3>Five places, and what happens in each</h3>
+    <p class="muted">Every flow in this guide moves between these five places. Tap one to see what lives there and what it never holds.</p>
+    <div class="places" id="places"></div>
+    <div class="placebox" id="placebox" style="--c:var(--app)"></div>
+  </div>
+
+  <div class="sec">
+    <h3>How to read the diagrams</h3>
+    <p class="muted">Each step shows who does the work. Colour helps, but every label is also written out.</p>
+    <div class="legend">
+      <span class="tag t-ai">AI call · model name</span>
+      <span class="tag t-rule">Zevra rule · no AI</span>
+      <span class="tag t-src">Reads your database</span>
+      <span class="tag t-zdb">Zevra database</span>
+      <span class="tag t-vec">Vector search</span>
+      <span class="tag t-human">A person decides</span>
+    </div>
+    <div class="grid2" style="margin-top:14px">
+      <div class="card"><h4>What is a "vector search"?</h4><p style="margin-top:8px">An AI model can turn a piece of text into a list of numbers (an <em>embedding</em>) that captures its meaning. Texts with similar meaning get similar numbers. Zevra stores those numbers in its own database and compares them to find the closest matches, for example "which of our 54 business concepts is this question closest to?". The comparison runs inside Zevra's database, not at OpenAI.</p></div>
+      <div class="card"><h4>What is "AI" doing, and what is it not?</h4><p style="margin-top:8px">AI models <strong>interpret and write</strong>: they work out what a question means, draft a database query, judge whether the evidence is enough, and phrase the answer. Zevra's own rules <strong>enforce</strong>: only read-only queries, only approved tables, row limits, masking, auditing. The AI proposes; the rules decide what is allowed to run.</p></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h3>The five flows</h3>
+    <div class="grid3" id="flowcards" style="margin-top:12px"></div>
+  </div>
+
+  <div class="sec">
+    <h3>Every place Zevra calls an AI model</h3>
+    <p class="muted">This is the complete list. Models shown are today's defaults and can be changed in Zevra's configuration. Zevra sends these requests from its server to OpenAI's API; browsers never talk to OpenAI.</p>
+    <div class="chips" id="aiFilter" role="group" aria-label="Filter AI uses"></div>
+    <div class="tw"><table id="aiTable"><thead><tr><th>#</th><th>What it does</th><th>Model</th><th>When</th><th>What it sees</th><th>What it decides</th></tr></thead><tbody></tbody></table></div>
+  </div>
+</section>
+
+<!-- ============ FLOW 1 ============ -->
+<section class="panel" id="p-f1" role="tabpanel" aria-label="Company setup">
+  <div class="eyebrow">Flow 1 of 5</div>
+  <h2>Setting up a new company (tenant)</h2>
+  <p class="lede">Before anyone can ask a question, Zevra creates a private space for the company, signs the first administrator in, and connects the company's database. This flow has almost no AI: it is mostly careful bookkeeping and isolation.</p>
+  <div class="card scenario"><span class="pill">Example</span><div><div class="who">Acme Retail joins Zevra</div><p style="margin:4px 0 0" class="muted">Acme sells clothing and homeware. Its administrator is Ana (ana@acmeretail.com). Acme keeps its sales, stock and supplier data in a PostgreSQL database called <code>retail_core</code>. We follow Acme from sign-up to "ready to ask questions".</p></div></div>
+  <div class="legend"><span class="tag t-ai">AI calls in this flow: none</span><span class="tag t-rule">Zevra rule · no AI</span><span class="tag t-zdb">Zevra database</span><span class="tag t-src">Reads your database</span></div>
+  <div id="flow-f1"></div>
+</section>
+
+<!-- ============ FLOW 2 ============ -->
+<section class="panel" id="p-f2" role="tabpanel" aria-label="Discovering data">
+  <div class="eyebrow">Flow 2 of 5</div>
+  <h2>Discovering a new object from the company's database</h2>
+  <p class="lede">Zevra does not copy the company's data. It learns what the data <em>means</em>: which tables exist, what each one is for, what the columns are, and how the tables connect. The same pipeline runs during first setup and whenever someone adds a new table later ("Discover from DB").</p>
+  <div class="card scenario"><span class="pill">Example</span><div><div class="who">Acme adds <code>purchase_order_lines</code></div><p style="margin:4px 0 0" class="muted">Acme already has Zevra connected to <code>retail_core</code>. A new table, <code>purchase_order_lines</code> (the individual products on each purchase order), now needs to be understood. The output shown for the AI step is an <strong>illustration</strong> of its structure.</p></div></div>
+  <div class="legend"><span class="tag t-ai">AI · gpt-4o-mini · table names, columns and comments only</span><span class="tag t-src">Reads your database</span><span class="tag t-rule">Zevra rule · no AI</span><span class="tag t-vec">Vector search</span></div>
+  <div id="flow-f2"></div>
+  <div class="sec"><h3>See exactly what leaves the database</h3><p class="muted">Pick a moment from this flow and see which parts of a table go to OpenAI and which stay put.</p><div id="bnd-f2"></div></div>
+</section>
+
+<!-- ============ FLOW 3 ============ -->
+<section class="panel" id="p-f3" role="tabpanel" aria-label="Asking a question">
+  <div class="eyebrow">Flow 3 of 5</div>
+  <h2>What happens when someone asks a question</h2>
+  <p class="lede">A question passes through about a dozen steps (20 to 60 seconds in our test run). Some are AI, many are plain rules. Pick an example below: the steps, the queries and the AI-call counts change to match what really happened for that question.</p>
+  <div class="qpick" id="qpick" role="group" aria-label="Example questions"></div>
+  <div class="card" id="qintro"></div>
+  <div class="legend"><span class="tag t-ai">AI call · model name</span><span class="tag t-rule">Zevra rule · no AI</span><span class="tag t-vec">Vector search</span><span class="tag t-src">Reads your database</span><span class="tag t-zdb">Zevra database</span></div>
+  <div id="flow-f3"></div>
+  <div class="sec"><h3>The AI calls behind this answer</h3><p class="muted">Counted from the real log of this question. Embedding calls turn text into numbers for searching; they return no words.</p><div id="ledger" class="card ledger"></div></div>
+</section>
+
+<!-- ============ FLOW 4 ============ -->
+<section class="panel" id="p-f4" role="tabpanel" aria-label="Agents">
+  <div class="eyebrow">Flow 4 of 5</div>
+  <h2>How an agent works</h2>
+  <p class="lede">An ordinary question is answered by a fixed pipeline. An <strong>agent</strong> is for open-ended work ("which suppliers are putting us at risk?"): it decides for itself which look-ups to run, one at a time, until it can answer. It uses the same safety rules as chat, plus a read-only database session.</p>
+  <div class="card scenario"><span class="pill">Example</span><div><div class="who">"Procurement Watch" at Acme</div><p style="margin:4px 0 0" class="muted">An agent has a name, a persona ("careful procurement analyst"), a goal, a list of databases it may use, and a limit on how many steps it may take. The agent below is an illustration; the figures come from the demo retail data.</p></div></div>
+  <div class="legend"><span class="tag t-ai">AI · gpt-4o · the agent's reasoning loop</span><span class="tag t-rule">Zevra rule · no AI</span><span class="tag t-src">Reads your database</span></div>
+  <div id="flow-f4"></div>
+  <div class="sec"><h3>Watch an agent think</h3><p class="muted">Step through one example run. Each box is one thing the agent asked for or received. Tap <em>Next</em> to advance.</p><div id="agentsim"></div></div>
+  <div class="sec"><h3>Work that happens without anyone asking</h3><p class="muted">Agents and questions can also run on a schedule. These background features are separate from the chat flow. Tap one to see where AI is, and is not, involved.</p><div id="bg"></div></div>
+</section>
+
+<!-- ============ FLOW 5 ============ -->
+<section class="panel" id="p-f5" role="tabpanel" aria-label="Self-learning">
+  <div class="eyebrow">Flow 5 of 5</div>
+  <h2>How Zevra learns a company's language</h2>
+  <p class="lede">Every company has its own words. "Overdue" at Acme means "expected delivery date has passed and nothing arrived". Zevra picks up such definitions from how people use it, but only through a short list of signals, and a definition must <strong>earn</strong> its place through repeated use before it becomes part of the company's vocabulary.</p>
+  <div class="card scenario"><span class="pill">Example</span><div><div class="who">Teaching Zevra what "overdue" means</div><p style="margin:4px 0 0" class="muted">Acme's buyers keep asking about overdue orders. Use the simulator below to see how one learned definition grows, gets promoted, or is dropped.</p></div></div>
+  <div class="legend"><span class="tag t-ai">AI · extracts and tidies wording only</span><span class="tag t-rule">Zevra rule · no AI</span><span class="tag t-human">A person confirms</span></div>
+  <div id="flow-f5"></div>
+  <div class="sec"><h3>Try it: watch one learned term earn its place</h3><div id="learnsim"></div></div>
+  <div class="sec grid2">
+    <div class="card"><h4>What learning never does</h4><ul style="margin:8px 0 0;padding-left:1.1em"><li>It never changes data in the company's database.</li><li>It does not learn from every successful query. Only the signals above count.</li><li>It does not share one company's learned terms with another: they live in that company's private space.</li><li>It does not treat a learned term as an instruction. The AI is told it is <em>evidence</em> to weigh, not a rule to apply.</li></ul></div>
+    <div class="card"><h4>Where a learned term shows up next</h4><ul style="margin:8px 0 0;padding-left:1.1em"><li><strong>Vocabulary:</strong> once promoted, the term becomes company vocabulary. Zevra's word-matching step spots it in later questions and tells the query-writing AI what it means.</li><li><strong>Concept knowledge:</strong> if the term belongs to a business concept, it is added to that concept's text, so the concept-picking step can see it, and is shown to the query-writing AI as "learned business knowledge".</li><li><strong>Review:</strong> administrators can see learned terms and assign a concept to those that have none.</li></ul></div>
+  </div>
+</section>
+
+<!-- ============ TRUST ============ -->
+<section class="panel" id="p-trust" role="tabpanel" aria-label="Your data and trust">
+  <div class="eyebrow">Plain answers</div>
+  <h2>Where your data lives, and what the AI sees</h2>
+  <p class="lede">Customers usually ask the same questions. This page answers them using what the product actually does today, including the limits.</p>
+
+  <div class="sec"><h3>What leaves your database, moment by moment</h3><p class="muted">Pick a moment. Highlighted cells are the only parts sent to OpenAI.</p><div id="bnd-trust"></div></div>
+
+  <div class="sec"><h3>Where each kind of information is kept</h3>
+    <div class="tw"><table id="storeTable"><thead><tr><th>Information</th><th>Your database</th><th>Zevra database (your private space)</th><th>OpenAI</th></tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="sec"><h3>The safety checks every query passes</h3>
+    <p class="muted">These are plain rules, not AI. They run in this order on every query the AI proposes, in chat and in agents.</p>
+    <div id="guards" class="grid2" style="margin-top:12px"></div>
+  </div>
+
+  <div class="sec"><h3>Known limits, stated plainly</h3>
+    <div class="callout warn"><strong>Read this before relying on it.</strong> These are facts about the product as it stands, found by reviewing its code on <span class="js-reviewed">18 October 2026</span>.</div>
+    <div id="limits" class="grid2"></div>
+  </div>
+
+  <div class="sec faq"><h3>Questions customers ask</h3><div id="faq" style="margin-top:8px"></div></div>
+</section>
+
+<div class="foot">Built from a review of Zevra's own code and a real 15-question test run, last reviewed <span class="js-reviewed">18 October 2026</span>. Model names are defaults and can change. Illustrative examples are labelled; the question results, SQL and call counts shown for the chat examples are real.</div>
+</main>
+
+<script>
+window.ZG = window.ZG || {flows:{}};
+/* Update `reviewed` whenever the guide is re-checked against the code (see README). */
+ZG.meta = {reviewed: '18 October 2026'};
+(function(ZG){
+
+ZG.places = [
+ {k:'A', name:'People (browser)', short:'Where people ask and approve', what:`Everyone uses Zevra through a web page. People sign in, ask questions, review what Zevra proposes during setup, and read answers, tables and the reasoning behind them.`,
+  has:[`The signed-in session (a signed token from the identity provider)`,`What the person is looking at right now`,`Nothing else: no database passwords after they are submitted, no OpenAI key`],
+  not:[`The OpenAI key (it stays on Zevra's server)`,`Direct access to the company's database`,`Other companies' information`]},
+ {k:'B', name:'Zevra app', short:'The rules and the conductor', what:`Zevra's application server is the conductor. It checks who you are, decides which company's private space to use, calls the databases and OpenAI, and enforces every safety rule. It holds no company data of its own between requests.`,
+  has:[`The rules: read-only checks, approved-object limits, row limits, masking, auditing`,`The sequence of steps for each flow`,`The OpenAI API key (server side only)`],
+  not:[`A copy of any company's data`,`Any ability to write to a company's database: it only runs checked SELECT queries`,`Browsers never reach OpenAI directly: every AI request goes through here`]},
+ {k:'C', name:'Zevra database', short:'What Zevra knows about each company', what:`A PostgreSQL database (with a vector-search extension) that Zevra owns. Each company gets its own private section (a <em>schema</em>) holding what Zevra has learned <em>about</em> that company's data. A small shared section maps each email address to the right company.`,
+  has:[`Business meaning of each table and column, allowed category values, relationships, vocabulary, learned terms`,`The concept index: numbers (vectors) used to find the right business concept fast`,`Conversations, answers, and the result tables shown in them`,`Uploaded documents as text pieces plus vectors`,`Agents, reports, alert rules, audit records, and the saved connection settings`],
+  not:[`A full copy of the company's database`,`Another company's information in the same section: each company has its own`]},
+ {k:'D', name:'Your database', short:'The company\'s own data, untouched', what:`The company's system of record: today PostgreSQL, Oracle or a REST API. Zevra connects with the credentials the administrator provides and only <em>reads</em>: the structure (table and column definitions), checked SELECT queries, and a small sample of category values.`,
+  has:[`All the real business data: orders, customers, stock, payments`,`Its own access controls: Zevra can only see what the connecting account can see`],
+  not:[`Anything written by Zevra: no inserts, updates, deletes or schema changes`,`Zevra software: nothing is installed in the company's database`]},
+ {k:'E', name:'OpenAI', short:'Language models and embeddings', what:`OpenAI provides the language models that read and write text, and the embedding model that turns text into searchable numbers. Zevra's server sends text requests to OpenAI's API and receives text back. Zevra no longer keeps any files or vector stores at OpenAI.`,
+  has:[`Only the text in each request, for the length of that request`,`Models used today (defaults): gpt-4.1, gpt-4o, gpt-4o-mini and text-embedding-ada-002`],
+  not:[`Database passwords or connection strings`,`Whole tables or large result sets: large results are summarised first`,`Files or a hosted vector store belonging to Zevra`]}
+];
+
+ZG.flowCards = [
+ {n:'Flow 1',t:'Company setup',go:'f1',d:`A private space is created, the first administrator signs in, and the company's database is connected.`,ai:false,aiText:'No AI in this flow'},
+ {n:'Flow 2',t:'Discovering data',go:'f2',d:`Zevra reads table definitions and uses AI to describe what each table means. It never copies the rows.`,ai:true,aiText:'AI sees names, types and comments only'},
+ {n:'Flow 3',t:'Asking a question',go:'f3',d:`From plain English to a checked query to a written answer, with every AI call counted.`,ai:true,aiText:'AI writes, judges and explains'},
+ {n:'Flow 4',t:'Agents',go:'f4',d:`For open-ended work, an agent decides which look-ups to run, one at a time, within strict limits.`,ai:true,aiText:'AI reasons, rules enforce'},
+ {n:'Flow 5',t:'Self-learning',go:'f5',d:`Company-specific words are learned from use, but must earn trust before they count.`,ai:true,aiText:'AI extracts wording only'}
+];
+
+ZG.aiUses = [
+ {n:1,area:'Setup',what:'Recommend which tables matter',model:'gpt-4o-mini',when:'Optional, once per large database (cached)',sees:'Table names, column counts and the first 10 column names of each table',decides:'Which 10–15 tables look like core business tables; skips audit, log and temporary tables'},
+ {n:2,area:'Setup',what:'Describe each table',model:'gpt-4o-mini',when:'For every selected table, 4 tables per call',sees:'Column names, types, the database\'s own comments, and the industry pack\'s concept list',decides:'Business name, purpose, which columns are identifiers or statuses, suggested vocabulary, and which pack concept the table is'},
+ {n:3,area:'Setup',what:'Build concept fingerprints',model:'text-embedding-ada-002',when:'Whenever a concept\'s text is new or changed (and the index refreshes)',sees:'Concept text only: name, aliases, description, meaning, learned terms',decides:'Nothing. It returns numbers used for searching'},
+ {n:4,area:'Setup',what:'Index an uploaded document',model:'text-embedding-ada-002',when:'When a document is uploaded',sees:'The document text, in pieces of about 850 words',decides:'Nothing. It returns numbers used for searching'},
+ {n:5,area:'Questions',what:'Route: ordinary question or agent job?',model:'gpt-4o-mini',when:'Every question, but only if the company has an active agent',sees:'The question text',decides:'Chat or agent. Uncertain cases default to chat'},
+ {n:6,area:'Questions',what:'Pick the right agent',model:'gpt-4o-mini',when:'Only when routed to an agent',sees:'The question and the list of agents',decides:'Which agent, if its confidence is at least 0.65; otherwise ordinary chat'},
+ {n:7,area:'Questions',what:'Turn the question into searchable numbers',model:'text-embedding-ada-002',when:'Every question (once for documents, once for concepts)',sees:'The question text',decides:'Nothing. It returns numbers used for searching'},
+ {n:8,area:'Questions',what:'Pick business concepts and the answer mode',model:'gpt-4.1',when:'Every question',sees:'The question, the previous question, and up to 20 candidate concepts',decides:'Which concepts matter and whether to query data, answer from documents, ask for clarification, or say there is no knowledge'},
+ {n:9,area:'Questions',what:'Remember what we were talking about',model:'gpt-4o-mini',when:'Follow-up questions, when conversation memory is on',sees:'The list of business objects used earlier in the conversation',decides:'Which of them the new question refers to'},
+ {n:10,area:'Questions',what:'Write the database query',model:'gpt-4.1',when:'Each step of the investigation, up to 6 steps',sees:'The question, the approved tables and columns, allowed values, resolved terms, and a summary of results so far',decides:'The next SQL query, or a request for more metadata, or "done"'},
+ {n:11,area:'Questions',what:'Judge whether the evidence is enough',model:'gpt-4.1',when:'After each query',sees:'The question and a summary of the results so far',decides:'Enough, need more, or dead end'},
+ {n:12,area:'Questions',what:'Write the answer',model:'gpt-4.1',when:'Once the evidence is enough',sees:'The question and the evidence (summaries; actual values only for small results)',decides:'The wording of the answer and which result tables to display'},
+ {n:13,area:'Questions',what:'Fact-check the answer',model:'gpt-4.1',when:'After every written answer',sees:'The question, the evidence and the answer',decides:'Whether the answer matches the evidence; if not, it is rewritten once'},
+ {n:14,area:'Questions',what:'Notice a correction',model:'gpt-4o',when:'Follow-up questions in a conversation',sees:'The new question, the previous question and the previous answer',decides:'Whether the user is correcting the previous answer'},
+ {n:15,area:'Agents',what:'The agent\'s reasoning loop',model:'gpt-4o',when:'Each step the agent takes, up to its step limit',sees:'The task, the approved business objects, and the last six tool results',decides:'Which tool to use next, or the final answer'},
+ {n:16,area:'Agents',what:'Draft an automation from plain English',model:'gpt-4o',when:'When a user asks for it',sees:'The requirement the user typed',decides:'A draft workflow the user can review and edit'},
+ {n:17,area:'Agents',what:'Write an alert message',model:'gpt-4.1',when:'When a metric triggers an alert rule',sees:'The rule, the metric and how far it deviated',decides:'The wording of the message'},
+ {n:18,area:'Agents',what:'AI step inside an automation',model:'gpt-4.1',when:'When a workflow contains an AI step',sees:'What the workflow passes to it',decides:'The step\'s written or structured output'},
+ {n:19,area:'Learning',what:'Extract business terms',model:'gpt-4o-mini',when:'After a question that followed a clarification and succeeded',sees:'The question and the SQL that answered it',decides:'Up to 3 term-to-SQL definitions'},
+ {n:20,area:'Learning',what:'Tidy a taught definition',model:'gpt-4o',when:'When a person submits the Teach form',sees:'The term, definition, rule and concept the person entered',decides:'Clean wording only. It may not change the concept or invent SQL'}
+];
+
+/* =========================== FLOW 1 =========================== */
+ZG.flows.f1 = {id:'f1', steps:[
+ {id:'s1',t:'Zevra\'s team creates the company',from:'A',to:'B',tags:['rule','human'],
+  what:`<p>A Zevra platform administrator fills in one form: company name, a short identifier (the <em>slug</em>), plan, billing contact, user limit, and the first administrator's email.</p><p>Zevra checks the form before doing anything: the slug must be 2 to 63 lowercase letters, digits or hyphens; <code>public</code> and <code>default</code> are reserved; the plan must be one of Trial, Standard, Professional or Enterprise; the password must be at least 8 characters.</p>`,
+  ex:{label:'Example',body:`Name:        Acme Retail
+Slug:        acme-retail
+Plan:        STANDARD
+First admin: ana@acmeretail.com`},
+  moves:[{d:'stay',t:'Form values go from the browser to the Zevra app'}],
+  never:[`No AI is involved`,`Nothing is created in the company's own database`],
+  why:`Strict checks up front mean the company's private space is only ever built from clean, predictable names.`},
+ {id:'s2',t:'Zevra records the company in a shared register',from:'B',to:'C',tags:['rule','zdb'],
+  what:`<p>One row is written to the shared company register in Zevra's database: id, slug, name, plan, status <strong>ACTIVE</strong>, contact, user limit, and the name of the private section that is about to be created.</p><p>This register and the email-to-company map are the only shared tables. Everything else belongs to one company.</p>`,
+  ex:{label:'Example row',body:`slug:        acme-retail
+schema_name: tenant_acme_retail
+status:      ACTIVE`},
+  moves:[{d:'stay',t:'Company details are stored in Zevra\'s database (shared register)'}],
+  never:[`No customer business data exists yet`],
+  why:`A single register lets Zevra look up, suspend or remove a company without touching other companies.`},
+ {id:'s3',t:'Zevra builds the company\'s private room',from:'B',to:'C',tags:['rule','zdb'],
+  what:`<p>Inside Zevra's PostgreSQL database, a separate named section is created just for this company: a <em>schema</em>. Think of it as a locked room: tables inside it can only be reached by a request that has been pinned to that room.</p><p>The name is derived from the slug (<code>tenant_acme_retail</code>) and checked against a strict pattern before use, so a crafted name can never reach another section.</p>`,
+  ex:{label:'Example',body:`CREATE SCHEMA tenant_acme_retail`},
+  moves:[{d:'stay',t:'An empty private section appears in Zevra\'s database'}],
+  never:[`The company never shares tables with another company`],
+  why:`Separate sections, rather than one big table with a "company" column, mean a mistake in a query cannot accidentally mix two companies' information.`},
+ {id:'s4',t:'Zevra creates all the tables, in two phases',from:'B',to:'C',tags:['rule','zdb'],
+  what:`<p>Zevra runs its numbered database setup scripts (<em>migrations</em>) inside the new room: first the basic structure, then a seed step, then the remaining scripts.</p><p>If any phase fails, Zevra deletes the half-built room and marks the company <strong>DEPROVISIONED</strong>, so a broken company is never left behind.</p><p>The same scripts also run at startup on every existing company, so every room is always up to date.</p>`,
+  moves:[{d:'stay',t:'Tables for objects, columns, vocabulary, conversations, agents, audit and more are created'}],
+  never:[`A failed setup is never left half-finished`],
+  why:`Setup is all-or-nothing, so support never has to repair a half-created company by hand.`},
+ {id:'s5',t:'The first administrator account is created',from:'B',to:'C',tags:['rule','zdb'],
+  what:`<p>Zevra adds a default business area called <strong>PLATFORM</strong> and the administrator's account. The password is stored only as a one-way hash (BCrypt), never as readable text.</p><p>It also writes a pointer in the shared profile table: <em>this email &rarr; this company room, role ADMIN, status INVITED</em>. That pointer is how sign-in later knows which room to use.</p>`,
+  ex:{label:'Example pointer',body:`ana@acmeretail.com -> tenant_acme_retail  (ADMIN, INVITED)`},
+  moves:[{d:'stay',t:'Account, hashed password and email-to-company pointer are stored in Zevra\'s database'}],
+  never:[`No readable password is stored by Zevra`],
+  why:`The pointer is what keeps one email address bound to exactly one company room.`},
+ {id:'s6',t:'An invitation email is sent',from:'B',to:'A',tags:['rule'],
+  what:`<p>Zevra asks its identity provider (Supabase Auth) to email the administrator an invitation. Ana follows the link and sets her password with the identity provider.</p><p>If the email cannot be sent, the company still exists. A platform administrator can resend the invite or generate a one-time recovery link.</p>`,
+  moves:[{d:'stay',t:'Email address goes to the identity provider to send the invitation'}],
+  never:[`No AI model is involved`,`Zevra does not see the password Ana chooses`],
+  why:`Delegating sign-in to a dedicated identity provider keeps password handling out of Zevra's own code.`},
+ {id:'s7',t:'Ana signs in, and Zevra works out which room is hers',from:'A',to:'C',tags:['rule','zdb'],widget:'isolation',
+  what:`<p>After sign-in the browser sends a signed token with each request. Zevra verifies the signature, looks the email up in the shared profile table, and finds the company room and role.</p><p>From then on, every database call in that request is <em>pinned</em> to that room. If no room can be established, Zevra refuses the request. It never falls back to shared space.</p>`,
+  moves:[{d:'stay',t:'Signed token from the browser to the Zevra app'},{d:'stay',t:'Email looked up in the shared profile table'}],
+  never:[`A request can never reach another company's room`,`There is no "default to everything" fallback`],
+  why:`This pinning is the foundation of tenant isolation: it happens in one place, for every request, before any business logic runs.`},
+ {id:'s8',t:'Ana adds the company\'s database as a data source',from:'A',to:'B',tags:['human','rule'],
+  what:`<p>Ana chooses the type (PostgreSQL, Oracle or REST API), enters the address, username and password, which schemas and tables Zevra may use, and a <strong>read-only</strong> flag (on by default). She must also choose an industry pack: Zevra never guesses one.</p><p>The connection and the pack are saved together in a single step: if the pack cannot be applied, the connection is not left behind.</p>`,
+  ex:{label:'Example',body:`Type:      POSTGRES
+Address:   jdbc:postgresql://db.acmeretail.com:5432/retail_core
+Allowed:   schema retail_core
+Read-only: yes
+Pack:      Retail & E-commerce`},
+  moves:[{d:'stay',t:'Connection details are saved in Acme\'s private room in Zevra\'s database'}],
+  never:[`Zevra does not install anything in Acme's database`,`The administrator's database password is not sent to OpenAI`],
+  why:`Choosing the pack explicitly avoids silently giving a healthcare company retail vocabulary.`},
+ {id:'s9',t:'Zevra tests the connection',from:'B',to:'D',tags:['rule','src'],
+  what:`<p>Zevra opens a connection with the supplied credentials and runs a tiny probe query with a short timeout. The result (success or a cleaned-up error message) is saved so the administrator sees it straight away.</p>`,
+  moves:[{d:'in',t:'A one-row probe result comes back from the company\'s database'}],
+  never:[`No business data is read`,`No AI is involved`],
+  why:`Finding a typo in a password now is far better than a confusing failure during discovery.`},
+ {id:'s10',t:'The industry pack is applied',from:'B',to:'C',tags:['rule','zdb'],
+  what:`<p>A <strong>pack</strong> is a ready-made starter set of business knowledge for an industry: concepts (the Retail pack has 54, such as Product, Supplier, Purchase Order), vocabulary, KPIs and suggested questions. Packs available today: Retail &amp; E-commerce, Financial Services &amp; Accounting, Healthcare &amp; Clinical Operations, Hospitality &amp; Travel, Logistics &amp; Supply Chain, and ServiceNow ITSM.</p><p>Applying it records "this connection uses the Retail pack" and adds the vocabulary. The pack is Zevra's own content: it contains no customer data. No tables have been discovered yet, so there is nothing to classify and no AI call is needed here. That comes next.</p>`,
+  ex:{label:'A real pack concept (shortened)',body:`purchase-order — Purchase Order
+  also called: purchase order, po, po header, procurement order
+  A procurement commitment from the retailer TO A SUPPLIER for goods
+  or services. The retailer is the buyer. Does NOT represent a
+  customer-facing sale (see Sales Transaction)...
+  Used for procurement spend tracking, supplier commitment management
+  and open-order reporting.`},
+  moves:[{d:'stay',t:'Pack assignment and vocabulary are saved in Acme\'s room'}],
+  never:[`No AI call yet`,`No Acme data is involved`],
+  why:`Starting from a vocabulary of the industry means Zevra already knows what "supplier" or "purchase order" generally mean before it sees a single table.`},
+ {id:'s11',t:'Acme is ready for discovery',from:'B',to:'A',tags:['rule'],
+  what:`<p>The company now has a private room, a signed-in administrator, a connected and tested data source and an applied pack. What is missing is knowledge of Acme's actual tables. That is flow 2.</p><p>AI calls in this entire flow: <strong>zero</strong>.</p>`,
+  moves:[{d:'ok',t:'Nothing has been sent to OpenAI so far'}],
+  why:`Everything so far is deterministic setup, so it can be audited and repeated exactly.`}
+]};
+
+/* =========================== FLOW 2 =========================== */
+ZG.flows.f2 = {id:'f2', steps:[
+ {id:'s1',t:'Zevra lists the tables in the database',from:'B',to:'D',tags:['rule','src'],
+  what:`<p>With one query against the database's own catalogue (<code>information_schema</code>), Zevra lists every table in the allowed schema with its number of columns. It is a single round trip however large the schema is.</p>`,
+  ex:{label:'What comes back',body:`purchase_orders        (17 columns)
+purchase_order_lines   (14 columns)
+suppliers              (18 columns)
+audit_log              (6 columns)
+...`},
+  moves:[{d:'in',t:'Table names and column counts come from your database'}],
+  never:[`No rows are read`,`No AI is involved`],
+  why:`Reading only the catalogue is fast and touches no business data.`},
+ {id:'s2',t:'AI suggests which tables matter',from:'B',to:'E',tags:['ai:gpt-4o-mini'],cond:'optional, for large databases',
+  what:`<p>Large databases can have hundreds of tables. Zevra sends one compact list to a small AI model and asks for the 10 to 15 most important <em>business</em> tables, skipping audit, log, history, temporary and backup tables. The answer is cached so a page refresh costs nothing.</p>`,
+  ex:{label:'What the AI is shown (illustrative)',body:`Schema: retail_core   Total tables: 41
+purchase_orders (17 cols): id, po_number, supplier_id, status, ... +12 more
+suppliers (18 cols): id, code, name, tier, status, ... +13 more
+audit_log (6 cols): id, event, at, ...`},
+  ai:{model:'gpt-4o-mini',sees:'Table names, column counts and the first 10 column names of each table.',decides:'Which tables look like core business tables, with a one-line reason and a category.',cant:'See any row of data, or add a table that is not in the list.'},
+  moves:[{d:'out',t:'Table names, column counts, first 10 column names'},{d:'no',t:'Any row of data, any value, any password'}],
+  never:[`If the AI call fails, Zevra simply shows the first 15 tables in the list`],
+  why:`Choosing a cheap, fast model is enough for a list-sorting task, and keeps setup quick and inexpensive.`},
+ {id:'s3',t:'A person picks the tables to bring in',from:'A',to:'B',tags:['human'],
+  what:`<p>The administrator reviews the suggestions, adds or removes tables, and selects what to analyse. Zevra caps one analysis at 40 tables, enforced on the server, so a single click cannot trigger an unbounded amount of work.</p>`,
+  ex:{label:'Example',body:`Selected: purchase_orders, purchase_order_lines, suppliers`},
+  never:[`Nothing is analysed until a person asks`],
+  why:`People stay in control of what Zevra is allowed to learn about.`},
+ {id:'s4',t:'Zevra reads each selected table\'s definition',from:'B',to:'D',tags:['rule','src'],
+  what:`<p>For each chosen table Zevra reads its <em>definition</em>: column names, data types, whether a value is required, the names of any enum types, and the table and column comments written by the company's own database team (when they exist).</p>`,
+  ex:{label:'What is read',body:`Table: retail_core.purchase_order_lines
+  purchase_order_id  uuid        NOT NULL
+  product_id         uuid        NOT NULL
+  ordered_qty        integer     NOT NULL
+  received_qty       integer     NOT NULL
+  status             text (enum: po_line_status)`},
+  moves:[{d:'in',t:'Column definitions and comments come from your database'}],
+  never:[`No rows are read in this step`],
+  why:`The company's own comments are the best clue to what a column means, so Zevra reads them whenever they exist.`},
+ {id:'s5',t:'AI describes what each table means',from:'B',to:'E',tags:['ai:gpt-4o-mini'],
+  what:`<p>Tables are sent four at a time. For each one the AI proposes a human name, a purpose, how it is used day to day, which columns identify a record, which show status, which flag problems, safe filter columns, usage guidance, suggested vocabulary and questions, and which of the pack's concepts the table represents, with a confidence.</p><p>Zevra then <strong>validates</strong> the AI's concept choice: it must be one of the real concepts in the pack, otherwise it is discarded. Java never makes the choice itself.</p>`,
+  ex:{label:'Example output (illustrative)',body:`entityName:        Purchase Order Line
+purpose:           Each product ordered on a purchase order
+statusColumns:     status
+identifierColumns: purchase_order_id, product_id
+conceptResolution: purchase-order-line
+                   confidence HIGH
+                   reason: "quantity ordered and received per product per PO"`},
+  ai:{model:'gpt-4o-mini',sees:'The table definitions from the previous step, plus the pack\'s concept catalogue (concept names, aliases, descriptions, meanings).',decides:'Names, purpose, column roles, vocabulary, suggested questions and which concept each table is.',cant:'See any row of data, invent a concept that is not in the pack, or save anything on its own: a person still has to approve.'},
+  peek:{label:'Show the shape of what OpenAI receives (abridged)',body:`Domain: PLATFORM
+
+Canonical Business Concepts (choose from these):
+- purchase-order : Purchase Order (also called: purchase order, po, po header...)
+    A procurement commitment from the retailer TO A SUPPLIER ...
+- purchase-order-line : Purchase Order Line (also called: po line, order line item)
+    One product-level line within a Purchase Order ...
+- supplier : Supplier (also called: vendor, manufacturer supplier)
+    The external business partner the retailer buys goods FROM ...
+
+Schema: retail_core, Table: purchase_order_lines
+Columns:
+  - purchase_order_id uuid NOT NULL
+  - product_id uuid NOT NULL
+  - ordered_qty integer NOT NULL
+  - received_qty integer NOT NULL
+  - status text (enum: po_line_status) NOT NULL`},
+  moves:[{d:'out',t:'Table and column definitions, the database\'s own comments, the pack\'s concept list'},{d:'no',t:'Any row of data'}],
+  never:[`If the AI fails for a table, Zevra saves a plain placeholder for it and flags the failure`],
+  why:`Batching four tables per call keeps the number of AI calls low while keeping each prompt small enough to be reliable.`},
+ {id:'s6',t:'A person reviews and approves the drafts',from:'A',to:'B',tags:['human'],
+  what:`<p>The administrator sees the AI's draft for every table: name, purpose, columns, vocabulary, concept. They can edit anything, and each item is only saved if it is <strong>approved</strong>.</p>`,
+  never:[`Nothing is saved without approval`],
+  why:`AI proposes, a person disposes. This is where a wrong guess is caught for the price of one click.`},
+ {id:'s7',t:'Zevra saves the approved objects',from:'B',to:'C',tags:['rule','zdb'],
+  what:`<p>For each approved table Zevra stores, in Acme's private room: the <em>data object</em> and its columns with their roles, a version snapshot, the linked <em>business entity</em> (the human-friendly concept the table represents), vocabulary terms the person approved, and the concept assignment.</p>`,
+  moves:[{d:'stay',t:'Descriptions and roles are written to Acme\'s room in Zevra\'s database'}],
+  never:[`The table itself is not copied: only its description`],
+  why:`Keeping meaning in Zevra and data in the company's database means answers are always live.`},
+ {id:'s8',t:'Zevra learns the allowed values of category columns',from:'B',to:'D',tags:['rule','src','zdb'],
+  what:`<p>For columns that hold categories (a status or type), Zevra learns the <em>legal values</em>, so it can later recognise "TX" as "Texas" or "open" as a set of statuses.</p><ul><li><strong>Enum types</strong> (PostgreSQL): read from the database's own list of enum values.</li><li><strong>Observed values:</strong> for status-like text columns only, Zevra reads up to 26 distinct values. If there are more than 25, it is not a category and nothing is kept.</li></ul><p>Before anything is kept, a fixed filter (no AI) rejects values that look like personal data: emails, SSN-like numbers, long digit strings, invoice-style references, free text and person-name shapes. When unsure it rejects.</p>`,
+  ex:{label:'Example',body:`po_line_status  (enum):   pending, partial, received, cancelled
+suppliers.status (observed): active, inactive, under_review
+
+suppliers.primary_contact_email -> not sampled
+  (identifier/sensitive column, and the PII filter would reject it)`},
+  moves:[{d:'in',t:'Up to 26 distinct values of a status-like column come from your database'},{d:'stay',t:'Accepted values are stored in Zevra\'s database'},{d:'out',t:'Later, accepted values are shown to the query-writing AI as "allowed values"'}],
+  never:[`Identifier, sensitive and high-variety columns are never sampled`,`Names, emails and free text never become allowed values`],
+  why:`Knowing the real spellings of categories lets Zevra write correct filters without guessing, and the strict filter protects personal data.`},
+ {id:'s9',t:'Zevra works out how the tables connect',from:'B',to:'D',tags:['rule','src','zdb'],
+  what:`<p>Relationships are found <strong>without AI</strong>. First Zevra reads the database's declared foreign keys. If a database declares none (common in warehouses), it matches <code>_id</code> columns to tables with a naming rule and scores its confidence. New links are saved; existing ones are left alone.</p>`,
+  ex:{label:'Example',body:`purchase_order_lines.purchase_order_id -> purchase_orders.id   (N:1)
+purchase_order_lines.product_id        -> products.id          (N:1)`},
+  moves:[{d:'in',t:'Foreign-key definitions come from your database'},{d:'stay',t:'Relationships are saved in Zevra\'s database'}],
+  never:[`No AI is involved`,`A guessed link is marked with lower confidence, not treated as fact`],
+  why:`Joins are where wrong answers hide. Declared keys are treated as definitive and guesses are labelled as guesses.`},
+ {id:'s10',t:'Zevra refreshes its concept index (the vector search)',from:'B',to:'E',tags:['ai:text-embedding-ada-002','vec','zdb'],
+  what:`<p>Zevra keeps a searchable fingerprint of each business concept the company uses. For each one it builds a short text (concept name, aliases, description, operational meaning, plus any promoted learned terms) and asks the embedding model to turn it into a list of 1,536 numbers, which are stored in Zevra's own database.</p><p>It only re-embeds a concept whose text has changed. This runs automatically after registration, when a pack is applied or removed, when a learning is promoted, nightly, and when the app starts. There is no manual sync button.</p>`,
+  ex:{label:'Text that is embedded (real pack text, shortened)',body:`purchase-order-line — Purchase Order Line (also called: purchase order line,
+po line, order line item). One product-level line within a Purchase Order:
+the specific product, quantity, and unit cost ordered from the supplier.
+Exists only in relation to its parent Purchase Order. Used for line-level
+order-fulfillment tracking and product-level procurement spend.
+[Business terms learned for this concept: "short shipped" means
+received_qty < ordered_qty.]   <- only if a learned term exists (illustrative)`},
+  ai:{model:'text-embedding-ada-002 (an embedding model)',sees:'Only the concept text above. No table rows and no company data.',decides:'Nothing. It returns numbers.',cant:'Produce words, or see anything about Acme\'s actual data.'},
+  moves:[{d:'out',t:'The concept text only'},{d:'stay',t:'The returned numbers are stored in Zevra\'s database (pgvector)'}],
+  never:[`No company data goes to OpenAI in this step`,`Nothing is stored at OpenAI: no file, no vector store`],
+  why:`Searching by meaning keeps each later question's AI prompt small, however many concepts a company has, and the search itself runs in Zevra's own database.`},
+ {id:'s11',t:'Setup finishes',from:'B',to:'A',tags:['rule','zdb'],
+  what:`<p>If the company has no agent yet, Zevra creates a default read-only <strong>Data Analyst</strong> agent. It stores the best three suggested questions and marks onboarding complete. The company can now ask questions.</p><p>Adding a table later (<em>Discover from DB</em>) repeats steps 1 to 10 for just that table.</p>`,
+  moves:[{d:'stay',t:'Suggested questions and onboarding status saved in Acme\'s room'}],
+  why:`Starting with a few good example questions helps people get value within minutes.`}
+]};
+
+})(window.ZG);
+
+(function(ZG){
+
+var NOAGENT = `Acme's test company has no agents set up, so Zevra makes no AI call here and treats the question as an ordinary one.`;
+var NOQUERY = `Not needed: Zevra answered without querying the database.`;
+
+ZG.flows.f3 = {id:'f3', steps:[
+ {id:'s1',t:'The question arrives, and Zevra pins it to the right company',from:'A',to:'B',tags:['rule'],
+  what:`<p>The browser sends the question with its signed token. As in setup, Zevra verifies the token, finds the company room and role, and pins every database call in this request to that room. A conversation id ties the question to earlier turns.</p><p>Two shortcuts are checked first: a message starting with <code>/knowledge</code> proposes new business knowledge, and <code>/request-source</code> asks for a new data connection. Both are handled without querying data.</p>`,
+  moves:[{d:'stay',t:'The question text goes from the browser to the Zevra app'}],
+  never:[`No AI is involved yet`,`A request with no company room is refused, never run against shared space`],
+  why:`Identity and company come first, so nothing below can ever read another company's information.`},
+ {id:'s2',t:'Is this an ordinary question or a job for an agent?',from:'B',to:'E',tags:['ai:gpt-4o-mini'],cond:'only if the company has an active agent',
+  what:`<p>If the company has at least one active agent, a small AI call classifies the question by <em>how</em> it should be handled: a normal chat answer, or an agent's open-ended investigation. It looks at the question only. If it is unsure, it chooses chat.</p><p>If the company has no agents, Zevra skips the call entirely, since chat is then the only option. If an agent is chosen, a second small call picks which agent (it needs at least 0.65 confidence, otherwise the question goes to chat). See flow 4.</p>`,
+  ai:{model:'gpt-4o-mini',sees:'The question text, and nothing else.',decides:'Chat or agent, then (if agent) which one.',cant:'Query data, change settings, or escalate to an agent when unsure.'},
+  moves:[{d:'out',t:'The question text'},{d:'no',t:'Any company data'}],
+  why:`A cheap, fast model is enough to sort questions into two kinds, and defaulting to chat keeps behaviour predictable.`},
+ {id:'s3',t:'Zevra recalls the conversation so far',from:'B',to:'C',tags:['rule','zdb'],
+  what:`<p>For a follow-up, Zevra loads from its own database the last few turns and the <em>facts</em> of the previous query (which tables, filters and result shape it used), not just the wording of the earlier answer. This is what lets "which of those?" mean something.</p><p>When conversation memory is on, one more small AI call (gpt-4o-mini) looks at the list of business objects used earlier and picks the ones the new question refers to.</p>`,
+  ex:{label:'Nothing to recall here',body:`First question in this conversation.`},
+  moves:[{d:'stay',t:'Earlier turns are read from Zevra\'s database'}],
+  never:[`Nothing from an earlier conversation of a different user is mixed in`],
+  why:`Grounding follow-ups in what actually ran, instead of a paraphrase, stops drift between questions.`},
+ {id:'s4',t:'Zevra checks the company\'s uploaded documents',from:'B',to:'E',tags:['ai:text-embedding-ada-002','vec','zdb'],
+  what:`<p>If the company has uploaded documents (policies, contracts, manuals), Zevra checks whether any are relevant. The question is turned into numbers by the embedding model and compared, inside Zevra's database, with the numbers stored for each document piece. The six closest pieces are kept (there is no minimum similarity: the AI later judges whether they help).</p><p>This step answers one thing: <em>is document memory available for this question?</em> That fact is handed to the next AI call. If the answer will draw on documents, those pieces of text are included in the AI prompts that follow.</p>`,
+  ex:{label:'In this test',body:`No uploaded document matched, so document memory is "not available".`},
+  ai:{model:'text-embedding-ada-002 (an embedding model)',sees:'The question text.',decides:'Nothing. It returns numbers.',cant:'Produce words, or see any document: the comparison happens in Zevra\'s database.'},
+  moves:[{d:'out',t:'The question text (to be turned into numbers)'},{d:'stay',t:'The document comparison runs in Zevra\'s database'},{d:'out',t:'Only if used: the closest document pieces (up to 6) go into the later AI prompts'}],
+  why:`Doing the comparison locally means the documents themselves are not sent to OpenAI just to find out which are relevant.`},
+ {id:'s5',t:'Zevra matches the question\'s words to the company\'s vocabulary',from:'B',to:'C',tags:['rule','zdb'],
+  what:`<p>Before any AI sees the question, Zevra's word-matching step looks for terms it already knows. It compares words and phrases of up to three words against the company's vocabulary, business entity names, allowed values and column names, handling plurals and separators. It is exact matching, not guessing, and keeps at most 8 matches.</p><p>The question itself is never rewritten. Matches are attached as notes (&ldquo;RESOLUTIONS&rdquo;) that tell the query-writing AI what the company's words mean.</p>`,
+  ex:{label:'Example',body:`(no matches: the question has no company-specific words)`},
+  moves:[{d:'stay',t:'Vocabulary is read from Zevra\'s database'}],
+  never:[`No AI and no fuzzy matching`,`The question text is never changed`],
+  why:`Plain matching is predictable and auditable: if a company defines "open orders", that definition is used every time, in the same way.`},
+ {id:'s6',t:'Zevra finds the closest business concepts (vector search)',from:'B',to:'E',tags:['ai:text-embedding-ada-002','vec','zdb'],
+  what:`<p>The question is turned into numbers again, and Zevra's database finds the <strong>20 business concepts</strong> whose fingerprints (built during discovery) are closest in meaning. For a follow-up, the previous question is included in the search and the previous question's concepts are always added.</p><p>This narrows hundreds of possible concepts to a short list without calling a language model. A company with 500 concepts sends the AI the same size of list as one with 50.</p>`,
+  ex:{label:'Example',body:`question -> 1,536 numbers -> 20 nearest concepts in Zevra's database
+(purchase-order is among them)`},
+  ai:{model:'text-embedding-ada-002 (an embedding model)',sees:'The question text (plus the previous question for a follow-up).',decides:'Nothing. It returns numbers.',cant:'Produce words. The nearest-concept search itself runs in Zevra\'s database.'},
+  moves:[{d:'out',t:'The question text'},{d:'stay',t:'The ranking of concepts happens in Zevra\'s database'}],
+  never:[`If the concept index has not been built, Zevra fails clearly instead of guessing`],
+  why:`Searching by meaning keeps the next, larger AI prompt about the same size however big the company is.`},
+ {id:'s7',t:'AI chooses the concepts and the kind of answer',from:'B',to:'E',tags:['ai:gpt-4.1'],
+  what:`<p>One AI call sees the question and the 20 candidate concepts (each written out in full) and decides which of them are relevant: none, one or several. It also decides the <strong>answer mode</strong>: query live data, answer from documents, both, ask a clarifying question, or say Zevra has no knowledge of this.</p><p>Zevra then checks the AI's answer. Any concept that is not really one of this company's concepts is discarded. If the answer contradicts itself (no concept chosen, yet "query data"), the AI is shown 40 candidates and the full concept list and asked once more. Never a third time.</p>`,
+  ex:{label:'What the AI returns (shape)',body:`{"conceptKeys": ["purchase-order"],
+ "resolutionType": "SINGLE",
+ "routing": {"type": "QUERY_LIVE_DATA"}}`},
+  ai:{model:'gpt-4.1',sees:'The question, the previous question (for follow-ups), the 20 candidate concepts with their descriptions, and one fact: whether document memory is available.',decides:'Which concepts matter, and which of five answer modes fits.',cant:'See table names, columns or any data. It chooses only among concepts it was shown.'},
+  peek:{label:'Show the shape of what OpenAI receives (abridged)',body:`CANDIDATE CONCEPTS: this tenant's concepts most similar to the question.
+Each line starts with the concept_key to use:
+- purchase-order — Purchase Order (also called: purchase order, po, po header...)
+  A procurement commitment from the retailer TO A SUPPLIER for goods...
+- purchase-order-line — Purchase Order Line (also called: po line...)
+- supplier — Supplier (also called: vendor...)
+... (20 in total)
+
+QUESTION:
+What is the total ordered amount across all open purchase orders?
+
+Runtime facts: Document memory available for this question: false`},
+  moves:[{d:'out',t:'The question and 20 concept descriptions (pack text and promoted learned terms)'},{d:'no',t:'Table names, column names, any rows of data'}],
+  never:[`The AI cannot invent a concept: the answer is checked against the real list`,`Zevra does not decide the answer mode itself: it relays the AI's choice`],
+  why:`Deciding meaning is what language models are good at. Zevra's checks make sure the AI can only pick from what really exists.`},
+ {id:'s8',t:'Zevra turns the concepts into the approved list of tables and columns',from:'B',to:'C',tags:['rule','zdb'],
+  what:`<p>Using the chosen concepts, Zevra looks up in its own database which of the company's tables represent them. That set becomes the <strong>contract</strong> for this question: the only tables and columns anything below is allowed to touch.</p><p>Zevra then renders the schema for the query-writing AI: table and column names, data types, business meaning, allowed category values and how tables join. Nothing outside the contract is described to it.</p>`,
+  ex:{label:'Example',body:`Concept purchase-order -> table retail_core.purchase_orders
+Approved for this question: purchase_orders only`},
+  moves:[{d:'stay',t:'Concept-to-table links are read from Zevra\'s database'}],
+  never:[`A table that is not in the contract can never be queried for this question`],
+  why:`Narrowing before the AI writes any SQL keeps prompts small and keeps the AI inside the lines.`},
+ {id:'s9',t:'A quick "is this a write request?" check',from:'B',to:'B',tags:['rule'],
+  what:`<p>Zevra is read-only. If the question contains write-sounding words (delete, update, insert, create, drop, approve, cancel and similar), Zevra stops and replies politely that it can investigate but not change data. This is a simple word check. The real protection is in step 11, which would block a write query regardless.</p>`,
+  ex:{label:'Example reply',body:`Zevra is a read-only operational intelligence platform. I can help you
+investigate and understand your business data, but cannot perform modifications.`},
+  never:[`Zevra's query rules allow only reading (see step 11)`],
+  why:`A cheap early check saves the AI calls and gives a clear message. The query checks later are the safety net.`},
+ {id:'s10',t:'AI writes the next database query',from:'B',to:'E',tags:['ai:gpt-4.1'],
+  what:`<p>The investigation is a loop of up to <strong>6 steps</strong> (steps 10 to 13). Each time round, the AI writes <em>one</em> query. It sees the question, the approved schema, the allowed values, the resolved terms, and a <em>summary</em> of the evidence so far. It can also ask for more column details of an approved table, ask the user a clarifying question, or say it is done.</p><p>If a query fails with a database error, the AI is told and may correct it, at most twice.</p>`,
+  ex:{label:'Example',body:`SELECT SUM(total_ordered_amount) AS total_open_ordered_amount
+FROM retail_core.purchase_orders
+WHERE status IN ('draft','submitted','acknowledged','partially_received')`},
+  ai:{model:'gpt-4.1',sees:'The question; the approved tables and columns with meanings and allowed values; the resolved terms; any learned business knowledge for these concepts; a summary of the evidence so far.',decides:'The next SQL query, a request for more metadata, a clarifying question, or "done".',cant:'Run the query itself, touch a table outside the contract, or see passwords. What it writes is only a proposal until step 11 passes it.'},
+  peek:{label:'Show the shape of what OpenAI receives (abridged, illustrative)',body:`Approved schema:
+  retail_core.purchase_orders  (Purchase Order)
+    po_number text | status text [allowed values include: submitted,
+    acknowledged, partially_received, received] | total_ordered_amount numeric ...
+RESOLUTIONS:
+  "open purchase orders" -> status IN ('draft','submitted','acknowledged','partially_received')
+Question: What is the total ordered amount across all open purchase orders?
+Evidence so far: none`},
+  moves:[{d:'out',t:'Question, approved schema, allowed values, resolved terms, a summary of earlier results'},{d:'no',t:'Passwords, tables outside the contract, large result sets'}],
+  never:[`The AI cannot run anything: it only proposes SQL`],
+  why:`One query at a time lets Zevra check, run and learn from each step, instead of trusting a long plan up front.`},
+ {id:'s11',t:'Zevra checks the query before it may run',from:'B',to:'B',tags:['rule'],
+  what:`<p>Every proposed query passes the same fixed checks, in this order. None of them uses AI:</p><ol style="margin:0;padding-left:1.2em"><li>Literal values the AI used are compared with the allowed values.</li><li>Every table must be inside the question's approved contract.</li><li>It must start with SELECT, with no semicolons, no write or admin keywords, and no <code>SELECT *</code>.</li><li>Every table must be on the connection's allow-list.</li><li>At most 4 joins.</li><li>A row limit is added (50 to 200 depending on the kind of query, never above 500) and a time limit.</li><li>Data contracts, <strong>row-level security</strong> for this person, and <strong>column masking</strong> are applied: masked columns are rewritten or removed in the query itself.</li><li>The attempt is recorded in the audit trail.</li></ol>`,
+  ex:{label:'Example',body:`SELECT ... FROM retail_core.purchase_orders WHERE ... LIMIT 100
+checked: SELECT only / approved table / allow-listed / 0 joins / row limit added`},
+  never:[`A query that fails any check never reaches the database`,`Masked values are never fetched in readable form`],
+  why:`The AI is allowed to be creative; these rules are not. Safety does not depend on the AI behaving.`},
+ {id:'s12',t:'The query runs on the company\'s database',from:'B',to:'D',tags:['rule','src'],
+  what:`<p>Zevra runs the approved query with the connection's credentials and a timeout. Results come back to Zevra, <em>not</em> to OpenAI. The full result is kept to show to the user, and a <em>summary</em> of it is what the AI will see next.</p>`,
+  ex:{label:'Example',body:`1 row: total_open_ordered_amount = 135300`},
+  moves:[{d:'in',t:'The query result comes from your database'},{d:'stay',t:'The full result stays in Zevra (shown to the person, saved with the conversation)'}],
+  never:[`Only checked SELECT queries are sent: Zevra's rules allow nothing else`,`The result is not sent to OpenAI as-is: see step 13`],
+  why:`Keeping the full result on Zevra's side, and sending the AI only a summary, limits what leaves your environment.`},
+ {id:'s13',t:'AI judges whether the evidence is enough',from:'B',to:'E',tags:['ai:gpt-4.1'],
+  what:`<p>An AI call reads the question and a <strong>summary</strong> of the results so far and decides one of three things: <em>sufficient</em> (answer now), <em>need more</em> (go round the loop again), or <em>dead end</em>. Its rules push it to be careful: an unverified &ldquo;no rows&rdquo; is not proof that nothing exists, an identifier alone is not an answer when a name was asked for, and a result that quietly covers only part of the data is not complete.</p><p><strong>What the summary contains:</strong> columns, counts, totals and averages for numbers, the spread of category values, and a few sample values. For results of 10 rows or fewer it includes the actual values.</p>`,
+  ex:{label:'Example verdict',body:`SUFFICIENT: "The evidence directly sums the total ordered amount for all
+open purchase orders, matching the question's scope and aggregation exactly."`},
+  ai:{model:'gpt-4.1',sees:'The question and the summary of each step so far: the SQL, the row count, column statistics and sample values (the actual values when 10 rows or fewer).',decides:'Enough, need more, or dead end, with a one-sentence reason.',cant:'Run anything or change the query. It only judges.'},
+  moves:[{d:'out',t:'A summary of the result: counts, totals, category spread, a few samples (all values if 10 rows or fewer)'},{d:'no',t:'Large result sets in full'}],
+  never:[`The loop stops at 6 steps, or when the AI says it is done`],
+  why:`Separating the writer from the judge lets Zevra catch a confident but wrong first attempt. A second look is cheap.`},
+ {id:'s14',t:'AI writes the answer',from:'B',to:'E',tags:['ai:gpt-4.1'],
+  what:`<p>Once the evidence is enough, an AI call writes the answer in plain English and decides which of the result tables to show beside it. For a result of 2 to 10 rows with several columns, Zevra gives it the rows line by line so a value cannot be attached to the wrong record.</p><p>Before the final call, the query-writing AI is asked once whether a small extra breakdown would help (usually it says no).</p>`,
+  ex:{label:'Example answer',say:true,body:`The total ordered amount across all open purchase orders is $135,300.00.`},
+  ai:{model:'gpt-4.1',sees:'The question and the evidence: summaries, with actual values only for small results.',decides:'The wording of the answer and which result tables to display.',cant:'Query data, or see rows beyond the summary. The tables shown to the person come straight from the database result, not from the AI.'},
+  moves:[{d:'out',t:'The question and the evidence summaries'},{d:'stay',t:'The result tables shown to the person are the database\'s own rows'}],
+  never:[`The AI does not retype the data table: it is displayed as returned`],
+  why:`Keeping the table and the sentence separate means a mistake in wording cannot alter the numbers on screen.`},
+ {id:'s15',t:'AI fact-checks the answer against the evidence',from:'B',to:'E',tags:['ai:gpt-4.1'],
+  what:`<p>A second, narrow AI call checks whether the written answer matches the evidence. If it finds a mismatch (for example saying "three" when the evidence shows five), the answer is written once more with the findings pointed out. It is limited to one check and one rewrite, and if the check itself fails, the original answer is kept.</p><p>Zevra never edits the answer itself: it only asks again.</p>`,
+  ex:{label:'Outcome here',body:`Answer matched the evidence; no rewrite.`},
+  ai:{model:'gpt-4.1',sees:'The question, the evidence and the written answer.',decides:'Whether the answer is consistent with the evidence, and what is wrong if not.',cant:'Rewrite the answer itself, or request more data.'},
+  moves:[{d:'out',t:'The question, evidence summary and the draft answer'}],
+  never:[`It cannot loop: one check, at most one rewrite`],
+  why:`Language models can mis-summarise. A second look catches many such slips, but it is a safeguard, not a guarantee. That is why the SQL and rows are always shown.`},
+ {id:'s16',t:'The answer is delivered and saved',from:'B',to:'A',tags:['rule','zdb'],
+  what:`<p>The person sees the answer, the tables, and an expandable <em>reasoning trace</em>: how each of their words was interpreted, every query that ran, and the AI's verdict at each step. Everything is saved with the conversation in the company's room, including the result rows shown, so it can be reopened and reviewed. A thumbs-up or down is stored with the run.</p>`,
+  moves:[{d:'stay',t:'Answer, queries, result rows and the audit trail are saved in Zevra\'s database'}],
+  never:[`Nothing is hidden: the SQL behind every answer can be inspected`],
+  why:`Trust comes from being able to check. Every answer comes with its working.`},
+ {id:'s17',t:'In the background, Zevra decides whether to learn something',from:'B',to:'C',tags:['rule','zdb'],
+  what:`<p>After the answer, Zevra checks two situations: did this question follow a clarification, and is it a correction of the previous answer? Plain successful questions teach it nothing. Validated "this word means this value" choices are also remembered. This is flow 5.</p>`,
+  never:[`A normal question does not change what Zevra knows`],
+  why:`Learning only from specific, meaningful signals keeps the company's vocabulary clean.`}
+],
+examples:[
+ {id:'A',label:'A simple total',question:'What is the total ordered amount across all open purchase orders?',
+  intro:`A single factual question. Zevra needs one query. This is the real run from our test company.`,
+  outcome:`<strong>$135,300.00</strong>, matching a direct check of the company's database.`,
+  skip:{s2:NOAGENT},
+  over:{
+   s5:{ex:{label:'Real matches',body:`"open purchase orders" -> status IN (draft, submitted, acknowledged, partially_received)
+                          [company vocabulary]
+"purchase orders"      -> Purchase Order (table retail_core.purchase_orders)
+"total ordered amount" -> purchase_orders.total_ordered_amount`}},
+   s13:{ex:{label:'Real verdict',body:`SUFFICIENT: "The evidence directly sums the total ordered amount for all
+open purchase orders, matching the question's scope and aggregation exactly."`}},
+   s12:{ex:{label:'Real result',body:`1 row(s). total_open_ordered_amount: sum = 135300`}}
+  },
+  ledgerNote:'No routing call was made, because this company has no agents.',
+  ledger:[
+   {n:'Search uploaded documents',m:'embedding',k:'e',in:12,out:0},{n:'Find closest concepts',m:'embedding',k:'e',in:12,out:0},
+   {n:'Pick concepts and answer mode',m:'gpt-4.1',in:3827,out:47},{n:'Write the query',m:'gpt-4.1',in:6537,out:250},
+   {n:'Judge the evidence',m:'gpt-4.1',in:1711,out:53},{n:'Extra breakdown? (usually none)',m:'gpt-4.1',in:6654,out:165},
+   {n:'Write the answer',m:'gpt-4.1',in:4576,out:52},{n:'Fact-check the answer',m:'gpt-4.1',in:479,out:11}]},
+ {id:'B',label:'A name that doesn\'t match',question:'Give me the details of supplier Continental Footwear Corp.',
+  intro:`The user typed a full stop after "Corp." and Zevra's first query matched nothing. Watch it notice, verify and recover. This is the real run.`,
+  outcome:`Found the supplier after <strong>four</strong> queries: tier 1, Boston, under review, quality 2.10, on-time 71.30%, lead time 28 days, payment terms 45 days.`,
+  skip:{s2:NOAGENT},
+  over:{
+   s10:{what:`<p>The loop ran <strong>four times</strong> for this question:</p><ol style="margin:0;padding-left:1.2em"><li>Query with <code>name ILIKE 'Continental Footwear Corp.'</code> returned 0 rows.</li><li>Verification: list supplier names to see how they are stored.</li><li>Retry with <code>'Continental Footwear Corporation'</code>: 0 rows.</li><li>Broader match <code>'%Continental Footwear%'</code>: 1 row.</li></ol>`,
+        ex:{label:'Real final query (shortened)',body:`SELECT id, code, name, city, tier, status, quality_rating,
+       on_time_delivery_pct, lead_time_days, payment_terms_days, ...
+FROM retail_core.suppliers
+WHERE name ILIKE '%Continental Footwear%'`}},
+   s13:{ex:{label:'Real verdicts, in order',body:`1. NEED MORE DATA: "returned zero rows, but there is no evidence yet that the
+   filter matches how the supplier names are stored, so a verification step
+   is needed."
+2. NEED MORE DATA: "a verification step has been run and may reveal a variation"
+3. NEED MORE DATA: "still no confirmation that all name variations were checked"
+4. SUFFICIENT: "returned the full details for 'Continental Footwear Corp', matching
+   the question's request exactly."`}}
+  },
+  ledgerNote:'Four queries mean four writer calls and four judge calls.',
+  ledger:[
+   {n:'Search uploaded documents',m:'embedding',k:'e',in:11,out:0},{n:'Find closest concepts',m:'embedding',k:'e',in:11,out:0},
+   {n:'Pick concepts and answer mode',m:'gpt-4.1',in:3826,out:46},
+   {n:'Write the query (1)',m:'gpt-4.1',in:6356,out:232},{n:'Judge (1)',m:'gpt-4.1',in:1717,out:63},
+   {n:'Write the query (2)',m:'gpt-4.1',in:6494,out:126},{n:'Judge (2)',m:'gpt-4.1',in:1820,out:78},
+   {n:'Write the query (3)',m:'gpt-4.1',in:6607,out:258},{n:'Judge (3)',m:'gpt-4.1',in:1982,out:74},
+   {n:'Write the query (4)',m:'gpt-4.1',in:6765,out:247},{n:'Judge (4)',m:'gpt-4.1',in:2393,out:63},
+   {n:'Extra breakdown? (usually none)',m:'gpt-4.1',in:7166,out:87},
+   {n:'Write the answer',m:'gpt-4.1',in:4881,out:250},{n:'Fact-check the answer',m:'gpt-4.1',in:844,out:11}]},
+ {id:'C',label:'A follow-up',question:'Which of those are overdue?',
+  intro:`Asked straight after &ldquo;Show me all open purchase orders with the supplier name and destination warehouse&rdquo; (5 orders). &ldquo;Those&rdquo; only makes sense because Zevra remembers. Real run.`,
+  outcome:`<strong>Two</strong> orders are overdue: PO-2025-00352 (Lakeside Textiles LLC, expected 2025-10-27) and PO-2025-00488 (Pacific Rim Accessories, expected 2025-12-17). &ldquo;Overdue&rdquo; here means the expected date has passed and nothing arrived.`,
+  skip:{s2:NOAGENT},
+  over:{
+   s3:{ex:{label:'What is recalled',body:`Previous question : Show me all open purchase orders with supplier name
+                    and destination warehouse
+Previous result   : 5 rows (po_number, status, supplier_name, destination_warehouse_name)
+Concepts          : purchase-order, supplier, warehouse`},
+       tags:['rule','zdb','ai:gpt-4o-mini']},
+   s6:{ex:{label:'What is searched',body:`previous question + "Which of those are overdue?"  ->  closest concepts
+(the previous question's concepts are always added)`}},
+   s10:{what:`<p>Here the loop starts differently. Zevra seeds it with the <em>previous result</em> and the judge looks at it first: the 5 orders are there, but with no delivery dates. So the loop adds two queries:</p><ol style="margin:0;padding-left:1.2em"><li>The same 5 orders, adding expected and actual delivery dates.</li><li>Filter to those past their expected date and not yet delivered.</li></ol>`,
+        ex:{label:'Real final query (shortened)',body:`SELECT po_number, status, supplier_name, destination_warehouse_name,
+       expected_delivery_date, actual_delivery_date
+FROM ( ...the 5 open purchase orders joined to suppliers and warehouses... ) AS open_pos
+WHERE expected_delivery_date < CURRENT_DATE AND actual_delivery_date IS NULL`}},
+   s13:{ex:{label:'Real verdicts, in order',body:`1. (on the carried-over result) NEED MORE DATA: dates are needed
+2. NEED MORE DATA: "includes expected and actual delivery dates ... but does not
+   filter or identify which are overdue"
+3. SUFFICIENT: "directly identifies which purchase orders are overdue,
+   matching the question's scope"`}},
+   s15:{ex:{label:'Outcome here',body:`The fact-check raised an issue, so the answer was written once more
+(three writing calls in total).`}},
+   s17:{what:`<p>Because this was a follow-up, one more AI call (gpt-4o) checks whether the question <em>corrected</em> the previous answer. Here it did not, so nothing is learned. A real correction would lower the confidence of the related learned term. See flow 5.</p>`,tags:['ai:gpt-4o']}
+  },
+  ledgerNote:'A follow-up adds a memory-selection call and a correction check.',
+  ledger:[
+   {n:'Search uploaded documents',m:'embedding',k:'e',in:6,out:0},{n:'Find closest concepts',m:'embedding',k:'e',in:20,out:0},
+   {n:'Pick concepts and answer mode',m:'gpt-4.1',in:3852,out:55},{n:'Pick remembered objects',m:'gpt-4o-mini',k:'m',in:306,out:7},
+   {n:'Judge the carried-over result',m:'gpt-4.1',in:1835,out:68},
+   {n:'Write the query (1)',m:'gpt-4.1',in:8375,out:241},{n:'Judge (1)',m:'gpt-4.1',in:2151,out:73},
+   {n:'Write the query (2)',m:'gpt-4.1',in:8741,out:364},{n:'Judge (2)',m:'gpt-4.1',in:2397,out:54},
+   {n:'Extra breakdown? (usually none)',m:'gpt-4.1',in:8969,out:108},
+   {n:'Write the answer',m:'gpt-4.1',in:5693,out:176},{n:'Fact-check the answer',m:'gpt-4.1',in:1631,out:129},
+   {n:'Rewrite after fact-check',m:'gpt-4.1',in:5883,out:189},{n:'Notice a correction',m:'gpt-4o',in:279,out:11}]},
+ {id:'D',label:'Too vague',question:'How are we doing?',
+  intro:`A question with no subject. A good system asks rather than guesses. Real run.`,
+  outcome:`Zevra asked: <em>&ldquo;Can you clarify what specific aspect of performance or which area (such as sales, inventory, procurement, or store operations) you are asking about?&rdquo;</em> No data was queried.`,
+  skip:{s2:NOAGENT,s10:NOQUERY,s11:NOQUERY,s12:NOQUERY,s13:NOQUERY,s14:`Not needed: the clarifying question comes straight from step 7.`,s15:NOQUERY},
+  over:{
+   s7:{what:`<p>The AI chose <strong>no concept</strong> on its first look, but still said "query data". That is self-contradictory, so Zevra showed it 40 candidates and the full concept list and asked once more. The second answer was <strong>ask for clarification</strong>.</p>`,
+       ex:{label:'Second AI answer (shape)',body:`{"conceptKeys": [],
+ "routing": {"type": "ASK_CLARIFICATION",
+             "clarificationQuestion": "Can you clarify what specific aspect..."}}`}},
+   s16:{what:`<p>The clarifying question is shown as the reply. Zevra remembers that this turn was a clarification, so if the next answer succeeds, it can learn from it (flow 5).</p>`}
+  },
+  ledgerNote:'Two concept-picking calls because of the one allowed retry. No data was touched.',
+  ledger:[
+   {n:'Search uploaded documents',m:'embedding',k:'e',in:5,out:0},{n:'Find closest concepts',m:'embedding',k:'e',in:5,out:0},
+   {n:'Pick concepts and answer mode',m:'gpt-4.1',in:3820,out:44},{n:'Find concepts (wider retry)',m:'embedding',k:'e',in:5,out:0},
+   {n:'Pick concepts again (40 candidates)',m:'gpt-4.1',in:3984,out:91}]},
+ {id:'E',label:'Something Zevra doesn\'t have',question:'What is our customer churn rate?',
+  intro:`The company's connected data has no customer-churn information. The safe answer is to say so. Real run.`,
+  outcome:`<em>&ldquo;I don't have approved knowledge or data sources for this question. Use /knowledge to propose adding this, or /request-source to request a data connection.&rdquo;</em> No number was invented. A knowledge gap was recorded for the administrator.`,
+  skip:{s2:NOAGENT,s10:NOQUERY,s11:NOQUERY,s12:NOQUERY,s13:NOQUERY,s14:`Not needed: the reply is fixed wording for "no knowledge".`,s15:NOQUERY},
+  over:{
+   s7:{what:`<p>No concept matched, and no document memory exists, so the AI said the company has no relevant knowledge. Because that is the one case where a retrieval slip could cause a wrong "no", Zevra gave the AI a second look with 40 candidates and the full concept list. It still said no.</p>`,
+       ex:{label:'Second AI answer (shape)',body:`{"conceptKeys": [],
+ "routing": {"type": "KNOWLEDGE_GAP"}}`}},
+   s16:{what:`<p>The fixed message is shown and a <em>knowledge gap</em> record (the question, marked open) is saved so an administrator can see what people are asking for that Zevra cannot yet answer.</p>`}
+  },
+  ledgerNote:'No data was queried and no figure was invented.',
+  ledger:[
+   {n:'Search uploaded documents',m:'embedding',k:'e',in:7,out:0},{n:'Find closest concepts',m:'embedding',k:'e',in:7,out:0},
+   {n:'Pick concepts and answer mode',m:'gpt-4.1',in:3822,out:44},{n:'Find concepts (wider retry)',m:'embedding',k:'e',in:7,out:0},
+   {n:'Pick concepts again (40 candidates)',m:'gpt-4.1',in:3986,out:46}]}
+]};
+
+})(window.ZG);
+
+(function(ZG){
+
+/* =========================== FLOW 4: AGENTS =========================== */
+ZG.flows.f4 = {id:'f4', steps:[
+ {id:'s1',t:'A request reaches an agent',from:'A',to:'B',tags:['rule','ai:gpt-4o-mini'],
+  what:`<p>There are three ways work reaches an agent:</p><ul><li><strong>From chat:</strong> the question is classified as an open-ended job, and a second small AI call picks the best agent (see flow 3, step 2). Below 0.65 confidence it falls back to ordinary chat.</li><li><strong>Directly:</strong> a person opens an agent and talks to it.</li><li><strong>On a schedule:</strong> the daily executive brief runs each selected agent on its own (see "Work that happens without anyone asking" below).</li></ul>`,
+  ex:{label:'An agent is just a saved description',body:`name:            Procurement Watch   (illustrative)
+persona:         A careful procurement analyst
+goal:            Find supplier and order risks
+databases:       retail_core
+step limit:      8`},
+  moves:[{d:'out',t:'From chat only: the question text, for the two small routing calls'}],
+  never:[`An agent can use only the databases listed on it`],
+  why:`Open-ended jobs need a different method from a one-shot question, and the routing step keeps simple questions on the simple, cheaper path.`},
+ {id:'s2',t:'Zevra works out what the agent may touch',from:'B',to:'C',tags:['rule','zdb'],
+  what:`<p>Before the agent thinks at all, Zevra resolves the request against the agent's databases and the company's business objects and builds the <strong>contract</strong>: the list of tables and columns this run is allowed to use.</p><p>The agent's instructions are grounded in those business objects only (names, meaning, columns, allowed values). The agent is not handed the raw database catalogue.</p>`,
+  moves:[{d:'stay',t:'Business objects and their meanings are read from Zevra\'s database'}],
+  never:[`The agent cannot discover or query a table outside the contract`],
+  why:`The boundary is set by Zevra's rules before any AI is involved. The agent works inside it.`},
+ {id:'s3',t:'Zevra gives the agent its toolbox',from:'B',to:'B',tags:['rule'],
+  what:`<p>The agent can only act through a short list of tools, each doing one thing and each run by Zevra, never by the AI itself:</p><ul><li><code>describe_schema</code>: see an approved table's columns</li><li><code>query_database</code>: run a read-only SELECT</li><li><code>list_business_objects</code>, <code>get_business_object</code>, <code>explore_related</code>: browse the approved business world and how things connect</li><li><code>analyze_image</code>: describe an attached image</li><li><code>memory_list</code>, <code>memory_get</code>, <code>memory_get_execution_reference</code>: recall earlier results in the conversation</li><li><code>final_answer</code>: finish with the answer</li></ul>`,
+  never:[`There is no tool that writes, deletes or changes anything`],
+  why:`Giving the AI a short menu of safe actions, rather than free access, is what makes an autonomous agent safe to run.`},
+ {id:'s4',t:'The agent decides what to do next',from:'B',to:'E',tags:['ai:gpt-4o'],
+  what:`<p>This is the heart of an agent: a loop. Each time round, one AI call reads the task and decides either to call a tool or to give the final answer. It is shown its instructions, the task, and the <strong>last six tool exchanges</strong> only. Older steps are dropped to keep each call small.</p><p>The loop repeats until the agent calls <code>final_answer</code> or reaches its step limit.</p>`,
+  ai:{model:'gpt-4o',sees:'The agent\'s persona and goal, the approved business objects, the task, and the last six tool calls and their results (including the rows returned: see step 5).',decides:'Which tool to call next with which arguments, or the final answer.',cant:'Run anything itself, reach a table outside the contract, or take more steps than its limit.'},
+  moves:[{d:'out',t:'Persona, goal, approved business objects, the task, the last six tool results'},{d:'no',t:'Database passwords, tables outside the contract'}],
+  never:[`An identical repeated tool call is answered from a cache and the agent is told so, which breaks accidental loops`],
+  why:`Letting the model choose the next look-up is what allows open-ended investigation, and the toolbox and contract bound what it can do.`},
+ {id:'s5',t:'Zevra carries out the tool, and the result goes back',from:'B',to:'D',tags:['rule','src'],
+  what:`<p>When the agent asks to run a query, Zevra uses the <strong>same checks as chat</strong> (SELECT only, approved tables, joins, row limits, masking, row-level security, audit) plus two agent-specific rules: the contract gate is always on, and the database session is marked <strong>read-only</strong>.</p><p>If a check fails, the agent gets a plain explanation as its next observation and can correct itself. Otherwise the query runs, and the rows returned (up to the row limit, 100 for a typical list) are handed to the agent as the tool result. Then the loop returns to step 4.</p>`,
+  ex:{label:'A rejected query is not an error to the user',body:`error: Query references table(s) not in the approved execution contract.
+Approved physical tables: [retail_core.suppliers, retail_core.purchase_orders]
+Use an approved business object, or state via final_answer that the data
+is not available.`},
+  moves:[{d:'in',t:'Query results come from your database'},{d:'out',t:'The rows returned (up to the row limit) go to the agent\'s next AI call. Unlike chat, an agent sees the rows, not just a summary'}],
+  never:[`The database session is read-only for agents`,`A table outside the contract is rejected before it reaches your database`],
+  why:`Agents need the real rows to reason about them, so the limit on how many rows a query may return is the control. That limit is enforced by Zevra, not left to the AI.`},
+ {id:'s6',t:'The agent finishes, or is stopped',from:'B',to:'A',tags:['rule'],
+  what:`<p>The agent ends by calling <code>final_answer</code>. If it reaches its step limit first, Zevra makes one last AI call with <strong>no tools allowed</strong>, asking for the best answer from what has been gathered. If even that fails, the person is told plainly that it could not finish within the allowed steps.</p>`,
+  never:[`An agent can never run indefinitely`],
+  why:`A hard limit, with a graceful last answer, means an agent costs a bounded amount and always responds.`},
+ {id:'s7',t:'Everything the agent did is recorded',from:'B',to:'C',tags:['rule','zdb'],
+  what:`<p>Zevra saves the whole session: every thought step, tool call and result, how long each took, and the final answer. Queries are audited as in chat. A data-backed investigation is also recorded as a <em>finding</em> so the home page can surface what the agent discovered.</p>`,
+  moves:[{d:'stay',t:'Session steps, results and findings are saved in the company\'s room in Zevra\'s database'}],
+  never:[`Nothing the agent did is hidden: the full step log can be reviewed`],
+  why:`An autonomous system must be inspectable after the fact.`}
+]};
+
+ZG.agentRun = {
+ task:'Which suppliers are putting us at risk, and why?', max:8,
+ rules:[`Only the databases listed on the agent`,`Only the business objects approved for this request`,`A read-only database session`,`The same query checks as chat: SELECT only, row limits, masking, row-level security, audit`,`A step limit (8 here). At the limit it must answer from what it has`,`An identical repeated call is answered from a cache`],
+ steps:[
+  {t:'ai',x:`I should see which business objects I am allowed to use before I query anything.`},
+  {t:'tool',tool:'list_business_objects',x:`Asks Zevra for the approved business objects.`},
+  {t:'obs',x:`Suppliers, Purchase Orders, Purchase Order Lines, Goods Receipts, Shipments, Warehouses ... (only approved objects are listed).`},
+  {t:'ai',x:`Suppliers carry delivery and quality ratings. I'll look for the weakest on-time delivery.`},
+  {t:'tool',tool:'query_database',x:`Asks Zevra to run a query.`,sql:`SELECT name, tier, status, quality_rating, on_time_delivery_pct
+FROM retail_core.suppliers
+WHERE on_time_delivery_pct < 90
+ORDER BY on_time_delivery_pct
+LIMIT 20`,note:'Zevra checked: SELECT only · approved table · row limit applied · read-only session · audited.'},
+  {t:'obs',x:`11 rows. Lowest: <strong>Continental Footwear Corp</strong>, 71.3% on time, quality 2.1, status under review.`},
+  {t:'ai',x:`The weakest supplier matters more if it has orders open right now. Let me check.`},
+  {t:'tool',tool:'query_database',x:`Asks Zevra to run a second query.`,sql:`SELECT po.po_number, po.status, po.expected_delivery_date
+FROM retail_core.purchase_orders po
+JOIN retail_core.suppliers s ON s.id = po.supplier_id
+WHERE s.name = 'Continental Footwear Corp'
+  AND po.status IN ('submitted','acknowledged','partially_received')`,note:'Checked again: both tables are inside the approved contract.'},
+  {t:'obs',x:`3 rows: PO-2025-00234, PO-2025-00267, PO-2025-00298, all partially received.`},
+  {t:'fin',tool:'final_answer',x:`Continental Footwear Corp is the biggest risk: 71.3% on-time delivery, a quality rating of 2.1, under review, and three open purchase orders only partly received. Ten other suppliers are also below 90% on time.`}
+ ]};
+
+ZG.bg = [
+ {name:'Scheduled reports',what:`A saved question that Zevra asks again on a schedule and emails to people.`,tags:['ai:same as chat','zdb'],
+  how:[`Every minute, Zevra checks every company for reports that are due.`,`A due report runs its question through the normal chat pipeline as the report's owner. The same checks, masking and row-level security apply to that person.`,`The result is formatted as an email or a Slack message by Zevra's report formatter, if mail or Slack is configured.`],
+  ai:[`The same AI calls as a chat question (flow 3). The email and Slack formatting is plain code, with no AI.`,`Nothing runs without a person having created the report first.`]},
+ {name:'Baselines and anomaly detection',what:`Watches a single number over time and flags unusual moves, for example daily open purchase orders.`,tags:['rule','src'],
+  how:[`A baseline is a measuring query plus how often to measure. The query is safety-checked when it is created.`,`Every hour, due baselines are measured again and the history is kept.`,`Zevra computes the average and spread of the history. A value is flagged if it is more than 1.5 standard deviations away, or more than 20% off the average.`,`Severity: above 1.5 medium, above 2 high, above 3 critical.`],
+  ai:[`<strong>No AI.</strong> This is arithmetic on the numbers your database returns.`]},
+ {name:'Alerts',what:`Tells people when an anomaly appears.`,tags:['ai:gpt-4.1','rule'],
+  how:[`When a baseline raises an anomaly, Zevra finds the enabled alert rules for it.`,`Each rule has a severity threshold and a cooldown, so people are not spammed.`,`Messages go to the in-app inbox, Slack, email, or all of them, as the rule says.`],
+  ai:[`One AI call writes the wording of the message. It sees the rule, the metric and how far it deviated, not rows of data.`,`Whether an alert fires is decided by the rule and the numbers, not by AI.`]},
+ {name:'Morning brief',what:`A daily summary for executives, built by the company's agents.`,tags:['ai:gpt-4o','rule'],
+  how:[`Every minute, Zevra checks each company's brief schedule. Once per day, after the configured time in the company's own timezone, it generates the brief.`,`It runs each selected active agent (capped at 5 steps each) with a question built from that agent's goal.`,`Their findings are combined into one brief.`],
+  ai:[`Each agent uses the agent loop (flow 4), so it sees the rows its queries return, up to the row limit.`,`One more AI step combines the findings into the final brief.`]},
+ {name:'Automations',what:`Visual workflows: a chain of steps that run in order, with branches.`,tags:['ai:gpt-4o','rule'],
+  how:[`A workflow is a graph of steps: trigger, database query, AI reasoning, condition (which branches), transform, image analysis, response.`,`Zevra runs the steps in order and records what each one did.`,`A person can describe the automation in plain English and have an AI draft the workflow, then review and edit it.`],
+  ai:[`AI is used only in AI steps (and to draft a workflow when asked).`,`Conditions, transforms and queries are plain rules.`]}
+];
+
+/* =========================== FLOW 5: LEARNING =========================== */
+ZG.flows.f5 = {id:'f5', steps:[
+ {id:'s1',t:'A question succeeds right after a clarification',from:'B',to:'E',tags:['ai:gpt-4o-mini'],cond:'only after Zevra asked a question back',
+  what:`<p>Zevra asked a clarifying question, the person answered, and the next query worked. That is a strong signal that the person just taught Zevra what a word means. An AI call looks at the question and the SQL that answered it and extracts up to three <em>business term &rarr; SQL rule</em> pairs.</p><p>Each becomes a <strong>learned term</strong> with confidence 0.50 and 1 use. If exactly one business concept was in play, the term is tied to it. Otherwise it has no concept for now.</p>`,
+  ex:{label:'Example',body:`Question: "Show me overdue purchase orders"  (after clarifying)
+Learned : "overdue" -> expected_delivery_date < CURRENT_DATE
+                       AND actual_delivery_date IS NULL
+          confidence 0.50, used 1 time`},
+  ai:{model:'gpt-4o-mini',sees:'The question and the SQL that answered it.',decides:'Up to three business terms and the SQL fragment each stands for.',cant:'Save anything beyond a low-confidence candidate, or promote it.'},
+  moves:[{d:'out',t:'The question and its SQL'},{d:'stay',t:'The learned term is stored in the company\'s room'}],
+  never:[`A normal successful question teaches nothing`,`It is not promoted immediately`],
+  why:`Learning only from this clear moment avoids absorbing guesses from every query.`},
+ {id:'s2',t:'A confirmed "this word means this value" is remembered',from:'B',to:'C',tags:['rule','zdb'],
+  what:`<p>When a person's shorthand (for example "TX") was matched to a real allowed value (<code>state_province = 'Texas'</code>) and the query ran, Zevra stores that pairing as a learned term. It is only stored if the value was checked against the column's known allowed values. It starts at 0.50.</p>`,
+  ex:{label:'Example',body:`"tx" -> state_province = 'Texas'     (validated against the allowed values)`},
+  moves:[{d:'stay',t:'Stored in the company\'s room'}],
+  never:[`No AI call in this step`,`Never promoted directly`],
+  why:`A value that is checked against real allowed values is much safer to remember than a free-form guess.`},
+ {id:'s3',t:'A correction lowers trust',from:'B',to:'E',tags:['ai:gpt-4o'],
+  what:`<p>On follow-up questions, an AI call checks whether the person is <em>correcting</em> the previous answer ("no, I meant orders not yet delivered"). If so, Zevra records the correction (used for the rest of that conversation) and lowers the confidence of the related learned term by <strong>0.20</strong>.</p>`,
+  ai:{model:'gpt-4o',sees:'The new question, the previous question and the previous answer.',decides:'Whether this is a correction, and what was misunderstood.',cant:'Change any data or promote or delete a term by itself.'},
+  moves:[{d:'out',t:'The new question and the previous question and answer'},{d:'stay',t:'The correction is stored in the company\'s room'}],
+  never:[`One correction cannot delete a term: it only lowers confidence`],
+  why:`People correct what they notice is wrong, so a correction is valuable feedback, but one voice should not erase a term.`},
+ {id:'s4',t:'A thumbs-up raises trust',from:'A',to:'B',tags:['human','rule'],
+  what:`<p>When a person gives an answer a thumbs-up, any learned terms tied to that run's SQL gain <strong>+0.08</strong> confidence and one more use.</p>`,
+  moves:[{d:'stay',t:'The feedback is stored in the company\'s room'}],
+  never:[`No AI call in this step`],
+  why:`Explicit approval is the clearest evidence that a definition worked.`},
+ {id:'s5',t:'Using a term again strengthens it',from:'B',to:'C',tags:['rule','zdb'],
+  what:`<p>If the same term is learned again, Zevra does not duplicate it: it adds <strong>+0.05</strong> confidence and one more use to the existing entry.</p>`,
+  never:[`No AI call in this step`],
+  why:`Repetition across real conversations is how a definition proves it is not a one-off.`},
+ {id:'s6',t:'Someone teaches Zevra directly',from:'A',to:'E',tags:['human','ai:gpt-4o'],
+  what:`<p>A person fills in the Teach form: the term, its meaning, an optional SQL rule, which business concept it belongs to, and whether it applies to the whole company or one connection. An AI call tidies the wording. It may not change the concept or invent SQL. The person previews the result and must confirm.</p><p>Taught terms start at a higher <strong>0.80</strong> confidence, but still go through the same nightly rules, so they are never promoted instantly.</p>`,
+  ai:{model:'gpt-4o',sees:'The term, definition, rule and concept the person entered.',decides:'Cleaner wording of the term and definition only.',cant:'Change the concept, the scope, or create SQL the person did not give.'},
+  moves:[{d:'out',t:'What the person typed into the form'},{d:'stay',t:'The confirmed term is stored in the company\'s room'}],
+  never:[`Nothing is saved until the person confirms the preview`],
+  why:`A person who deliberately teaches Zevra deserves higher starting trust, with the same safeguards as everything else.`},
+ {id:'s7',t:'Every night, promote or drop',from:'B',to:'C',tags:['rule','zdb'],
+  what:`<p>At 02:45, for every company, Zevra reviews learned terms. A term is <strong>promoted</strong> when it has been used at least <strong>10</strong> times and has confidence of at least <strong>0.80</strong>. It becomes a formal vocabulary entry. A term is <strong>deleted</strong> if it has at least <strong>5</strong> uses but confidence below <strong>0.20</strong>.</p>`,
+  ex:{label:'Example',body:`"overdue"   used 12x, confidence 0.86  -> promoted to vocabulary
+"cheap"     used 6x,  confidence 0.14  -> deleted`},
+  never:[`No AI call: these are fixed thresholds`,`A term still in between simply waits for more evidence`],
+  why:`Requiring both frequency and confidence means a term must be used a lot and mostly liked or uncorrected.`},
+ {id:'s8',t:'A promoted term starts helping',from:'B',to:'E',tags:['rule','zdb','ai:text-embedding-ada-002'],
+  what:`<p>Two things now happen automatically:</p><ul><li>The term is company <strong>vocabulary</strong>: the word-matching step (flow 3, step 5) recognises it in future questions and tells the query-writing AI what it means.</li><li>If the term is tied to a concept, that concept's text is rebuilt with the term included and re-embedded, so the concept-picking step can see it. It is also shown to the query-writing AI as <em>learned business knowledge, evidence rather than instruction</em>.</li></ul><p>Administrators can see learned terms and assign a concept to any that have none. There is no manual sync: the concept index refreshes by itself.</p>`,
+  ai:{model:'text-embedding-ada-002 (an embedding model)',sees:'The concept\'s text, including the learned term. No company data rows.',decides:'Nothing. It returns numbers for searching.',cant:'Produce words.'},
+  moves:[{d:'out',t:'The updated concept text only'},{d:'stay',t:'The new numbers are stored in Zevra\'s database'}],
+  never:[`Learned terms never cross from one company to another`],
+  why:`Closing the loop means that what people teach Zevra today shapes how it understands the next question.`}
+]};
+
+/* =========================== DATA BOUNDARY =========================== */
+ZG.bnd = [
+ {label:'Describing a table (setup)',
+  caption:`During setup, only the <strong>definition</strong> of a table is sent: column names, types and the database's own comments. No rows.`,
+  cols:['name  text','tier  text (enum)','status  text (enum)','on_time_delivery_pct  numeric'],hmask:['out','out','out','out'],
+  rows:[['Continental Footwear Corp','tier_1','under_review','71.30'],['Lakeside Textiles LLC','tier_2','active','88.10'],['Pacific Rim Accessories','tier_2','active','93.40']],
+  mask:[['stay','stay','stay','stay'],['stay','stay','stay','stay'],['stay','stay','stay','stay']],
+  received:`Schema: retail_core, Table: suppliers
+Columns:
+  - name text NOT NULL
+  - tier text (enum: supplier_tier) NOT NULL
+  - status text (enum: supplier_status) NOT NULL
+  - on_time_delivery_pct numeric NULL
+
+(No rows, no values.)`},
+ {label:'Learning allowed values (setup)',
+  caption:`Zevra reads a few <strong>category</strong> values so it can spell filters correctly. Names and emails are never kept: a fixed filter rejects anything that looks like personal data.`,
+  cols:['status','primary_contact_name','primary_contact_email'],hmask:['out','stay','stay'],
+  rows:[['under_review','Derek Vanhorn','dvanhorn@continentalfootwear.com'],['active','Priya Nguyen','pnguyen@lakesidetextiles.com'],['active','Sam Okafor','sokafor@nationalaccessories.com']],
+  mask:[['sum','stay','stay'],['sum','stay','stay'],['sum','stay','stay']],
+  received:`Later, when a question needs it, the AI is shown allowed values like:
+
+  suppliers.status: active, inactive, under_review   [observed values]
+
+Never shown: contact names, contact emails (not sampled; and the
+personal-data filter would reject them anyway).`},
+ {label:'A small result (10 rows or fewer)',
+  caption:`For a small result, the actual values <strong>are</strong> sent so the AI can write a correct answer. The same rows are also shown to the person directly.`,
+  cols:['po_number','status','supplier_name','destination_warehouse_name'],hmask:['out','out','out','out'],
+  rows:[['PO-2025-00234','partially_received','Continental Footwear Corp','Eastern Distribution Center'],['PO-2025-00267','partially_received','Continental Footwear Corp','Eastern Distribution Center'],['PO-2025-00352','acknowledged','Lakeside Textiles LLC','Eastern Distribution Center']],
+  mask:[['out','out','out','out'],['out','out','out','out'],['out','out','out','out']],
+  received:`5 row(s). Columns: po_number, status, supplier_name, destination_warehouse_name.
+  status distribution: {partially_received=3, submitted=1, acknowledged=1}
+Values:
+  po_number = PO-2025-00234, PO-2025-00267, ...
+  supplier_name = Continental Footwear Corp, Lakeside Textiles LLC, ...
+Rows (each line is ONE row):
+  1. po_number = PO-2025-00234; status = partially_received; ...`},
+ {label:'A large result (more than 10 rows)',
+  caption:`For a larger result, Zevra sends a <strong>summary</strong>: counts, totals and averages for numbers, the spread of category values, and about three sample values for other columns. The rest stays in Zevra.`,
+  cols:['name','status','quality_rating','primary_contact_email'],hmask:['out','out','out','out'],
+  rows:[['Apex Garment','active','3.9','lzhao@apexgarment.com'],['Pacific Outerwear','active','4.2','rchung@pacificouterwear.com'],['National Accessories','active','3.1','sokafor@nationalaccessories.com'],['Summit Activewear','active','4.5','mellison@summitactivewear.com'],['Lakeside Textiles','active','3.6','pnguyen@lakesidetextiles.com']],
+  mask:[['out','sum','sum','out'],['out','sum','sum','out'],['out','sum','sum','out'],['stay','sum','sum','stay'],['stay','sum','sum','stay']],
+  received:`20 row(s). Columns: name, status, quality_rating, primary_contact_email.
+  status distribution: {active=19, under_review=1}
+  quality_rating: sum=73.2, avg=3.66
+  name: 20 distinct, e.g. Apex Garment, Pacific Outerwear, National Accessories
+  primary_contact_email: 20 distinct, e.g. lzhao@apexgarment.com,
+      rchung@pacificouterwear.com, sokafor@nationalaccessories.com
+
+(The other 17 emails never leave Zevra.)`},
+ {label:'A masked column',
+  caption:`If an administrator has set a masking rule, the query itself is rewritten before it runs, so the real value is never fetched. Everything downstream, including the AI, only ever sees the masked value.`,
+  cols:['name','primary_contact_email (masked)'],hmask:['out','out'],
+  rows:[['Apex Garment','lz****'],['Pacific Outerwear','rc****'],['National Accessories','so****']],
+  mask:[['out','out'],['out','out'],['out','out']],
+  received:`SELECT name, LEFT(CAST(primary_contact_email AS TEXT), 2) || '****' AS primary_contact_email
+FROM retail_core.suppliers
+
+-> the database returns only the masked text; the real addresses are never fetched.`},
+ {label:'An agent\'s query',
+  caption:`<strong>Agents behave differently from chat:</strong> the rows a query returns (up to the row limit, typically 100) are given to the agent so it can reason about them. The limit, masking and row-level security still apply first.`,
+  cols:['name','tier','status','on_time_delivery_pct'],hmask:['out','out','out','out'],
+  rows:[['Continental Footwear Corp','tier_1','under_review','71.30'],['Fast Fashion Ltd','tier_2','active','78.50'],['Budget Basics','tier_3','active','82.00']],
+  mask:[['out','out','out','out'],['out','out','out','out'],['out','out','out','out']],
+  received:`[{"name":"Continental Footwear Corp","tier":"tier_1","status":"under_review","on_time_delivery_pct":71.30},
+ {"name":"Fast Fashion Ltd","tier":"tier_2","status":"active","on_time_delivery_pct":78.50},
+ ... up to the row limit]
+
+(Only the last six tool exchanges are kept in each AI call.)`}
+];
+
+ZG.store = [
+ ['Business data (orders, customers, stock, payments)','<strong>Lives here.</strong> It is the system of record and is never moved','Only what appeared in answers: the result tables saved with a conversation, plus up to 25 category values per column','Summaries, or the actual values of small results (10 rows or fewer), inside a question\'s prompts. Agents: the rows returned, up to the row limit'],
+ ['Table and column structure, and the database\'s own comments','Lives here','A description of it: names, meaning, column roles, relationships','Names, types and comments, during discovery only'],
+ ['What Zevra has learned about meaning (business names, vocabulary, learned terms)','Not stored here','<strong>Lives here</strong>, in the company\'s private section','Parts appear in prompts when relevant (concept text, resolved terms)'],
+ ['Concept fingerprints (vectors)','Not stored here','<strong>Lives here</strong> (pgvector, in the company\'s section)','Only the concept text is sent to be turned into numbers. The numbers are kept by Zevra, not OpenAI'],
+ ['Uploaded documents','Not stored here','Text pieces and their numbers. The original file sits on Zevra\'s server storage','Pieces are sent to be turned into numbers. If used for an answer, the closest pieces (up to 6) go into prompts'],
+ ['Conversations, answers, result tables, audit trail','Not stored here','<strong>Lives here</strong>','The current question and its evidence summaries only, while it is being answered'],
+ ['The database\'s own login (user and password) given to Zevra','Your account and policies','Stored with the connection (see "Known limits")','Never sent'],
+ ['People\'s sign-in','Not stored here','Email, role, and the pointer to the company. Passwords are handled by the identity provider (Supabase Auth)','Never sent'],
+ ['The OpenAI API key','Not stored here','Only in Zevra\'s server configuration','Not applicable'],
+ ['Files or vector stores at OpenAI','Not applicable','Not applicable','<strong>None.</strong> Zevra keeps no files and no hosted vector store at OpenAI']
+];
+
+ZG.guards = [
+ ['Allowed-values check','Values the AI put in a filter (like "Texas") are compared with the values known for that column. A value that does not exist is rejected instead of silently returning zero rows.'],
+ ['Approved-objects gate','Every table in the query must be on the list approved for this question (the contract). A table outside it is rejected.'],
+ ['Read-only rule','The query must begin with SELECT. Semicolons, INSERT, UPDATE, DELETE, DROP, CREATE, ALTER, TRUNCATE, EXEC/EXECUTE, MERGE, GRANT and REVOKE are rejected, and so is <code>SELECT *</code>.'],
+ ['Connection allow-list','Each connection lists the tables Zevra may use. Anything else is rejected.'],
+ ['Join limit','At most 4 joins in a query.'],
+ ['Row and time limits','A row limit is added automatically by kind of query: 50 for a single-record lookup, 100 for lists and joins, 200 for totals and counts, and never above 500. Very large or unfiltered queries on big tables are routed to a background run instead of answering inline. Time limits are 10, 30 or 90 seconds depending on the kind of query.'],
+ ['Data contracts','Company-defined rules on specific tables: require a date filter, require a particular filter column, require a limit, or block full scans. A rule can block, warn, or add the missing constraint automatically.'],
+ ['Row-level security','A rule can add a condition such as "only this person\'s region" to every query on a table, based on the signed-in person\'s attributes. If the attribute is missing, access is denied.'],
+ ['Column masking','Sensitive columns can be removed, hashed, partly hidden or replaced by a constant, rewritten into the query itself before it runs.'],
+ ['Audit trail','Each attempt (allowed or blocked), the final SQL and the outcome are recorded.']
+];
+
+ZG.limits = [
+ ['Database passwords are stored as entered','The login Zevra uses for a company\'s database is saved with the connection in the company\'s private section of Zevra\'s database. It is not yet encrypted by Zevra itself; the code carries a note to move it to a secrets vault. Until then, give Zevra a dedicated, read-only database account with access only to the tables you want it to use.'],
+ ['Chat queries rely on Zevra\'s read-only checks','Agent sessions mark the database connection as read-only. Chat queries are protected by the read-only rule and allow-lists described above, plus the permissions of the database account you provide. A read-only database account makes this airtight.'],
+ ['Agents see rows; chat sees summaries','An agent is given the rows its queries return (up to the row limit). Chat sends summaries for results over 10 rows. If that matters for a data set, restrict the agent\'s databases or use masking and row-level security.'],
+ ['The write-word check is crude','Before querying, Zevra declines questions containing words like delete, update, insert, modify, change, create, drop, truncate, approve, reject, cancel, void or reverse. It is a simple word match, so a legitimate question such as "how did stock change last week?" can be declined. The real protection is the read-only rule.'],
+ ['AI answers can still be wrong','The fact-check step catches many slips but not all. That is why every answer shows its SQL and result rows. Check the working for anything important.'],
+ ['Small results go to OpenAI in full','Results of 10 rows or fewer are sent with their values so the answer can be written. Use masking for columns that must never reach the AI.'],
+ ['OpenAI is a third-party processor','Zevra sends prompts to OpenAI\'s API, as listed in this guide. Your agreement with OpenAI (or ours) governs how that provider handles them. This page does not describe OpenAI\'s own policies.'],
+ ['Models are configuration, not constants','The model names shown are today\'s defaults. They can be changed in Zevra\'s configuration without changing how the flows work.']
+];
+
+ZG.faq = [
+ ['Does OpenAI see my data?','Some of it, and this guide lists exactly what. During setup it sees table and column names, types and comments. During a question it sees the question, business descriptions, allowed values, and summaries of results (or the actual values for results of 10 rows or fewer). Agents also see the rows their queries return. It does not see database passwords, whole tables, or large result sets in full.'],
+ ['Does Zevra change my database?','No. Zevra only runs checked, read-only SELECT queries and reads structure and a small sample of category values. Nothing is installed or written. Agent sessions are additionally marked read-only at the connection.'],
+ ['Can one company see another company\'s information?','Not through Zevra. Each company has its own private section of Zevra\'s database, and every request is pinned to the signed-in person\'s section. If no section can be established, the request is refused.'],
+ ['Does Zevra copy my data into its own database?','Not the database. It stores what it learned <em>about</em> the data (meanings, relationships, allowed values) and keeps the answers and result tables shown in conversations so they can be reopened.'],
+ ['What stops the AI from running something dangerous?','The AI only proposes queries. Fixed rules decide what may run: read-only, approved tables only, join and row limits, masking, row-level security, and an audit record. These rules do not depend on the AI behaving.'],
+ ['What happens when the AI is unsure or wrong?','If it cannot tell which concept a question is about, it asks you. If a filter returns nothing, Zevra checks whether the spelling was the problem before saying "no data". If there is no knowledge of the topic, it says so rather than inventing a number. A second AI call fact-checks the written answer, and every answer shows its working.'],
+ ['Does Zevra learn from my questions?','Only from specific signals: a question that follows a clarification, a validated word-to-value choice, a correction, a thumbs-up, or explicit teaching. A learned term must be used at least 10 times with high confidence before it becomes company vocabulary. Learning stays inside your company\'s private section.'],
+ ['Where does the AI run?','At OpenAI, called from Zevra\'s server. The comparisons that find the right business concept and the right documents run inside Zevra\'s own database.'],
+ ['Can we use a different model?','Models are configuration. The defaults are in the table on the Big picture page.']
+];
+
+})(window.ZG);
+
+(function(){
+'use strict';
+var ZG = window.ZG;
+function $(s,r){return (r||document).querySelector(s);}
+function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function num(n){return Number(n).toLocaleString('en-US');}
+function safe(fn){try{return fn();}catch(e){return null;}}
+
+var IDX={A:0,B:1,C:2,D:3,E:4};
+var TAGS={ai:['t-ai','AI call'],rule:['t-rule','Zevra rule · no AI'],src:['t-src','Reads your database'],zdb:['t-zdb','Zevra database'],vec:['t-vec','Vector search'],human:['t-human','A person decides']};
+function tagHTML(t){var p=t.split(':'),k=p[0],m=p.slice(1).join(':'),d=TAGS[k];if(!d)return'';
+  var label=k==='ai'&&m?'AI · '+m:d[1];return '<span class="tag '+d[0]+'">'+esc(label)+'</span>';}
+function kindOf(st){var t=st.tags||[];
+  if(t.some(function(x){return x.indexOf('ai')===0;}))return'k-ai';
+  if(st.from==='D'||st.to==='D')return'k-src';
+  if(st.from==='C'||st.to==='C')return'k-zdb';
+  if(t.indexOf('human')>-1)return'k-human';
+  return'k-rule';}
+function trackHTML(st){var f=IDX[st.from],t=IDX[st.to],k=kindOf(st);
+  if(f===t)return'<div class="track" aria-hidden="true"><span class="node '+k+'" style="left:'+((f+.5)*20)+'%"></span></div>';
+  var a=Math.min(f,t),b=Math.max(f,t);
+  return'<div class="track" aria-hidden="true"><span class="bar-line '+k+' '+(t>f?'r':'l')+'" style="left:'+((a+.5)*20)+'%;width:'+((b-a)*20)+'%"></span></div>';}
+
+/* ---------- step detail ---------- */
+function list(items,cls){return'<ul'+(cls?' class="'+cls+'"':'')+'>'+items.map(function(i){return'<li>'+i+'</li>';}).join('')+'</ul>';}
+function movesHTML(m){return'<ul class="moves">'+m.map(function(x){
+  var lab={out:'to OpenAI',in:'from your DB',stay:'stays in Zevra',no:'never sent',ok:'safe'}[x.d]||x.d;
+  return'<li><span class="mv '+x.d+'">'+lab+'</span><span>'+x.t+'</span></li>';}).join('')+'</ul>';}
+function detailHTML(st,ov){
+  ov=ov||{};var what=ov.what||st.what,ex=ov.ex!==undefined?ov.ex:st.ex,ai=ov.ai||st.ai,moves=ov.moves||st.moves,never=ov.never||st.never,why=ov.why||st.why;
+  var h='<div class="dgrid">';
+  h+='<div><div class="blk"><h5>What happens</h5>'+what+'</div>';
+  if(ex)h+='<div class="blk exbox" style="margin-top:12px"><h5>'+esc(ex.label||'Example')+'</h5>'+(ex.say?'<p class="q say">'+ex.body+'</p>':'<pre>'+ex.body+'</pre>')+'</div>';
+  if(st.peek)h+='<details class="peek"><summary>'+esc(st.peek.label)+'</summary><pre>'+esc(st.peek.body)+'</pre></details>';
+  if(st.widget)h+='<div class="widget" data-w="'+st.widget+'" style="margin-top:12px"></div>';
+  h+='</div><div style="display:grid;gap:12px;align-content:start">';
+  if(moves&&moves.length)h+='<div class="blk"><h5>What moves where</h5>'+movesHTML(moves)+'</div>';
+  if(never&&never.length)h+='<div class="blk"><h5>What does not happen</h5>'+list(never)+'</div>';
+  if(why)h+='<div class="blk"><h5>Why it works this way</h5><p>'+why+'</p></div>';
+  h+='</div>';
+  if(ai)h+='<div class="aicard"><h5>The AI call, in plain terms</h5><dl><dt>Model</dt><dd>'+ai.model+'</dd><dt>It sees</dt><dd>'+ai.sees+'</dd><dt>It decides</dt><dd>'+ai.decides+'</dd><dt>It cannot</dt><dd>'+ai.cant+'</dd></dl></div>';
+  return h+'</div>';}
+
+/* ---------- lane diagram ---------- */
+function laneHead(){return'<div class="lane-head"><span></span><div class="cols"><span class="cA">People<br>(browser)</span><span class="cB">Zevra<br>app</span><span class="cC">Zevra<br>database</span><span class="cD">Your<br>database</span><span class="cE">OpenAI</span></div>'
+  +'<div class="tools"><button class="btn" data-a="prev" type="button">‹ Back</button><button class="btn pri" data-a="play" type="button">▶ Play tour</button><button class="btn" data-a="next" type="button">Next ›</button></div></div>';}
+
+function Flow(host,def){
+  var self=this;this.host=host;this.def=def;this.cur=-1;this.timer=null;this.ex=def.examples?def.examples[0]:null;
+  host.innerHTML='<div class="lanes">'+laneHead()+'<div class="steps"></div></div>';
+  this.stepsEl=$('.steps',host);
+  host.addEventListener('click',function(e){
+    var b=e.target.closest('[data-a]');
+    if(b){var a=b.getAttribute('data-a');if(a==='prev')self.go(self.cur-1);else if(a==='next')self.go(self.cur+1);else if(a==='play')self.play();return;}
+    var r=e.target.closest('.srow');
+    if(r){self.stop();var i=+r.getAttribute('data-i');self.go(self.cur===i?-1:i,true);}
+  });
+  this.render();
+}
+Flow.prototype.render=function(){
+  var self=this,def=this.def,ex=this.ex,stopIdx=-1;
+  if(ex&&ex.stopAt)stopIdx=def.steps.findIndex(function(s){return s.id===ex.stopAt;});
+  var html=def.steps.map(function(st,i){
+    var ov=ex&&ex.over&&ex.over[st.id],skip=ex&&ex.skip&&ex.skip[st.id],dim=stopIdx>-1&&i>stopIdx;
+    var cls='step'+(skip?' skip':'')+(dim?' dim':'');
+    var note=skip?('Skipped for this question: '+skip):(dim?(ex.stopNote||'Not reached for this question.'):'');
+    var tags=(ov&&ov.tags)||st.tags||[];
+    var cond=st.cond?' <span class="cond">· '+esc(st.cond)+'</span>':'';
+    return'<div class="'+cls+'" data-id="'+st.id+'"><button class="srow" type="button" data-i="'+i+'" aria-expanded="false" aria-controls="d-'+def.id+'-'+i+'">'
+      +'<span class="num">'+(i+1)+'</span>'+trackHTML(st)
+      +'<span class="stitle"><strong>'+esc(st.t)+cond+'</strong><span class="tags">'+tags.map(tagHTML).join('')+'</span></span></button>'
+      +(note?'<div class="skipnote">'+esc(note)+'</div>':'')
+      +'<div class="detail" id="d-'+def.id+'-'+i+'" role="region" aria-label="Details of step '+(i+1)+'">'+detailHTML(st,ov)+'</div></div>';
+  }).join('');
+  this.stepsEl.innerHTML=html+'<div style="padding:12px 14px">'+(def.after||'')+'</div>';
+  this.cur=-1;
+  $$('.widget',this.stepsEl).forEach(function(w){var f=ZG.widgets[w.getAttribute('data-w')];if(f)f(w,self);});
+};
+Flow.prototype.go=function(i,noScroll){
+  var n=this.def.steps.length;if(i>=n)i=n-1;
+  var els=$$('.step',this.stepsEl);
+  els.forEach(function(s,k){var on=k===i;s.classList.toggle('open',on);$('.srow',s).setAttribute('aria-expanded',on?'true':'false');});
+  this.cur=i;
+  if(i>-1&&!noScroll){var el=els[i];if(el&&el.scrollIntoView)el.scrollIntoView({block:'nearest',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});}
+  this.sync();
+};
+Flow.prototype.sync=function(){
+  var b=this.host,n=this.def.steps.length;
+  var prev=$('[data-a="prev"]',b),next=$('[data-a="next"]',b),play=$('[data-a="play"]',b);
+  if(prev)prev.disabled=this.cur<=0;if(next)next.disabled=this.cur>=n-1;
+  if(play)play.textContent=this.timer?'⏸ Pause':'▶ Play tour';
+};
+Flow.prototype.play=function(){
+  var self=this;if(this.timer){this.stop();return;}
+  if(this.cur>=this.def.steps.length-1)this.cur=-1;
+  this.go(this.cur+1);
+  this.timer=setInterval(function(){if(self.cur>=self.def.steps.length-1){self.stop();return;}self.go(self.cur+1);},6500);
+  this.sync();
+};
+Flow.prototype.stop=function(){if(this.timer){clearInterval(this.timer);this.timer=null;}this.sync();};
+Flow.prototype.setExample=function(ex){this.stop();this.ex=ex;this.render();this.sync();};
+
+/* ---------- tabs, theme ---------- */
+function showTab(id,fromHash){
+  var ok=false;$$('.panel').forEach(function(p){var on=p.id==='p-'+id;p.classList.toggle('on',on);if(on)ok=true;});
+  if(!ok){id='overview';$('#p-overview').classList.add('on');}
+  $$('.tab').forEach(function(t){t.setAttribute('aria-selected',t.getAttribute('data-tab')===id?'true':'false');});
+  Object.keys(ZG.flows).forEach(function(k){if(k!==id&&ZG.flows[k].inst)ZG.flows[k].inst.stop();});
+  if(!fromHash){try{history.replaceState(null,'','#'+id);}catch(e){location.hash=id;}}
+  window.scrollTo({top:0,behavior:'auto'});
+}
+function initTabs(){
+  $$('.tab').forEach(function(t){t.addEventListener('click',function(){showTab(t.getAttribute('data-tab'));});});
+  $$('[data-goto]').forEach(function(b){b.addEventListener('click',function(){showTab(b.getAttribute('data-goto'));});});
+  var h=(location.hash||'').replace('#','');showTab(h||'overview',true);
+  window.addEventListener('hashchange',function(){showTab((location.hash||'').replace('#','')||'overview',true);});
+}
+function initTheme(){
+  var btn=$('#themeBtn'),modes=['auto','light','dark'],cur='auto';
+  safe(function(){cur=localStorage.getItem('zg-theme')||'auto';});
+  function apply(){var r=document.documentElement;if(cur==='auto')r.removeAttribute('data-theme');else r.setAttribute('data-theme',cur);
+    btn.textContent='Theme: '+cur;}
+  btn.addEventListener('click',function(){cur=modes[(modes.indexOf(cur)+1)%3];safe(function(){localStorage.setItem('zg-theme',cur);});apply();});
+  apply();
+}
+
+/* ---------- overview ---------- */
+function initOverview(){
+  var P=ZG.places,pl=$('#places'),box=$('#placebox');
+  pl.innerHTML=P.map(function(p){return'<button class="place" type="button" data-p="'+p.k+'" aria-pressed="false"><strong>'+esc(p.name)+'</strong><small>'+esc(p.short)+'</small></button>';}).join('');
+  function sel(k){
+    var p=P.filter(function(x){return x.k===k;})[0];
+    $$('.place',pl).forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-p')===k?'true':'false');});
+    box.style.setProperty('--c',{A:'var(--you)',B:'var(--app)',C:'var(--zdb)',D:'var(--src)',E:'var(--ai)'}[k]);
+    box.innerHTML='<h4>'+esc(p.name)+'</h4><p style="margin-top:6px">'+p.what+'</p><div class="cols2"><div><h5>Lives here</h5>'+list(p.has)+'</div><div><h5>Never held here</h5>'+list(p.not)+'</div></div>';}
+  pl.addEventListener('click',function(e){var b=e.target.closest('.place');if(b)sel(b.getAttribute('data-p'));});
+  sel('B');
+  $('#flowcards').innerHTML=ZG.flowCards.map(function(c){
+    return'<div class="card"><div class="eyebrow">'+esc(c.n)+'</div><h4>'+esc(c.t)+'</h4><p class="muted" style="margin:8px 0">'+c.d+'</p><p style="margin:0 0 12px"><span class="tag '+(c.ai?'t-ai':'t-rule')+'">'+esc(c.aiText)+'</span></p><button class="btn" type="button" data-goto="'+c.go+'">Open this flow ›</button></div>';}).join('');
+  var filt=['All','Setup','Questions','Agents','Learning'],cur='All',fe=$('#aiFilter');
+  fe.innerHTML=filt.map(function(f){return'<button class="chip" type="button" aria-pressed="'+(f===cur)+'" data-f="'+f+'">'+f+'</button>';}).join('');
+  function drawAI(){
+    var rows=ZG.aiUses.filter(function(r){return cur==='All'||r.area===cur;});
+    $('#aiTable tbody').innerHTML=rows.map(function(r,i){return'<tr><td>'+r.n+'</td><td><strong>'+r.what+'</strong><br><span class="muted">'+r.area+'</span></td><td class="mono">'+r.model+'</td><td>'+r.when+'</td><td>'+r.sees+'</td><td>'+r.decides+'</td></tr>';}).join('');
+    $$('.chip',fe).forEach(function(c){c.setAttribute('aria-pressed',c.getAttribute('data-f')===cur?'true':'false');});}
+  fe.addEventListener('click',function(e){var c=e.target.closest('.chip');if(c){cur=c.getAttribute('data-f');drawAI();}});
+  drawAI();
+}
+
+/* ---------- boundary widget ---------- */
+function boundary(host){
+  var S=ZG.bnd,cur=0;
+  host.innerHTML='<div class="chips" role="group" aria-label="Moments"></div><div class="callout info" data-cap></div><div class="bnd"><div><div class="legend" style="margin:0 0 8px"><span class="tag t-ai">Sent to OpenAI</span><span class="tag t-src">Summarised, then sent</span><span class="tag t-zdb">Stays in your database or Zevra</span></div><div style="overflow-x:auto"><table class="dt"></table></div></div><div><div class="legend" style="margin:0 0 8px"><span class="tag t-ai">What OpenAI actually receives</span></div><div class="rcv"></div></div></div>';
+  var chips=$('.chips',host);
+  chips.innerHTML=S.map(function(s,i){return'<button class="chip" type="button" data-i="'+i+'" aria-pressed="'+(i===cur)+'">'+esc(s.label)+'</button>';}).join('');
+  function draw(){
+    var s=S[cur];$$('.chip',chips).forEach(function(c,i){c.setAttribute('aria-pressed',i===cur?'true':'false');});
+    $('[data-cap]',host).innerHTML=s.caption;
+    var t='<tr>'+s.cols.map(function(c,j){return'<th class="'+(s.hmask[j]==='out'?'cell-out':'cell-stay')+'">'+esc(c)+'</th>';}).join('')+'</tr>';
+    s.rows.forEach(function(r,i){t+='<tr>'+r.map(function(v,j){var m=s.mask[i][j];return'<td class="cell-'+m+'">'+esc(v)+'</td>';}).join('')+'</tr>';});
+    $('.dt',host).innerHTML=t;$('.rcv',host).textContent=s.received;}
+  chips.addEventListener('click',function(e){var b=e.target.closest('.chip');if(b){cur=+b.getAttribute('data-i');draw();}});
+  draw();
+}
+
+/* ---------- widgets used inside flow steps ---------- */
+ZG.widgets=ZG.widgets||{};
+ZG.widgets.isolation=function(w){
+  var users=[{e:'ana@acmeretail.com',s:'tenant_acme_retail',r:'ADMIN',t:['purchase_orders','suppliers','products','learned terms: "overdue"']},
+             {e:'ben@globex-logistics.com',s:'tenant_globex_logistics',r:'ANALYST',t:['shipments','carriers','routes','learned terms: "late pickup"']}];
+  var cur=0;
+  w.innerHTML='<div class="blk"><h5>Try it: two people sign in</h5><div class="chips" style="margin-top:0"></div><div data-o></div></div>';
+  var ch=$('.chips',w);
+  ch.innerHTML=users.map(function(u,i){return'<button class="chip" type="button" data-i="'+i+'" aria-pressed="'+(i===cur)+'">'+u.e+'</button>';}).join('');
+  function draw(){var u=users[cur];$$('.chip',ch).forEach(function(c,i){c.setAttribute('aria-pressed',i===cur?'true':'false');});
+    $('[data-o]',w).innerHTML='<p style="margin:6px 0"><strong>1.</strong> Token verified &rarr; email found in the shared profile table &rarr; room <code>'+u.s+'</code>, role '+u.r+'.</p><p style="margin:6px 0"><strong>2.</strong> Every database call in this request starts with <code>SET search_path = '+u.s+', public</code>.</p><p style="margin:6px 0 4px"><strong>3.</strong> So this person can only reach:</p>'+list(u.t)+'<p class="muted" style="margin:8px 0 0">The other company\'s room is simply not on the path. If no room can be established, Zevra refuses the request instead of falling back to shared space.</p>';}
+  ch.addEventListener('click',function(e){var b=e.target.closest('.chip');if(b){cur=+b.getAttribute('data-i');draw();}});draw();
+};
+
+/* ---------- chat examples ---------- */
+function initChat(){
+  var def=ZG.flows.f3,inst=def.inst,ex=def.examples;
+  var pick=$('#qpick');
+  pick.innerHTML=ex.map(function(e,i){return'<button class="chip" type="button" data-i="'+i+'" aria-pressed="'+(i===0)+'">'+esc(e.label)+'</button>';}).join('');
+  function draw(i){var e=ex[i];$$('.chip',pick).forEach(function(c,k){c.setAttribute('aria-pressed',k===i?'true':'false');});
+    $('#qintro').innerHTML='<div class="eyebrow">The question</div><p class="say" style="font-size:1.35rem;margin:2px 0 8px;max-width:none">&ldquo;'+esc(e.question)+'&rdquo;</p><p class="muted" style="margin:0">'+e.intro+'</p><p style="margin:10px 0 0"><strong>Outcome:</strong> '+e.outcome+'</p>';
+    inst.setExample(e);ledger(e);}
+  pick.addEventListener('click',function(e){var b=e.target.closest('.chip');if(b)draw(+b.getAttribute('data-i'));});
+  draw(0);
+}
+function ledger(e){
+  var host=$('#ledger'),rows=e.ledger,max=0,tin=0,tout=0,ai=0,emb=0;
+  rows.forEach(function(r){if(r.in>max)max=r.in;tin+=r.in;tout+=r.out;if(r.k==='e')emb++;else ai++;});
+  var h='<p style="margin:0 0 10px"><strong>'+(ai+emb)+' calls</strong>: '+ai+' language-model call'+(ai===1?'':'s')+' and '+emb+' embedding call'+(emb===1?'':'s')+' &middot; '+num(tin)+' tokens in, '+num(tout)+' tokens out. '+(e.ledgerNote||'')+'</p>';
+  h+=rows.map(function(r){var w=Math.max(2,Math.round(r.in/max*100));
+    return'<div class="lrow"><span>'+esc(r.n)+' <span class="muted">· '+esc(r.m)+'</span></span><span><i class="'+(r.k||'')+'" style="width:'+w+'%"></i></span><span>'+num(r.in)+'</span></div>';}).join('');
+  host.innerHTML=h+'<p class="muted" style="margin:10px 0 0;font-size:.82rem">Bar length = input size in tokens (about ¾ of a word each). Violet = main model, blue = embedding, amber = small model.</p>';
+}
+
+/* ---------- agent simulator ---------- */
+function agentSim(){
+  var host=$('#agentsim'),S=ZG.agentRun,i=0;
+  host.innerHTML='<div class="sim"><div><div class="card"><div class="eyebrow">The request</div><p class="say" style="font-size:1.2rem;margin:0 0 6px;max-width:none">&ldquo;'+esc(S.task)+'&rdquo;</p><p class="muted" style="margin:0"><span class="pill">Illustrative run</span> Wording is illustrative; the figures are from Acme\'s demo retail data.</p><div class="stat" data-st></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" data-a="n" type="button">Next ›</button><button class="btn" data-a="r" type="button">Restart</button></div></div><div data-log style="margin-top:12px"></div></div><div class="card"><h4>What the agent is allowed to do</h4>'+list(S.rules)+'</div></div>';
+  var log=$('[data-log]',host),st=$('[data-st]',host);
+  function draw(){
+    var shown=S.steps.slice(0,i),calls=shown.filter(function(s){return s.t==='ai'||s.t==='fin';}).length,tools=shown.filter(function(s){return s.t==='tool';}).length;
+    st.innerHTML='<div><b>'+calls+'</b><small>AI reasoning calls</small></div><div><b>'+tools+'</b><small>tool uses</small></div><div><b>'+Math.min(calls,S.max)+' / '+S.max+'</b><small>step limit</small></div>';
+    log.innerHTML=shown.map(function(s){var lab={ai:'The agent thinks (OpenAI gpt-4o)',tool:'The agent asks Zevra to run a tool',obs:'Zevra returns the result',fin:'The agent gives its final answer'}[s.t];
+      return'<div class="thought '+s.t+'"><b>'+lab+(s.tool?' · '+esc(s.tool):'')+'</b>'+s.x+(s.sql?'<pre>'+esc(s.sql)+'</pre>':'')+(s.note?'<div class="muted" style="margin-top:4px;font-size:.8rem">'+s.note+'</div>':'')+'</div>';}).join('');
+    $('[data-a="n"]',host).disabled=i>=S.steps.length;}
+  host.addEventListener('click',function(e){var b=e.target.closest('[data-a]');if(!b)return;var a=b.getAttribute('data-a');if(a==='n'&&i<S.steps.length)i++;if(a==='r')i=0;draw();});
+  draw();
+}
+
+/* ---------- background features ---------- */
+function bgFeatures(){
+  var host=$('#bg'),F=ZG.bg,cur=0;
+  host.innerHTML='<div class="chips"></div><div class="card" data-b></div>';
+  var ch=$('.chips',host);
+  ch.innerHTML=F.map(function(f,i){return'<button class="chip" type="button" data-i="'+i+'" aria-pressed="'+(i===cur)+'">'+esc(f.name)+'</button>';}).join('');
+  function draw(){var f=F[cur];$$('.chip',ch).forEach(function(c,i){c.setAttribute('aria-pressed',i===cur?'true':'false');});
+    $('[data-b]',host).innerHTML='<h4>'+esc(f.name)+'</h4><p style="margin:6px 0 10px">'+f.what+'</p><div class="legend" style="margin:0 0 12px">'+f.tags.map(tagHTML).join('')+'</div><div class="cols2"><div><h5>How it runs</h5>'+list(f.how)+'</div><div><h5>Where AI is, and is not, involved</h5>'+list(f.ai)+'</div></div>';}
+  ch.addEventListener('click',function(e){var b=e.target.closest('.chip');if(b){cur=+b.getAttribute('data-i');draw();}});draw();
+}
+
+/* ---------- learning simulator ---------- */
+function learnSim(){
+  var host=$('#learnsim'),S=ZG.learn;
+  var st;function reset(){st={c:.5,u:1,state:'cand',promoted:false,hasConcept:true,log:['Learned from a clarification: &ldquo;overdue&rdquo; now maps to a SQL rule. Confidence 0.50, used 1 time.']};}
+  reset();
+  host.innerHTML='<div class="sim"><div class="card"><div class="eyebrow">A learned term</div><div class="term">&ldquo;overdue&rdquo;</div><p class="mono muted" style="margin:4px 0 12px">expected_delivery_date &lt; CURRENT_DATE AND actual_delivery_date IS NULL</p><div data-state></div><div class="stat" data-s></div><div class="meter" aria-label="Confidence"><i data-bar></i><span class="mk lo" style="left:20%"><span>0.20 purge line</span></span><span class="mk hi" style="left:80%"><span>0.80 promotion line</span></span></div><div style="display:flex;gap:8px;flex-wrap:wrap" data-btns></div><p class="muted" style="font-size:.82rem;margin:10px 0 0">Promotion needs both at least 10 uses and confidence of 0.80 or more. A term is dropped when it has at least 5 uses and confidence below 0.20. The nightly job runs at 02:45.</p></div><div><div class="card"><h4>What happens, in order</h4><ul class="log" data-log></ul></div><div class="card" style="margin-top:12px"><h4>Who can see it now?</h4><label style="display:flex;gap:8px;align-items:center;margin:6px 0 2px;font-size:.88rem"><input type="checkbox" id="hasConcept" checked> This term is tied to a business concept (Purchase Order)</label><div class="sees" data-sees></div></div></div></div>';
+  var btns=[['reuse','Used again (+0.05)'],['up','Thumbs up (+0.08)'],['corr','User correction (−0.20)'],['night','Run the nightly job'],['reset','Reset']];
+  $('[data-btns]',host).innerHTML=btns.map(function(b){return'<button class="btn'+(b[0]==='night'?' pri':'')+'" type="button" data-a="'+b[0]+'">'+b[1]+'</button>';}).join('');
+  function f2(x){return x.toFixed(2);}
+  function draw(){
+    var s=st;
+    $('[data-bar]',host).style.width=Math.round(s.c*100)+'%';
+    $('[data-s]',host).innerHTML='<div><b>'+f2(s.c)+'</b><small>confidence</small></div><div><b>'+s.u+'</b><small>times used</small></div>';
+    var lab={cand:'Candidate (not yet vocabulary)',prom:'Promoted to company vocabulary',purge:'Dropped (never earned trust)'};
+    $('[data-state]',host).innerHTML='<span class="state '+s.state+'">'+lab[s.state]+'</span>';
+    $('[data-log]',host).innerHTML=s.log.slice().reverse().map(function(l){return'<li>'+l+'</li>';}).join('');
+    var p=s.state==='prom',hc=$('#hasConcept',host).checked;
+    function row(y,t){return'<div class="'+(y?'yes':'no')+'">'+(y?'✓ ':'✗ ')+t+'</div>';}
+    $('[data-sees]',host).innerHTML=s.state==='purge'?row(false,'Nobody: the term was deleted')
+      :row(p,'Word-matching step (company vocabulary): '+(p?'will recognise &ldquo;overdue&rdquo;':'not yet'))
+      +row(p&&hc,'Concept-picking AI call: '+(p&&hc?'the concept text now includes this term':'needs promotion and a concept'))
+      +row(p&&hc,'Query-writing AI call: '+(p&&hc?'shown as &ldquo;learned business knowledge&rdquo; evidence':'needs promotion and a concept'));
+    $$('[data-a]',host).forEach(function(b){var a=b.getAttribute('data-a');b.disabled=(a!=='reset'&&s.state!=='cand');});
+  }
+  host.addEventListener('click',function(e){
+    var b=e.target.closest('[data-a]');if(!b||b.disabled)return;var a=b.getAttribute('data-a');
+    if(a==='reset'){reset();draw();return;}
+    if(a==='reuse'){st.c=Math.min(1,st.c+.05);st.u+=1;st.log.push('The same term was learned again: confidence +0.05, used +1 → <strong>'+f2(st.c)+'</strong>, '+st.u+' uses.');}
+    if(a==='up'){st.c=Math.min(1,st.c+.08);st.u+=1;st.log.push('A person gave a thumbs up on an answer that used it: +0.08, used +1 → <strong>'+f2(st.c)+'</strong>, '+st.u+' uses.');}
+    if(a==='corr'){st.c=Math.max(0,st.c-.20);st.log.push('A user corrected an answer that relied on it (an AI call detected the correction): −0.20 → <strong>'+f2(st.c)+'</strong>.');}
+    if(a==='night'){
+      if(st.u>=10&&st.c>=.8){st.state='prom';st.log.push('<strong>Nightly job:</strong> '+st.u+' uses and confidence '+f2(st.c)+' → promoted. A vocabulary entry is created; the concept index refreshes automatically.');}
+      else if(st.u>=5&&st.c<.2){st.state='purge';st.log.push('<strong>Nightly job:</strong> '+st.u+' uses but confidence '+f2(st.c)+' → deleted.');}
+      else{var need=[];if(st.u<10)need.push('needs '+(10-st.u)+' more use'+(10-st.u===1?'':'s'));if(st.c<.8)need.push('confidence must reach 0.80');st.log.push('<strong>Nightly job:</strong> nothing to do yet ('+need.join(' and ')+').');}
+    }
+    draw();});
+  host.addEventListener('change',function(e){if(e.target.id==='hasConcept')draw();});
+  draw();
+}
+
+/* ---------- trust tab ---------- */
+function trust(){
+  boundary($('#bnd-trust'));
+  $('#storeTable tbody').innerHTML=ZG.store.map(function(r){return'<tr><td><strong>'+r[0]+'</strong></td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>';}).join('');
+  $('#guards').innerHTML=ZG.guards.map(function(g,i){return'<div class="card"><div class="eyebrow">Check '+(i+1)+'</div><h4>'+g[0]+'</h4><p class="muted" style="margin:6px 0 0">'+g[1]+'</p></div>';}).join('');
+  $('#limits').innerHTML=ZG.limits.map(function(g){return'<div class="card"><h4>'+g[0]+'</h4><p class="muted" style="margin:6px 0 0">'+g[1]+'</p></div>';}).join('');
+  $('#faq').innerHTML=ZG.faq.map(function(q){return'<details><summary>'+q[0]+'</summary><p>'+q[1]+'</p></details>';}).join('');
+}
+
+/* ---------- boot ---------- */
+function boot(){
+  $$('.js-reviewed').forEach(function(e){e.textContent=ZG.meta.reviewed;});
+  ['f1','f2','f3','f4','f5'].forEach(function(k){var d=ZG.flows[k];d.inst=new Flow($('#flow-'+k),d);});
+  initOverview();initChat();agentSim();bgFeatures();learnSim();trust();boundary($('#bnd-f2'));
+  initTheme();initTabs();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+})();
+
+</script>
