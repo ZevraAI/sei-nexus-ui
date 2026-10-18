@@ -152,7 +152,18 @@ Learned : "overdue" -> expected_delivery_date < CURRENT_DATE
   ai:{model:'text-embedding-ada-002 (an embedding model)',sees:'The concept\'s text, including the learned term. No company data rows.',decides:'Nothing. It returns numbers for searching.',cant:'Produce words.'},
   moves:[{d:'out',t:'The updated concept text only'},{d:'stay',t:'The new numbers are stored in Zevra\'s database'}],
   never:[`Learned terms never cross from one company to another`],
-  why:`Closing the loop means that what people teach Zevra today shapes how it understands the next question.`}
+  why:`Closing the loop means that what people teach Zevra today shapes how it understands the next question.`},
+ {id:'s9',t:'Someone proposes a standing instruction',from:'A',to:'E',tags:['human','zdb','ai:text-embedding-ada-002'],
+  what:`<p>Some preferences are about <em>how to answer</em>, not what a word means: "always show the item description on order line items". A person proposes one in chat with <code>/knowledge</code>. It waits as <strong>pending</strong> until an admin or domain owner reviews it on the Instructions screen. The reviewer can edit the wording, approve it, mark it <strong>always apply</strong> (at most <strong>5</strong> of these), or reject it. On approval the embedding model turns the text into numbers, stored in the company\'s room.</p><p>On each later question, Zevra selects only what is relevant: the always-apply instructions, plus up to <strong>5</strong> approved instructions whose meaning is close to the question (similarity of at least <strong>0.30</strong>), within about 2,000 characters in total. Those go to the query-writing AI with the question, and the AI decides which apply. However many instructions a company has, the prompt stays the same size, and a question with no related instruction gets none.</p>`,
+  ex:{label:'Example (illustrative)',body:`Proposed:  "Always show the item description on order and invoice line items"
+Reviewer:  approves (not always-apply)
+
+Question:  "Show the lines on PO-2025-00234"   -> instruction sent
+Question:  "How many suppliers are under review?" -> not sent`},
+  ai:{model:'text-embedding-ada-002 (an embedding model)',sees:'The instruction text on approval, and the question text on each later question.',decides:'Nothing. It returns numbers used to find the closest instructions.',cant:'Produce words, approve an instruction, or see company data.'},
+  moves:[{d:'out',t:'The instruction text (once, on approval) and the question text (on each question)'},{d:'stay',t:'The instruction and its numbers are stored in the company\'s room'},{d:'out',t:'The few selected instructions are sent to OpenAI inside the query-writing prompt (your own written guidance, not your data)'}],
+  never:[`An instruction never reaches a prompt until a person approves it`,`No Java matching on the wording: the AI decides whether a selected instruction applies`],
+  why:`Presentation preferences are standing rules, so they need an owner who approves them, and a way to scale to hundreds without bloating every prompt.`}
 ]};
 
 /* =========================== DATA BOUNDARY =========================== */
@@ -231,6 +242,7 @@ ZG.store = [
  ['Business data (orders, customers, stock, payments)','<strong>Lives here.</strong> It is the system of record and is never moved','Only what appeared in answers: the result tables saved with a conversation, plus up to 25 category values per column','Summaries, or the actual values of small results (10 rows or fewer), inside a question\'s prompts. Agents: the rows returned, up to the row limit'],
  ['Table and column structure, and the database\'s own comments','Lives here','A description of it: names, meaning, column roles, relationships','Names, types and comments, during discovery only'],
  ['What Zevra has learned about meaning (business names, vocabulary, learned terms)','Not stored here','<strong>Lives here</strong>, in the company\'s private section','Parts appear in prompts when relevant (concept text, resolved terms)'],
+ ['Standing instructions (company preferences for how to answer)','Not stored here','<strong>Lives here</strong>: the text, its numbers, who proposed and who approved it','Only the few approved instructions relevant to a question appear in its prompt'],
  ['Concept fingerprints (vectors)','Not stored here','<strong>Lives here</strong> (pgvector, in the company\'s section)','Only the concept text is sent to be turned into numbers. The numbers are kept by Zevra, not OpenAI'],
  ['Uploaded documents','Not stored here','Text pieces and their numbers. The original file sits on Zevra\'s server storage','Pieces are sent to be turned into numbers. If used for an answer, the closest pieces (up to 6) go into prompts'],
  ['Conversations, answers, result tables, audit trail','Not stored here','<strong>Lives here</strong>','The current question and its evidence summaries only, while it is being answered'],
@@ -259,6 +271,7 @@ ZG.limits = [
  ['Agents see rows; chat sees summaries','An agent is given the rows its queries return (up to the row limit). Chat sends summaries for results over 10 rows. If that matters for a data set, restrict the agent\'s databases or use masking and row-level security.'],
  ['The write-word check is crude','Before querying, Zevra declines questions containing words like delete, update, insert, modify, change, create, drop, truncate, approve, reject, cancel, void or reverse. It is a simple word match, so a legitimate question such as "how did stock change last week?" can be declined. The real protection is the read-only rule.'],
  ['Playbooks guide the agent; they do not force it','The agent reads its playbooks and chooses whether to follow one. Zevra does not check that every step was done or in order, and it does not track which step the agent is on. The step log shows what it actually did, so a reviewer can compare.'],
+ ['Standing instructions are found by similarity, not guaranteed','Which approved instructions reach a question depends on how close their meaning is to it (a similarity floor of 0.30, at most 5, about 2,000 characters). A relevant instruction can occasionally be missed; setting it to always apply (at most 5 across the company) guarantees it is sent. They are given to the query-writing AI, which decides whether each applies, so they shape which columns are chosen more reliably than how the final answer is worded. The 0.30 floor has not yet been tuned against real data.'],
  ['AI answers can still be wrong','The fact-check step catches many slips but not all. That is why every answer shows its SQL and result rows. Check the working for anything important.'],
  ['Small results go to OpenAI in full','Results of 10 rows or fewer are sent with their values so the answer can be written. Use masking for columns that must never reach the AI.'],
  ['OpenAI is a third-party processor','Zevra sends prompts to OpenAI\'s API, as listed in this guide. Your agreement with OpenAI (or ours) governs how that provider handles them. This page does not describe OpenAI\'s own policies.'],

@@ -323,6 +323,13 @@ export const api = {
     resolveSource:  (key, body)     => post(`/knowledge-gaps/${key}/resolve-source`, body),
   },
 
+  // ── Standing instructions (proposed with /knowledge, reviewed by admins) ──
+  instructions: {
+    list:    (status)     => get(`/instructions?status=${encodeURIComponent(status || 'PENDING')}`),
+    approve: (id, body)   => post(`/instructions/${id}/approve`, body),
+    archive: (id)         => post(`/instructions/${id}/archive`),
+  },
+
   // ── Query Executions ───────────────────────────────────────────────────────
   query: {
     get: (key) => get(`/query-executions/${key}`),

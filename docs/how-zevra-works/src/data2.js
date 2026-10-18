@@ -79,7 +79,7 @@ investigate and understand your business data, but cannot perform modifications.
   ex:{label:'Example',body:`SELECT SUM(total_ordered_amount) AS total_open_ordered_amount
 FROM retail_core.purchase_orders
 WHERE status IN ('draft','submitted','acknowledged','partially_received')`},
-  ai:{model:'gpt-4.1',sees:'The question; the approved tables and columns with meanings and allowed values; the resolved terms; any learned business knowledge for these concepts; a summary of the evidence so far.',decides:'The next SQL query, a request for more metadata, a clarifying question, or "done".',cant:'Run the query itself, touch a table outside the contract, or see passwords. What it writes is only a proposal until step 11 passes it.'},
+  ai:{model:'gpt-4.1',sees:'The question; the approved tables and columns with meanings and allowed values; the resolved terms; any learned business knowledge for these concepts; the few approved company instructions that relate to the question (such as "always show the item description"); a summary of the evidence so far.',decides:'The next SQL query, a request for more metadata, a clarifying question, or "done".',cant:'Run the query itself, touch a table outside the contract, or see passwords. What it writes is only a proposal until step 11 passes it.'},
   peek:{label:'Show the shape of what OpenAI receives (abridged, illustrative)',body:`Approved schema:
   retail_core.purchase_orders  (Purchase Order)
     po_number text | status text [allowed values include: submitted,

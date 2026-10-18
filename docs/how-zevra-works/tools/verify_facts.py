@@ -125,6 +125,15 @@ expect("Learning: repeat = +%s" % up, "data3.js", ["<strong>+%s</strong>" % up])
 tc = grab("TeachingService.java", r"EXPLICIT_TEACHING_INITIAL_CONFIDENCE\s*=\s*([\d.]+)")
 expect("Learning: taught starts at %s" % tc, "data3.js", ["<strong>%s</strong>" % ("%.2f" % float(tc))])
 
+ia = grab("InstructionService.java", r"MAX_ALWAYS_APPLY\s*=\s*(\d+)")
+itk = grab("InstructionPromptService.java", r"nexus\.instructions\.top-k:(\d+)")
+ims = grab("InstructionPromptService.java", r"nexus\.instructions\.min-similarity:([\d.]+)")
+imc = grab("InstructionPromptService.java", r"nexus\.instructions\.max-chars:(\d+)")
+expect("Instructions: always-apply cap = %s" % ia, "data3.js", ["at most <strong>%s</strong> of these" % ia, "at most 5 across the company" if ia == "5" else "MISSING-UPDATE-TOKEN"])
+expect("Instructions: top-k = %s" % itk, "data3.js", ["up to <strong>%s</strong> approved" % itk])
+expect("Instructions: similarity floor = %s" % ims, "data3.js", ["at least <strong>%s</strong>" % ims, "floor of %s" % ims])
+expect("Instructions: budget = %s characters" % imc, "data3.js", ["about 2,000 characters" if imc == "2000" else "MISSING-UPDATE-TOKEN"])
+
 # ---------------------------------------------------------------- the question pipeline
 ms = grab("ReasoningEngine.java", r"MAX_STEPS\s*=\s*(\d+)")
 fr = grab("ReasoningEngine.java", r"MAX_FAILED_REPLANS\s*=\s*(\d+)")

@@ -26,8 +26,8 @@ export const SLASH_COMMANDS = [
   {
     id: 'knowledge',
     command: '/knowledge',
-    label: 'Propose knowledge',
-    description: 'Propose adding knowledge Zevra doesn’t have yet',
+    label: 'Propose an instruction',
+    description: 'Propose a standing preference, e.g. “always show the item description”. An admin approves it.',
     action: 'insert',
   },
   {

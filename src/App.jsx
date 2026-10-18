@@ -21,6 +21,7 @@ import Agents from './pages/Agents.jsx';
 import Reasoning from './pages/Reasoning.jsx';
 import Temporal from './pages/Temporal.jsx';
 import KnowledgeGaps from './pages/KnowledgeGaps.jsx';
+import Instructions from './pages/Instructions.jsx';
 import Governance from './pages/Governance.jsx';
 import Settings   from './pages/Settings.jsx';
 import Automations from './pages/Automations.jsx';
@@ -76,6 +77,7 @@ const ROUTES = {
   '/temporal':     <Temporal />,
   '/reports':      <Reports />,
   '/gaps':         <KnowledgeGaps />,
+  '/instructions': <Instructions />,
   '/governance':   <Governance />,
   '/settings':     <Settings />,
   '/automations':  <Automations />,

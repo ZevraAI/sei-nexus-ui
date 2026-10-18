@@ -289,6 +289,7 @@ function buildAdminItems(isAdmin, isPlatformAdmin) {
   return [
     { path: '/users',      label: 'Team' },
     { path: '/usage',      label: 'Usage' },
+    { path: '/instructions', label: 'Instructions' },
     { path: '/governance', label: 'Governance' },
     { path: '/settings',   label: 'Settings' },
     // Interactive architecture guide: Zevra staff only (docs/how-zevra-works).
