@@ -3,6 +3,7 @@
 //
 //   cd docs/how-zevra-works/tools && npm install && node smoke.js            (tests ../built/how-zevra-works.html)
 //   node smoke.js path/to/other.html
+//   SANDBOX=1 node smoke.js        (also proves it works inside zevra-ui's sandboxed iframe: no storage, no history)
 //
 // Counts are read from the page's own data (window.ZG), so adding steps, examples, rows or tabs
 // never needs this file to change. It does NOT judge visual layout or factual accuracy: use
@@ -24,6 +25,13 @@ const dom = new JSDOM(html, {
     w.scrollTo = () => {};
     w.Element.prototype.scrollIntoView = function () {};
     w.matchMedia = w.matchMedia || (() => ({ matches: false }));
+    if (process.env.SANDBOX) {
+      // Emulate the sandboxed iframe zevra-ui embeds the guide in: no storage, no history changes.
+      const deny = () => { throw new w.DOMException('denied', 'SecurityError'); };
+      Object.defineProperty(w, 'localStorage', { get: deny });
+      Object.defineProperty(w, 'sessionStorage', { get: deny });
+      w.history.replaceState = deny;
+    }
   }
 });
 const w = dom.window, d = w.document;

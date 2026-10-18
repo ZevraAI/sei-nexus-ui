@@ -30,6 +30,7 @@ import Users from './pages/Users.jsx';
 import Brief from './pages/Brief.jsx';
 import Usage from './pages/Usage.jsx';
 import Templates from './pages/Templates.jsx';
+import Guide from './pages/Guide.jsx';
 import HomePage from './pages/home/HomePage.tsx';
 import { ExperienceProvider } from './experience';
 import { DerivedPulseSource } from './pulse/DerivedPulseSource';
@@ -349,6 +350,8 @@ export default function App() {
     ? <AutomationEditor workflowId={automationEditMatch[1]} />
     : agentChatMatch
     ? <AgentChat agentId={agentChatMatch[1]} />
+    : hash.split('?')[0] === '/guide'
+    ? <Guide user={user} />
     : (ROUTES[hash] ?? ROUTES[hash.split('?')[0]] ?? <Chat />);
 
   return (

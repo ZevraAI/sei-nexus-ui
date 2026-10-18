@@ -284,13 +284,15 @@ const CONFIGURE_ITEMS = [
   { path: '/memory',       label: 'AI Memory' },
 ];
 
-function buildAdminItems(isAdmin) {
+function buildAdminItems(isAdmin, isPlatformAdmin) {
   if (!isAdmin) return [];
   return [
     { path: '/users',      label: 'Team' },
     { path: '/usage',      label: 'Usage' },
     { path: '/governance', label: 'Governance' },
     { path: '/settings',   label: 'Settings' },
+    // Interactive architecture guide: Zevra staff only (docs/how-zevra-works).
+    ...(isPlatformAdmin ? [{ path: '/guide', label: 'How Zevra works' }] : []),
   ];
 }
 
@@ -303,7 +305,7 @@ export default function Layout({ children, currentPath }) {
 
   const isAdmin = user?.role === 'ADMIN';
   const isPlatformAdmin = isAdmin && (user?.tenant_schema === 'public' || !user?.tenant_schema);
-  const adminItems = buildAdminItems(isAdmin);
+  const adminItems = buildAdminItems(isAdmin, isPlatformAdmin);
 
   const active = (path) => {
     if (path === '/chat' && (currentPath === '/' || currentPath === '/chat')) return true;
