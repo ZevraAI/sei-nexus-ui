@@ -9,7 +9,7 @@ persona:         A careful procurement analyst
 goal:            Find supplier and order risks
 databases:       retail_core
 step limit:      8`},
-  moves:[{d:'out',t:'From chat only: the question text, for the two small routing calls'}],
+  moves:[{d:'out',t:'From chat only: the question text for the routing calls, and for the agent-picking call each agent\'s name, goal and the names of the tables registered for its databases'}],
   never:[`An agent can use only the databases listed on it`],
   why:`Open-ended jobs need a different method from a one-shot question, and the routing step keeps simple questions on the simple, cheaper path.`},
  {id:'s2',t:'Zevra works out what the agent may touch',from:'B',to:'C',tags:['rule','zdb'],
@@ -99,7 +99,7 @@ ZG.bg = [
   ai:[`Each agent uses the agent loop (flow 4), so it sees the rows its queries return, up to the row limit.`,`One more AI step combines the findings into the final brief.`]},
  {name:'Automations',what:`Visual workflows: a chain of steps that run in order, with branches.`,tags:['ai:gpt-4o','rule'],
   how:[`A workflow is a graph of steps: trigger, database query, AI reasoning, condition (which branches), transform, image analysis, response.`,`Zevra runs the steps in order and records what each one did.`,`A person can describe the automation in plain English and have an AI draft the workflow, then review and edit it.`],
-  ai:[`AI is used only in AI steps (and to draft a workflow when asked).`,`Conditions, transforms and queries are plain rules.`]}
+  ai:[`AI is used only in AI steps (and to draft a workflow when asked). Drafting sees your written requirement and the registered table and column names of the databases you pick, never rows of data.`,`Conditions, transforms and queries are plain rules.`]}
 ];
 
 /* =========================== FLOW 5: LEARNING =========================== */
