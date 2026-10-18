@@ -4,7 +4,9 @@ The standard, customer-facing explanation of how Zevra is built: company setup, 
 asking a question, agents, and self-learning, with every AI call, every data store and every safety
 check shown. It is used in customer demos and as the team's shared picture of the architecture.
 
-**Open it:** `built/how-zevra-works.html` (one self-contained file; works offline except for web fonts).
+**Open it:**
+- In Zevra: sign in as a **Zevra platform admin** (ADMIN in the platform workspace) and choose **Admin > How Zevra works** (`#/guide`). It is embedded straight from `built/`, so there is no second copy: rebuild the guide, then the next UI build includes it.
+- As a file: `built/how-zevra-works.html` (one self-contained file; works offline except for web fonts).
 
 > **This guide is part of the definition of done.** Any change to the architecture or any new
 > functionality must update it in the same change. See "When you must update it" below.
@@ -14,6 +16,10 @@ check shown. It is used in customer demos and as the team's shared picture of th
 It lives in the **private** `sei-nexus-ui` repository, not in `zevra-docs`. `zevra-docs` deploys to the
 public site on every merge, and this guide deliberately includes a candid "Known limits" section. **Never
 publish it on the public docs site** or anywhere without an access list.
+
+In the app it is shown only to platform admins. That is a screen-level gate: the guide ships as a lazy-loaded file in the UI
+bundle, so it is not secret from someone who inspects the app's static files. If it must be truly access-controlled, serve it
+from the backend behind the admin role instead.
 
 ## Layout
 
@@ -57,6 +63,7 @@ row in the AI table, or a new FAQ answer.
 
 ```
 python tools/build.py
+SANDBOX=1 node tools/smoke.js       # (after npm install in tools/) also proves it works inside the app's sandboxed iframe
 python tools/verify_facts.py        # needs the backend repo as a sibling checkout (../../../sei-nexus-ai), or set ZEVRA_BACKEND
 cd tools && npm install && node smoke.js
 ```
