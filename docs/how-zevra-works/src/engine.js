@@ -264,6 +264,23 @@ function learnSim(){
   draw();
 }
 
+/* ---------- planned (roadmap) tab ---------- */
+function roadmap(){
+  var ul=function(a){return'<ul style="margin:8px 0 0;padding-left:1.1em">'+a.map(function(x){return'<li style="margin:4px 0">'+x+'</li>';}).join('')+'</ul>';};
+  var tbl=function(head,rows){return'<div class="tw" style="margin-top:8px"><table><thead><tr>'+head.map(function(h){return'<th>'+h+'</th>';}).join('')+'</tr></thead><tbody>'+rows.map(function(r){return'<tr>'+r.map(function(c,i){return'<td>'+(i===0?'<strong>'+c+'</strong>':c)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';};
+  $('#roadmap').innerHTML=ZG.roadmap.map(function(r){
+    var h='<div class="sec"><div class="eyebrow">Planned '+r.n+' &middot; not built</div><h3>'+r.t+'</h3>';
+    h+='<div class="card"><h4>What is true today</h4><p class="muted" style="margin:6px 0 0">'+r.today+'</p></div>';
+    h+='<div class="card" style="margin-top:10px"><h4>The idea</h4><p class="muted" style="margin:6px 0 0">'+r.idea+'</p></div>';
+    h+='<div class="card" style="margin-top:10px"><h4>How it would work</h4>'+ul(r.how)+'</div>';
+    if(r.cost)h+='<div class="card" style="margin-top:10px"><h4>Where the money goes today</h4>'+tbl(r.cost.head,r.cost.rows)+'<p class="muted" style="margin:8px 0 0">'+r.cost.note+'</p></div>';
+    if(r.eg)h+='<div class="card" style="margin-top:10px"><h4>'+r.eg.label+'</h4>'+tbl(['Name','What it does'],r.eg.rows)+'</div>';
+    h+='<div class="card" style="margin-top:10px"><h4>Trade-offs and open questions</h4>'+ul(r.tradeoffs)+'</div>';
+    h+='<p class="muted" style="margin-top:10px"><strong>AI use:</strong> '+r.ai+'</p></div>';
+    return h;
+  }).join('');
+}
+
 /* ---------- trust tab ---------- */
 function trust(){
   boundary($('#bnd-trust'));
@@ -277,7 +294,7 @@ function trust(){
 function boot(){
   $$('.js-reviewed').forEach(function(e){e.textContent=ZG.meta.reviewed;});
   ['f1','f2','f3','f4','f5'].forEach(function(k){var d=ZG.flows[k];d.inst=new Flow($('#flow-'+k),d);});
-  initOverview();initChat();agentSim();bgFeatures();learnSim();trust();boundary($('#bnd-f2'));
+  initOverview();initChat();agentSim();bgFeatures();learnSim();trust();roadmap();boundary($('#bnd-f2'));
   initTheme();initTabs();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../api.js';
 import { Spinner } from '../Card.jsx';
 import { Plus, X } from 'lucide-react';
+import PlaybookEditor from './PlaybookEditor.jsx';
 
 export default function AgentFormModal({ agent, onClose, onSaved }) {
   const isEdit = !!agent;
@@ -138,6 +139,9 @@ export default function AgentFormModal({ agent, onClose, onSaved }) {
               </div>
             )}
           </div>
+
+          {/* Playbooks (need a saved agent) */}
+          {isEdit && <PlaybookEditor agentId={agent.id} />}
 
           {/* Max Iterations + Status */}
           <div className="grid grid-cols-2 gap-3">

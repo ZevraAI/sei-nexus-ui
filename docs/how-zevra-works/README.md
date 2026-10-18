@@ -48,6 +48,7 @@ If your change does any of the following, change the guide in the same pull requ
 | Changes **safety rules or limits** (row limits, timeouts, allowed SQL, masking, RLS, contracts) | `ZG.guards`, the chat step "checks the query", and `ZG.limits` |
 | Changes **where data lives** (new table, vector store, document storage, secrets handling) | `ZG.store`, `ZG.places`, and the flow steps that read or write it |
 | Changes **agents, tools or background jobs** (reports, baselines, alerts, brief, automations) | Flow 4 steps, `ZG.agentRun`, `ZG.bg` |
+| Builds or designs a **planned feature** (or finishes one) | `ZG.roadmap` in `data3.js` renders the **Planned** tab. When a planned item ships, move it into the right flow (steps, AI table, limits) and delete it from `ZG.roadmap`; never leave a built feature labelled "not built" |
 | Changes **learning** (signals, confidence steps, thresholds, promotion) | Flow 5 steps and the simulator in `engine.js` (`learnSim`); `verify_facts.py` will tell you which numbers moved |
 | Adds, closes or discovers a **limitation** | `ZG.limits` (and the matching FAQ answer). Closing a limit means removing it, not softening it |
 | Changes a **model default** in `application.yml` | Run `verify_facts.py`: it names every row to fix |

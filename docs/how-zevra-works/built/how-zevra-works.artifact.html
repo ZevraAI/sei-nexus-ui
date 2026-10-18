@@ -261,6 +261,7 @@ tr:last-child td{border-bottom:0}
     <button class="tab" role="tab" data-tab="f4"><b>4</b>Agents</button>
     <button class="tab" role="tab" data-tab="f5"><b>5</b>Self-learning</button>
     <button class="tab" role="tab" data-tab="trust"><b>✓</b>Your data &amp; trust</button>
+    <button class="tab" role="tab" data-tab="roadmap"><b>→</b>Planned</button>
   </div>
   <button class="theme" id="themeBtn" type="button" aria-label="Change colour theme">Theme: auto</button>
 </div></div>
@@ -395,6 +396,15 @@ tr:last-child td{border-bottom:0}
   </div>
 
   <div class="sec faq"><h3>Questions customers ask</h3><div id="faq" style="margin-top:8px"></div></div>
+</section>
+
+<!-- ============ PLANNED ============ -->
+<section class="panel" id="p-roadmap" role="tabpanel" aria-label="Planned features">
+  <div class="eyebrow">Not built yet</div>
+  <h2>What is planned, and what it would change</h2>
+  <p class="lede">Everything on this page is a <strong>design, not a feature</strong>. Nothing here exists in the product today. Each item says what is true now, what is proposed, how it would work, and the trade-offs, so you can judge it honestly.</p>
+  <div class="callout warn"><strong>Live today, not planned:</strong> agent <em>playbooks</em> (written ways of investigating a kind of question) are working now. See the Agents page, "Zevra shows the agent its playbooks".</div>
+  <div id="roadmap"></div>
 </section>
 
 <div class="foot">Built from a review of Zevra's own code and a real 15-question test run, last reviewed <span class="js-reviewed">18 October 2026</span>. Model names are defaults and can change. Illustrative examples are labelled; the question results, SQL and call counts shown for the chat examples are real.</div>
@@ -928,10 +938,23 @@ step limit:      8`},
   what:`<p>The agent can only act through a short list of tools, each doing one thing and each run by Zevra, never by the AI itself:</p><ul><li><code>describe_schema</code>: see an approved table's columns</li><li><code>query_database</code>: run a read-only SELECT</li><li><code>list_business_objects</code>, <code>get_business_object</code>, <code>explore_related</code>: browse the approved business world and how things connect</li><li><code>analyze_image</code>: describe an attached image</li><li><code>memory_list</code>, <code>memory_get</code>, <code>memory_get_execution_reference</code>: recall earlier results in the conversation</li><li><code>final_answer</code>: finish with the answer</li></ul>`,
   never:[`There is no tool that writes, deletes or changes anything`],
   why:`Giving the AI a short menu of safe actions, rather than free access, is what makes an autonomous agent safe to run.`},
+ {id:'s3p',t:'Zevra shows the agent its playbooks',from:'B',to:'C',tags:['rule','zdb'],
+  what:`<p>A <strong>playbook</strong> is a named, approved way of investigating one kind of question, written by your team and attached to an agent. It has four parts: <em>use when</em> (the kind of question it covers), <em>steps</em> (in order), an optional <em>evidence order</em> (what to look at first) and optional <em>escalate / flag when</em> rules.</p><p>Zevra reads the agent's active playbooks from its own database and places all of them in the agent's instructions. <strong>The AI decides whether one applies</strong> to this request: if so it follows the steps in order (it may add steps the data requires) and names the playbook in its answer; if none matches it ignores them all. Zevra does not match keywords itself.</p>`,
+  ex:{label:'A playbook (illustrative)',body:`name:        Stock-out triage
+use when:    someone reports a product is out of stock
+steps:       1. Find the product and its location.
+             2. Compare available stock with the reorder point.
+             3. Check open purchase orders and their due dates.
+             4. Say whether a replenishment is already on the way.
+evidence:    inventory first, then purchase orders
+escalate:    stock is zero at every location`},
+  moves:[{d:'stay',t:'Playbooks are read from, and saved in, the company\'s room in Zevra\'s database'},{d:'out',t:'The playbooks\' text goes to OpenAI inside the agent\'s instructions on each step of the loop (it is your own written guidance, not your data)'}],
+  never:[`A playbook cannot widen what the agent may touch: the contract, the read-only tools and the query checks always win`,`There is no AI call just for playbooks: the agent's normal loop reads them`],
+  why:`Your best analysts have a method. A playbook lets you write it down once so every run of the agent starts from it, while the model still judges whether it fits the question.`},
  {id:'s4',t:'The agent decides what to do next',from:'B',to:'E',tags:['ai:gpt-4o'],
   what:`<p>This is the heart of an agent: a loop. Each time round, one AI call reads the task and decides either to call a tool or to give the final answer. It is shown its instructions, the task, and the <strong>last six tool exchanges</strong> only. Older steps are dropped to keep each call small.</p><p>The loop repeats until the agent calls <code>final_answer</code> or reaches its step limit.</p>`,
-  ai:{model:'gpt-4o',sees:'The agent\'s persona and goal, the approved business objects, the task, and the last six tool calls and their results (including the rows returned: see step 5).',decides:'Which tool to call next with which arguments, or the final answer.',cant:'Run anything itself, reach a table outside the contract, or take more steps than its limit.'},
-  moves:[{d:'out',t:'Persona, goal, approved business objects, the task, the last six tool results'},{d:'no',t:'Database passwords, tables outside the contract'}],
+  ai:{model:'gpt-4o',sees:'The agent\'s persona and goal, its playbooks, the approved business objects, the task, and the last six tool calls and their results (including the rows returned: see step 5).',decides:'Which tool to call next with which arguments, or the final answer.',cant:'Run anything itself, reach a table outside the contract, or take more steps than its limit.'},
+  moves:[{d:'out',t:'Persona, goal, playbooks, approved business objects, the task, the last six tool results'},{d:'no',t:'Database passwords, tables outside the contract'}],
   never:[`An identical repeated tool call is answered from a cache and the agent is told so, which breaks accidental loops`],
   why:`Letting the model choose the next look-up is what allows open-ended investigation, and the toolbox and contract bound what it can do.`},
  {id:'s5',t:'Zevra carries out the tool, and the result goes back',from:'B',to:'D',tags:['rule','src'],
@@ -1152,10 +1175,11 @@ ZG.limits = [
  ['Chat queries rely on Zevra\'s read-only checks','Agent sessions mark the database connection as read-only. Chat queries are protected by the read-only rule and allow-lists described above, plus the permissions of the database account you provide. A read-only database account makes this airtight.'],
  ['Agents see rows; chat sees summaries','An agent is given the rows its queries return (up to the row limit). Chat sends summaries for results over 10 rows. If that matters for a data set, restrict the agent\'s databases or use masking and row-level security.'],
  ['The write-word check is crude','Before querying, Zevra declines questions containing words like delete, update, insert, modify, change, create, drop, truncate, approve, reject, cancel, void or reverse. It is a simple word match, so a legitimate question such as "how did stock change last week?" can be declined. The real protection is the read-only rule.'],
+ ['Playbooks guide the agent; they do not force it','The agent reads its playbooks and chooses whether to follow one. Zevra does not check that every step was done or in order, and it does not track which step the agent is on. The step log shows what it actually did, so a reviewer can compare.'],
  ['AI answers can still be wrong','The fact-check step catches many slips but not all. That is why every answer shows its SQL and result rows. Check the working for anything important.'],
  ['Small results go to OpenAI in full','Results of 10 rows or fewer are sent with their values so the answer can be written. Use masking for columns that must never reach the AI.'],
  ['OpenAI is a third-party processor','Zevra sends prompts to OpenAI\'s API, as listed in this guide. Your agreement with OpenAI (or ours) governs how that provider handles them. This page does not describe OpenAI\'s own policies.'],
- ['Models are configuration, not constants','The model names shown are today\'s defaults. They can be changed in Zevra\'s configuration without changing how the flows work.']
+ ['Models are configuration, not constants','The model names shown are today\'s defaults. Each can be changed to another OpenAI model in Zevra\'s configuration without changing how the flows work. The provider address is fixed, so a model hosted elsewhere is not yet a configuration change (see Planned).']
 ];
 
 ZG.faq = [
@@ -1167,7 +1191,39 @@ ZG.faq = [
  ['What happens when the AI is unsure or wrong?','If it cannot tell which concept a question is about, it asks you. If a filter returns nothing, Zevra checks whether the spelling was the problem before saying "no data". If there is no knowledge of the topic, it says so rather than inventing a number. A second AI call fact-checks the written answer, and every answer shows its working.'],
  ['Does Zevra learn from my questions?','Only from specific signals: a question that follows a clarification, a validated word-to-value choice, a correction, a thumbs-up, or explicit teaching. A learned term must be used at least 10 times with high confidence before it becomes company vocabulary. Learning stays inside your company\'s private section.'],
  ['Where does the AI run?','At OpenAI, called from Zevra\'s server. The comparisons that find the right business concept and the right documents run inside Zevra\'s own database.'],
- ['Can we use a different model?','Models are configuration. The defaults are in the table on the Big picture page.']
+ ['Can we use a different model?','Another OpenAI model: yes, it is a configuration setting per job (defaults are in the table on the Big picture page). A model hosted by you or another provider: not yet; it is on the Planned page with the cost and quality trade-offs.']
+];
+
+/* =========================== PLANNED (not built) =========================== */
+ZG.roadmap = [
+ {id:'packagents',n:1,t:'Agents that ship inside an industry pack',
+  today:`An industry pack today carries business entities, vocabulary, suggested questions, KPI definitions and alert templates. It carries <strong>no agents</strong>: each customer builds theirs from scratch.`,
+  idea:`A pack would also carry ready-made agents, each with its persona, goal, playbooks and starter questions, so a new retail or hospitality customer has useful agents on day one.`,
+  how:[`The pack file gains an <code>agents</code> list. Each agent names the business concepts it needs (for example "inventory balance" and "purchase order").`,`When the pack is applied, Zevra creates the agents <strong>as drafts</strong> in the company's private space, with their playbooks.`,`An agent can be switched on only when the company has mapped its concepts to its own database. Zevra checks this with plain rules and tells the person what is missing.`,`A person reviews and edits the agent before activating it. Nothing runs by itself.`,`Removing the pack removes the agents it created, but never an agent the company edited or built itself.`],
+  eg:{label:'Illustrative agents',rows:[['Retail','Stock-out and replenishment watch; Markdown and promotion performance; Returns and shrink investigator; Supplier performance review'],['Hospitality','Revenue analyst (occupancy, average rate, revenue per available room); Group and event pace; Guest-feedback themes; Food and beverage cost watch'],['Logistics','Late-shipment investigator; Carrier performance; Warehouse throughput'],['Healthcare','Claims denial analyst; Appointment no-show watch (read-only analytics, no clinical decisions)']]},
+  tradeoffs:[`The agents are only as good as the company's data mapping, which is why they start as drafts.`,`Each agent needs a few real questions tested against sample data before it ships in a pack.`,`Playbooks (live today, see Agents) are what make a packaged agent more than a generic persona.`],
+  ai:`No new AI call. The agents use the normal agent loop (flow 4).`},
+ {id:'localmodel',n:2,t:'A self-hosted model for the smaller jobs',
+  today:`Every AI call goes to OpenAI. Each job already has its own model setting, but the address of the provider is a single fixed value, so a different provider (including a model you host) cannot be plugged in by configuration alone.`,
+  idea:`Host an open model (in your cloud or on your own servers) and send it the jobs it can do well, keeping OpenAI for the work where quality matters most.`,
+  how:[`<strong>Step 1: a setting per job for the provider's address and key</strong>, so any single job can point to a hosted model. Everything else stays as is.`,`<strong>Step 2: measure before moving anything.</strong> Replay real, logged requests through the hosted model and compare its answers with the current ones, job by job. Only jobs that match move.`,`<strong>Step 3: move one job at a time</strong>, with the old setting one change away.`,`Embeddings (the numbers used to find concepts and documents) are a special case: a different embedding model produces different numbers, so the concept index and document memory must be rebuilt in one go.`],
+  cost:{head:['Job','Model today','Share of measured AI spend','Good local candidate?'],rows:[
+    ['Choosing the business concept (Stage 1)','gpt-4.1','about 28% after the move to Zevra\'s own index','<strong>Yes, first.</strong> It picks from about 20 candidates and returns strict JSON. This is the largest slice that is a simple classification.'],
+    ['Planner (writes the query steps)','gpt-4.1','about 35-40%','Not yet. Quality-critical; the prompt is long and exact.'],
+    ['Evaluator (is the result enough?)','gpt-4.1','about 7%','Maybe, after measuring.'],
+    ['Composer + fact-check (writes the answer)','gpt-4.1','about 13%','Not yet. This is what the customer reads.'],
+    ['Routing, strategy, term extraction, memory selection, onboarding analysis','gpt-4o-mini','well under 5% together','Technically yes, but there is little spend to save.'],
+    ['Embeddings','text-embedding-ada-002','under 1%','Only for data-residency reasons, not cost.']
+  ],note:`Shares are from Zevra's own measured 15-question run (17-18 October 2026) and will move as prompts change. The cheap calls people think of as "small tasks" are a very small part of the bill; most spend is in the large reasoning calls.`},
+  tradeoffs:[`<strong>Cost:</strong> a hosted model replaces a per-call price with a fixed price (servers, usually GPUs) plus someone to run it. It saves money only at enough volume, and the measured figures suggest only Stage 1 is a big enough slice to matter.`,`<strong>Privacy:</strong> for the jobs that move, the text stays inside your environment instead of going to a third party. That is a real benefit for customers with strict rules, independent of cost.`,`<strong>Quality and risk:</strong> a smaller model may be less reliable on strict formats. That is why each job is measured first and can be switched back immediately.`,`<strong>Operations:</strong> uptime, updates and capacity become Zevra's job.`],
+  ai:`Not built. Today all AI calls, including every small one, go to OpenAI.`},
+ {id:'skills',n:3,t:'Skills: things an agent knows how to do',
+  today:`An agent today has a persona, a goal, databases, a fixed set of safe tools and (now) playbooks. There is no way to add a new capability, such as writing a spreadsheet, or to package specialist knowledge such as how to check an invoice, and reuse it across agents.`,
+  idea:`A <strong>skill</strong> is a packaged capability that can be attached to any agent. Two kinds: <strong>functional skills</strong> (specialist know-how for a business area, for example an invoice specialist) and <strong>generic skills</strong> (abilities that work on any data: a spreadsheet writer, a chart writer, a document reader).`,
+  how:[`A skill is a small package: a name, a one-line "use when", instructions for the model, the tools it may use, and (for generic skills) the Zevra code that does the work.`,`<strong>Zevra code does the work, not model-written code.</strong> A spreadsheet writer, for example, receives rows the agent already fetched through the checked query path and produces the file with fixed code. The model chooses what goes in, never runs anything.`,`Attached skills are shown to the agent the way playbooks are, and their tools join its toolbox. The same limits apply: approved tables only, read-only access to your database, row limits, masking, audit.`,`Output files (a spreadsheet, a chart image) are saved in the company's private space in Zevra's database, never written to the customer's database, and offered as a download.`,`Skills are versioned and switched on per company, and each use appears in the agent's step log.`],
+  eg:{label:'Illustrative skills',rows:[['Functional: Invoice specialist','Knows the company\'s invoice, purchase order and receipt objects; follows a three-way match method; flags mismatches and duplicates; explains each finding with the rows behind it'],['Functional: Cash-collection specialist','Ageing buckets, promise-to-pay tracking, who to chase first'],['Generic: Spreadsheet writer','Turns an agent\'s result rows into a formatted spreadsheet for download'],['Generic: Chart writer','Turns a result into a chart with the right type for the question'],['Generic: Document reader','Reads an uploaded PDF or document and answers from it, using the document memory Zevra already has']]},
+  tradeoffs:[`<strong>Skill versus playbook versus agent:</strong> an agent is who and what it may touch; a playbook is how to investigate one kind of question; a skill is a capability or body of know-how that agents can share. A functional skill can contain playbooks.`,`<strong>Documents are untrusted input.</strong> A document reader must treat text inside a file as data, never as instructions, and its output still passes the same checks.`,`<strong>Governance:</strong> who may create a skill, who may switch it on, and how a change is reviewed need to be defined before customers can add their own. The first version would be authored by Zevra only.`,`Chat already draws charts from query results today, so a chart skill must reuse that, not duplicate it.`],
+  ai:`No new AI call by itself: skills extend the agent loop (flow 4). A skill that needs its own model call would be listed in the AI table when built.`}
 ];
 
 })(window.ZG);
@@ -1438,6 +1494,23 @@ function learnSim(){
   draw();
 }
 
+/* ---------- planned (roadmap) tab ---------- */
+function roadmap(){
+  var ul=function(a){return'<ul style="margin:8px 0 0;padding-left:1.1em">'+a.map(function(x){return'<li style="margin:4px 0">'+x+'</li>';}).join('')+'</ul>';};
+  var tbl=function(head,rows){return'<div class="tw" style="margin-top:8px"><table><thead><tr>'+head.map(function(h){return'<th>'+h+'</th>';}).join('')+'</tr></thead><tbody>'+rows.map(function(r){return'<tr>'+r.map(function(c,i){return'<td>'+(i===0?'<strong>'+c+'</strong>':c)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';};
+  $('#roadmap').innerHTML=ZG.roadmap.map(function(r){
+    var h='<div class="sec"><div class="eyebrow">Planned '+r.n+' &middot; not built</div><h3>'+r.t+'</h3>';
+    h+='<div class="card"><h4>What is true today</h4><p class="muted" style="margin:6px 0 0">'+r.today+'</p></div>';
+    h+='<div class="card" style="margin-top:10px"><h4>The idea</h4><p class="muted" style="margin:6px 0 0">'+r.idea+'</p></div>';
+    h+='<div class="card" style="margin-top:10px"><h4>How it would work</h4>'+ul(r.how)+'</div>';
+    if(r.cost)h+='<div class="card" style="margin-top:10px"><h4>Where the money goes today</h4>'+tbl(r.cost.head,r.cost.rows)+'<p class="muted" style="margin:8px 0 0">'+r.cost.note+'</p></div>';
+    if(r.eg)h+='<div class="card" style="margin-top:10px"><h4>'+r.eg.label+'</h4>'+tbl(['Name','What it does'],r.eg.rows)+'</div>';
+    h+='<div class="card" style="margin-top:10px"><h4>Trade-offs and open questions</h4>'+ul(r.tradeoffs)+'</div>';
+    h+='<p class="muted" style="margin-top:10px"><strong>AI use:</strong> '+r.ai+'</p></div>';
+    return h;
+  }).join('');
+}
+
 /* ---------- trust tab ---------- */
 function trust(){
   boundary($('#bnd-trust'));
@@ -1451,7 +1524,7 @@ function trust(){
 function boot(){
   $$('.js-reviewed').forEach(function(e){e.textContent=ZG.meta.reviewed;});
   ['f1','f2','f3','f4','f5'].forEach(function(k){var d=ZG.flows[k];d.inst=new Flow($('#flow-'+k),d);});
-  initOverview();initChat();agentSim();bgFeatures();learnSim();trust();boundary($('#bnd-f2'));
+  initOverview();initChat();agentSim();bgFeatures();learnSim();trust();roadmap();boundary($('#bnd-f2'));
   initTheme();initTabs();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
