@@ -1,6 +1,6 @@
 window.ZG = window.ZG || {flows:{}};
 /* Update `reviewed` whenever the guide is re-checked against the code (see README). */
-ZG.meta = {reviewed: '18 October 2026'};
+ZG.meta = {reviewed: '14 November 2026'};
 (function(ZG){
 
 ZG.places = [
