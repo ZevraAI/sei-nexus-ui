@@ -67,20 +67,20 @@ function StepBar({ step }) {
         return (
           <React.Fragment key={label}>
             <div className="flex flex-col items-center gap-1.5">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
                 done    ? 'bg-emerald-600 text-white' :
                 current ? 'bg-[#0d2e24] border-2 border-emerald-500 text-emerald-400' :
-                          'bg-gray-100 text-gray-400'
+                          'bg-z-card-2 text-z-text-3'
               }`}>
                 {done ? <Check size={14} /> : i + 1}
               </div>
-              <span className={`text-[10px] font-medium whitespace-nowrap ${
-                current ? 'text-[#0d2e24]' : done ? 'text-emerald-600' : 'text-gray-400'
+              <span className={`text-z-nano font-medium whitespace-nowrap ${
+                current ? 'text-[#0d2e24]' : done ? 'text-emerald-600' : 'text-z-text-3'
               }`}>{label}</span>
             </div>
             {i < STEP_LABELS.length - 1 && (
               <div className={`flex-1 h-0.5 mx-1 mb-5 ${
-                i < step ? 'bg-emerald-500' : 'bg-gray-200'
+                i < step ? 'bg-emerald-500' : 'bg-z-border'
               }`} />
             )}
           </React.Fragment>
@@ -95,11 +95,11 @@ function StepBar({ step }) {
 function Field({ label, hint, children }) {
   return (
     <div>
-      <label className="block text-[12px] font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
+      <label className="block text-z-small font-semibold text-z-text-2 uppercase tracking-wide mb-1.5">
         {label}
       </label>
       {children}
-      {hint && <p className="mt-1 text-[11px] text-gray-400">{hint}</p>}
+      {hint && <p className="mt-1 text-z-micro text-z-text-3">{hint}</p>}
     </div>
   );
 }
@@ -112,7 +112,7 @@ function Input({ value, onChange, placeholder, type = 'text', disabled }) {
       onChange={onChange}
       placeholder={placeholder}
       disabled={disabled}
-      className="w-full h-10 border border-gray-200 rounded-lg px-3.5 text-sm text-gray-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 disabled:bg-gray-50 disabled:text-gray-400 placeholder:text-gray-300"
+      className="w-full h-10 border border-z-border rounded-lg px-3.5 text-sm text-z-text focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 disabled:bg-z-card-2 disabled:text-z-text-3 placeholder:text-z-text-3"
     />
   );
 }
@@ -127,12 +127,12 @@ function PasswordInput({ value, onChange, placeholder, disabled }) {
         onChange={onChange}
         placeholder={placeholder}
         disabled={disabled}
-        className="w-full h-10 border border-gray-200 rounded-lg px-3.5 pr-10 text-sm text-gray-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 disabled:bg-gray-50 disabled:text-gray-400 placeholder:text-gray-300"
+        className="w-full h-10 border border-z-border rounded-lg px-3.5 pr-10 text-sm text-z-text focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 disabled:bg-z-card-2 disabled:text-z-text-3 placeholder:text-z-text-3"
       />
       <button
         type="button"
         onClick={() => setShow(s => !s)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-z-text-3 hover:text-z-text-2"
         tabIndex={-1}
       >
         {show ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -146,7 +146,7 @@ function Select({ value, onChange, children }) {
     <select
       value={value}
       onChange={onChange}
-      className="w-full h-10 border border-gray-200 rounded-lg px-3.5 text-sm text-gray-900 focus:outline-none focus:border-emerald-500 bg-white"
+      className="w-full h-10 border border-z-border rounded-lg px-3.5 text-sm text-z-text focus:outline-none focus:border-emerald-500 bg-z-card"
     >
       {children}
     </select>
@@ -162,16 +162,16 @@ function StepWelcome({ user, onNext }) {
       <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 mb-6">
         <Sparkles size={28} className="text-emerald-600" />
       </div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-3">
+      <h2 className="text-2xl font-semibold text-z-text mb-3">
         Welcome to Zevra, {name} 👋
       </h2>
-      <p className="text-[15px] text-gray-500 leading-relaxed mb-8">
+      <p className="text-z-body text-z-text-3 leading-relaxed mb-8">
         Let's set up your workspace in a few steps. Connect your database,
         pick your tables, and Zevra will learn your data — then you can ask
         questions in plain English and get answers from your live data.
       </p>
-      <p className="text-[13px] text-gray-400 mb-8">
-        Takes about <span className="font-semibold text-gray-600">5 minutes</span>.
+      <p className="text-z-caption text-z-text-3 mb-8">
+        Takes about <span className="font-semibold text-z-text-2">5 minutes</span>.
       </p>
       <button
         onClick={onNext}
@@ -254,8 +254,8 @@ function StepConnect({ onNext, savedForm, onFormChange }) {
 
   return (
     <div className="max-w-lg mx-auto">
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Connect your database</h2>
-      <p className="text-[14px] text-gray-500 mb-7">
+      <h2 className="text-xl font-semibold text-z-text mb-1">Connect your database</h2>
+      <p className="text-z-body-sm text-z-text-3 mb-7">
         Zevra connects directly to your database to read live data. Your credentials
         are stored encrypted and never returned to the UI.
       </p>
@@ -355,7 +355,7 @@ const CATEGORY_COLORS = {
   Inventory:  'bg-orange-100 text-orange-700',
   Logistics:  'bg-emerald-100 text-emerald-700',
   HR:         'bg-pink-100 text-pink-700',
-  Other:      'bg-gray-100 text-gray-600',
+  Other:      'bg-z-card-2 text-z-text-2',
 };
 
 function StepSelectTables({ connectionKey, schemaName, onNext, onBack }) {
@@ -433,14 +433,14 @@ function StepSelectTables({ connectionKey, schemaName, onNext, onBack }) {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-start justify-between mb-1">
-        <h2 className="text-xl font-bold text-gray-900">Choose your tables</h2>
+        <h2 className="text-xl font-semibold text-z-text">Choose your tables</h2>
         {totalTables !== null && (
-          <span className="text-[13px] text-gray-400 mt-1">
+          <span className="text-z-caption text-z-text-3 mt-1">
             {totalTables} tables in database
           </span>
         )}
       </div>
-      <p className="text-[14px] text-gray-500 mb-5">
+      <p className="text-z-body-sm text-z-text-3 mb-5">
         Zevra identified the most important tables to start with.
         You can add more later from the Semantic Layer page.
       </p>
@@ -452,7 +452,7 @@ function StepSelectTables({ connectionKey, schemaName, onNext, onBack }) {
       )}
 
       {/* Tab bar */}
-      <div className="flex gap-0 border-b border-gray-200 mb-4">
+      <div className="flex gap-0 border-b border-z-border mb-4">
         {[
           ['recommended', `AI Recommended (${recommended.length})`],
           ['browse',      `Browse all${totalTables ? ` (${totalTables})` : ''}`],
@@ -461,7 +461,7 @@ function StepSelectTables({ connectionKey, schemaName, onNext, onBack }) {
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
               tab === key
                 ? 'border-emerald-600 text-emerald-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                : 'border-transparent text-z-text-3 hover:text-z-text-2'
             }`}>
             {label}
           </button>
@@ -472,13 +472,13 @@ function StepSelectTables({ connectionKey, schemaName, onNext, onBack }) {
       {tab === 'recommended' && (
         <>
           {loadingRec ? (
-            <div className="flex flex-col items-center py-12 gap-3 text-gray-500">
+            <div className="flex flex-col items-center py-12 gap-3 text-z-text-3">
               <div className="w-10 h-10 border-[3px] border-emerald-100 border-t-emerald-500 rounded-full animate-spin" />
               <p className="text-sm">AI is scanning your schema…</p>
-              <p className="text-xs text-gray-400">One moment — analysing table names and columns</p>
+              <p className="text-xs text-z-text-3">One moment — analysing table names and columns</p>
             </div>
           ) : recommended.length === 0 ? (
-            <p className="text-sm text-gray-400 py-8 text-center">
+            <p className="text-sm text-z-text-3 py-8 text-center">
               No recommendations available. Use Browse all to select tables manually.
             </p>
           ) : (
@@ -490,26 +490,26 @@ function StepSelectTables({ connectionKey, schemaName, onNext, onBack }) {
                 return (
                   <label key={t.table_name}
                     className={`flex items-start gap-3 px-4 py-3 rounded-xl border transition-all ${
-                      atCap ? 'opacity-40 cursor-not-allowed border-gray-200' :
+                      atCap ? 'opacity-40 cursor-not-allowed border-z-border' :
                       isSelected
                         ? 'border-emerald-200 bg-emerald-50/40 cursor-pointer'
-                        : 'border-gray-200 hover:border-gray-300 cursor-pointer'
+                        : 'border-z-border hover:border-z-border-strong cursor-pointer'
                     }`}>
                     <input type="checkbox" checked={isSelected} disabled={atCap}
                       onChange={() => toggle(t.table_name)}
                       className="accent-emerald-600 w-4 h-4 mt-0.5 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-mono font-semibold text-gray-800">
+                        <span className="text-sm font-mono font-semibold text-z-text">
                           {t.table_name}
                         </span>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${catColor}`}>
                           {t.category}
                         </span>
-                        <span className="text-xs text-gray-400 ml-auto">#{i + 1}</span>
+                        <span className="text-xs text-z-text-3 ml-auto">#{i + 1}</span>
                       </div>
                       {t.reason && (
-                        <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{t.reason}</p>
+                        <p className="text-xs text-z-text-3 mt-0.5 leading-relaxed">{t.reason}</p>
                       )}
                     </div>
                   </label>
@@ -525,44 +525,44 @@ function StepSelectTables({ connectionKey, schemaName, onNext, onBack }) {
         <>
           <div className="flex items-center gap-3 mb-3">
             <div className="relative flex-1">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-z-text-3" />
               <input value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
                 placeholder="Search tables…"
-                className="w-full h-9 border border-gray-200 rounded-lg pl-9 pr-3 text-sm focus:outline-none focus:border-emerald-500" />
+                className="w-full h-9 border border-z-border rounded-lg pl-9 pr-3 text-sm focus:outline-none focus:border-emerald-500" />
             </div>
             {filtered.length > 0 && (
-              <span className="text-xs text-gray-400 whitespace-nowrap">
+              <span className="text-xs text-z-text-3 whitespace-nowrap">
                 {filtered.length} result{filtered.length !== 1 ? 's' : ''}
               </span>
             )}
           </div>
 
           {loadingAll ? (
-            <div className="flex items-center gap-2 text-gray-500 py-8 justify-center">
+            <div className="flex items-center gap-2 text-z-text-3 py-8 justify-center">
               <RefreshCw size={15} className="animate-spin" /> Loading tables…
             </div>
           ) : (
             <>
-              <div className="border border-gray-200 rounded-xl overflow-hidden mb-3">
+              <div className="border border-z-border rounded-xl overflow-hidden mb-3">
                 {pageSlice.length === 0 ? (
-                  <p className="text-sm text-gray-400 text-center py-6">No tables match your search.</p>
+                  <p className="text-sm text-z-text-3 text-center py-6">No tables match your search.</p>
                 ) : (
                   pageSlice.map(t => {
                     const isChecked = selected.has(t.table_name);
                     const atCap = !isChecked && selected.size >= MAX_SELECTED_TABLES;
                     return (
                       <label key={t.table_name}
-                        className={`flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 last:border-0 ${
-                          atCap ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50 cursor-pointer'
+                        className={`flex items-center gap-3 px-4 py-2.5 border-b border-z-border last:border-0 ${
+                          atCap ? 'opacity-40 cursor-not-allowed' : 'hover:bg-z-card-2 cursor-pointer'
                         }`}>
                         <input type="checkbox" checked={isChecked} disabled={atCap}
                           onChange={() => toggle(t.table_name)}
                           className="accent-emerald-600 w-4 h-4 shrink-0" />
-                        <span className="text-sm font-mono text-gray-700 flex-1 truncate">
+                        <span className="text-sm font-mono text-z-text-2 flex-1 truncate">
                           {t.table_name}
                         </span>
-                        <span className="text-xs text-gray-400 shrink-0">{t.column_count} cols</span>
+                        <span className="text-xs text-z-text-3 shrink-0">{t.column_count} cols</span>
                       </label>
                     );
                   })
@@ -573,12 +573,12 @@ function StepSelectTables({ connectionKey, schemaName, onNext, onBack }) {
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-1 mb-4">
                   <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                    className="h-7 px-2 text-xs border border-gray-200 rounded disabled:opacity-40">←</button>
-                  <span className="text-xs text-gray-500 px-2">
+                    className="h-7 px-2 text-xs border border-z-border rounded disabled:opacity-40">←</button>
+                  <span className="text-xs text-z-text-3 px-2">
                     Page {page} of {totalPages}
                   </span>
                   <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                    className="h-7 px-2 text-xs border border-gray-200 rounded disabled:opacity-40">→</button>
+                    className="h-7 px-2 text-xs border border-z-border rounded disabled:opacity-40">→</button>
                 </div>
               )}
             </>
@@ -587,15 +587,15 @@ function StepSelectTables({ connectionKey, schemaName, onNext, onBack }) {
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-        <button onClick={onBack} className="text-sm text-gray-400 hover:text-gray-600">← Back</button>
+      <div className="flex items-center justify-between pt-2 border-t border-z-border">
+        <button onClick={onBack} className="text-sm text-z-text-3 hover:text-z-text-2">← Back</button>
         <div className="flex items-center gap-3">
           {selected.size >= MAX_SELECTED_TABLES ? (
             <span className="text-xs text-amber-600 font-medium">
               Maximum of {MAX_SELECTED_TABLES} tables reached — analyse this batch, then add more from the Semantic Layer page
             </span>
           ) : selected.size > 0 && (
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-z-text-3">
               {selected.size} table{selected.size !== 1 ? 's' : ''} selected
             </span>
           )}
@@ -731,8 +731,8 @@ function StepAnalysing({ connectionKey, schemaName, domainKey, tableNames,
         <div className="w-20 h-20 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin" />
         <Sparkles size={22} className="absolute text-emerald-600" />
       </div>
-      <h2 className="text-xl font-bold text-gray-900 mb-2">Zevra is reading your schema</h2>
-      <p className="text-[14px] text-gray-500 mb-6">
+      <h2 className="text-xl font-semibold text-z-text mb-2">Zevra is reading your schema</h2>
+      <p className="text-z-body-sm text-z-text-3 mb-6">
         Analysing {tablesTotal} table{tablesTotal !== 1 ? 's' : ''} —
         generating entity definitions, vocabulary, and suggested questions…
       </p>
@@ -746,14 +746,14 @@ function StepAnalysing({ connectionKey, schemaName, domainKey, tableNames,
           ))}
         </div>
       ) : (
-        <div className="text-xs font-mono text-gray-400 mb-5">Starting…</div>
+        <div className="text-xs text-z-text-3 mb-5">Starting…</div>
       )}
 
-      <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+      <div className="w-full bg-z-card-2 rounded-full h-2 overflow-hidden">
         <div className="h-full bg-emerald-500 rounded-full transition-all duration-700"
           style={{ width: pct + '%' }} />
       </div>
-      <p className="text-xs text-gray-400 mt-2">{tablesDone}/{tablesTotal} tables — {pct}% complete</p>
+      <p className="text-xs text-z-text-3 mt-2">{tablesDone}/{tablesTotal} tables — {pct}% complete</p>
     </div>
   );
 }
@@ -767,15 +767,15 @@ function EntityCard({ suggestion, approved, onToggle, onEdit }) {
 
   return (
     <div className={`border rounded-xl overflow-hidden transition-all ${
-      approved ? 'border-emerald-200 bg-emerald-50/40' : 'border-gray-200 opacity-50'
+      approved ? 'border-emerald-200 bg-emerald-50/40' : 'border-z-border opacity-50'
     }`}>
-      <div className="flex items-center gap-3 px-4 py-3 bg-white">
+      <div className="flex items-center gap-3 px-4 py-3 bg-z-card">
         <input type="checkbox" checked={approved} onChange={onToggle}
           className="accent-emerald-600 w-4 h-4 shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-gray-900">{entityName || suggestion.entityName}</span>
-            <span className="text-xs text-gray-400 font-mono">{suggestion.table_name}</span>
+            <span className="text-sm font-semibold text-z-text">{entityName || suggestion.entityName}</span>
+            <span className="text-xs text-z-text-3 font-mono">{suggestion.table_name}</span>
             {suggestion.readinessScore != null && (
               <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                 suggestion.readinessScore >= 0.8 ? 'bg-green-100 text-green-700' :
@@ -785,16 +785,16 @@ function EntityCard({ suggestion, approved, onToggle, onEdit }) {
               </span>
             )}
           </div>
-          <p className="text-xs text-gray-500 mt-0.5 truncate">{purpose || suggestion.purpose}</p>
+          <p className="text-xs text-z-text-3 mt-0.5 truncate">{purpose || suggestion.purpose}</p>
         </div>
         <button onClick={() => setExpanded(e => !e)}
-          className="text-gray-400 hover:text-gray-600">
+          className="text-z-text-3 hover:text-z-text-2">
           {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
         </button>
       </div>
 
       {expanded && approved && (
-        <div className="px-4 py-4 space-y-3 border-t border-gray-100">
+        <div className="px-4 py-4 space-y-3 border-t border-z-border">
           {suggestion.error ? (
             <p className="text-sm text-red-600 flex items-center gap-2">
               <AlertCircle size={13} /> {suggestion.error}
@@ -803,42 +803,42 @@ function EntityCard({ suggestion, approved, onToggle, onEdit }) {
             <>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                  <label className="block text-z-micro font-semibold text-z-text-3 uppercase tracking-wide mb-1">
                     Entity name
                   </label>
                   <input value={entityName} onChange={e => {
                     setEntityName(e.target.value);
                     onEdit({ entityName: e.target.value });
-                  }} className="w-full h-8 border border-gray-200 rounded-lg px-3 text-xs focus:outline-none focus:border-emerald-500" />
+                  }} className="w-full h-8 border border-z-border rounded-lg px-3 text-xs focus:outline-none focus:border-emerald-500" />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                  <label className="block text-z-micro font-semibold text-z-text-3 uppercase tracking-wide mb-1">
                     Entity key (ID)
                   </label>
                   <input value={slugify(entityName)} readOnly
-                    className="w-full h-8 border border-gray-100 rounded-lg px-3 text-xs font-mono bg-gray-50 text-gray-400" />
+                    className="w-full h-8 border border-z-border rounded-lg px-3 text-xs font-mono bg-z-card-2 text-z-text-3" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                <label className="block text-z-micro font-semibold text-z-text-3 uppercase tracking-wide mb-1">
                   Purpose
                 </label>
                 <textarea value={purpose} rows={2}
                   onChange={e => { setPurpose(e.target.value); onEdit({ purpose: e.target.value }); }}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs resize-none focus:outline-none focus:border-emerald-500" />
+                  className="w-full border border-z-border rounded-lg px-3 py-2 text-xs resize-none focus:outline-none focus:border-emerald-500" />
               </div>
 
               {safeArray(suggestion.vocabularySuggestions).length > 0 && (
                 <div>
-                  <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  <p className="text-z-micro font-semibold text-z-text-3 uppercase tracking-wide mb-2">
                     Vocabulary ({safeArray(suggestion.vocabularySuggestions).length} terms)
                   </p>
                   <div className="space-y-1.5">
                     {safeArray(suggestion.vocabularySuggestions).map((v, i) => (
-                      <div key={i} className="flex items-start gap-2 text-xs bg-white border border-gray-100 rounded-lg px-3 py-2">
-                        <span className="font-semibold text-gray-700 shrink-0">{v.term}</span>
-                        <span className="text-gray-500">— {v.definition}</span>
+                      <div key={i} className="flex items-start gap-2 text-xs bg-z-card border border-z-border rounded-lg px-3 py-2">
+                        <span className="font-semibold text-z-text-2 shrink-0">{v.term}</span>
+                        <span className="text-z-text-3">— {v.definition}</span>
                         {v.sqlEquivalent && (
                           <code className="ml-auto text-emerald-600 font-mono shrink-0">{v.sqlEquivalent}</code>
                         )}
@@ -850,11 +850,11 @@ function EntityCard({ suggestion, approved, onToggle, onEdit }) {
 
               {safeArray(suggestion.suggestedQuestions).length > 0 && (
                 <div>
-                  <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  <p className="text-z-micro font-semibold text-z-text-3 uppercase tracking-wide mb-2">
                     Suggested questions
                   </p>
                   {safeArray(suggestion.suggestedQuestions).map((q, i) => (
-                    <p key={i} className="text-xs text-gray-600 flex items-start gap-1.5 mb-1">
+                    <p key={i} className="text-xs text-z-text-2 flex items-start gap-1.5 mb-1">
                       <span className="text-emerald-500 mt-0.5">→</span> {q}
                     </p>
                   ))}
@@ -932,10 +932,10 @@ function StepReview({ suggestions, connectionKey, schemaName, domainKey, onNext,
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-1">
-        <h2 className="text-xl font-bold text-gray-900">Review AI suggestions</h2>
-        <span className="text-sm text-gray-400">{approved} of {entities.length} selected</span>
+        <h2 className="text-xl font-semibold text-z-text">Review AI suggestions</h2>
+        <span className="text-sm text-z-text-3">{approved} of {entities.length} selected</span>
       </div>
-      <p className="text-[14px] text-gray-500 mb-6">
+      <p className="text-z-body-sm text-z-text-3 mb-6">
         Zevra has analysed your schema. Edit any names or descriptions, then import.
         You can always change these later in the Semantic Layer.
       </p>
@@ -955,7 +955,7 @@ function StepReview({ suggestions, connectionKey, schemaName, domainKey, onNext,
       )}
 
       <div className="flex items-center justify-between">
-        <button onClick={onBack} className="text-sm text-gray-400 hover:text-gray-600">
+        <button onClick={onBack} className="text-sm text-z-text-3 hover:text-z-text-2">
           ← Back
         </button>
         <button
@@ -985,8 +985,8 @@ function StepDone({ suggestedQuestions, onFinish }) {
       <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 mb-6">
         <CheckCircle2 size={32} className="text-emerald-600" />
       </div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-3">You're ready!</h2>
-      <p className="text-[14px] text-gray-500 mb-6">
+      <h2 className="text-2xl font-semibold text-z-text mb-3">You're ready!</h2>
+      <p className="text-z-body-sm text-z-text-3 mb-6">
         Zevra has learnt your data. Start by asking one of these questions or type your own.
       </p>
 
@@ -994,7 +994,7 @@ function StepDone({ suggestedQuestions, onFinish }) {
         <div className="text-left space-y-2.5 mb-8">
           {safeArray(suggestedQuestions).map((q, i) => (
             <button key={i} onClick={() => onFinish(q)}
-              className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-emerald-400 hover:bg-emerald-50/50 text-sm text-gray-700 transition-all group flex items-center gap-2">
+              className="w-full text-left px-4 py-3 rounded-xl border border-z-border hover:border-emerald-400 hover:bg-emerald-50/50 text-sm text-z-text-2 transition-all group flex items-center gap-2">
               <ChevronRight size={14} className="text-emerald-500 shrink-0 group-hover:translate-x-0.5 transition-transform" />
               {q}
             </button>
@@ -1050,8 +1050,8 @@ export default function OnboardingWizard({ user, onComplete }) {
         {/* Header */}
         <div className="flex items-center gap-3 mb-10">
           <ZevraLogo size={28} style={{ borderRadius: '8px' }} />
-          <span className="text-lg font-bold text-gray-900">Zevra</span>
-          <span className="text-gray-300 ml-auto text-sm">Setup wizard</span>
+          <span className="text-lg font-semibold text-z-text">Zevra</span>
+          <span className="text-z-text-3 ml-auto text-sm">Setup wizard</span>
           {/* Escape actions */}
           {impersonation ? (
             <button
@@ -1065,7 +1065,7 @@ export default function OnboardingWizard({ user, onComplete }) {
             <button
               onClick={() => navigate('/chat')}
               title="Back to app"
-              className="ml-3 h-8 px-3 rounded-lg bg-gray-100 text-gray-700 text-xs font-semibold border border-gray-200 hover:bg-gray-200 transition-colors"
+              className="ml-3 h-8 px-3 rounded-lg bg-z-card-2 text-z-text-2 text-xs font-semibold border border-z-border hover:bg-z-border transition-colors"
             >
               Back to app
             </button>
@@ -1087,7 +1087,7 @@ export default function OnboardingWizard({ user, onComplete }) {
         )}
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.08)] border border-gray-100 p-8 min-h-[420px] flex flex-col">
+        <div className="bg-z-card rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.08)] border border-z-border p-8 min-h-[420px] flex flex-col">
 
           {analyseError && (
             <div className="mb-6 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">

@@ -37,12 +37,12 @@ export default function GenerateModal({
   const overlay = 'fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4';
   const modal   = isDark
     ? 'bg-[#1A1F2B] border border-[#252E3F] text-[#E2E8F0] w-full max-w-xl rounded-2xl shadow-2xl'
-    : 'bg-white border border-gray-200 text-gray-900 w-full max-w-xl rounded-2xl shadow-2xl';
+    : 'bg-z-card border border-z-border text-z-text w-full max-w-xl rounded-2xl shadow-2xl';
   const input   = isDark
-    ? 'w-full bg-[#0F1117] border border-[#252E3F] text-[#E2E8F0] placeholder-[#4B5563] rounded-xl px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 resize-none'
-    : 'w-full border border-gray-200 rounded-xl px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 resize-none';
-  const sub     = isDark ? 'text-[#64748B]' : 'text-gray-500';
-  const card    = isDark ? 'bg-[#0F1117] border-[#252E3F]' : 'bg-gray-50 border-gray-200';
+    ? 'w-full bg-[#0F1117] border border-[#252E3F] text-[#E2E8F0] placeholder-[#4B5563] rounded-xl px-3 py-2 text-z-caption focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 resize-none'
+    : 'w-full border border-z-border rounded-xl px-3 py-2 text-z-caption focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 resize-none';
+  const sub     = isDark ? 'text-[#64748B]' : 'text-z-text-3';
+  const card    = isDark ? 'bg-[#0F1117] border-[#252E3F]' : 'bg-z-card-2 border-z-border';
 
   const analyze = async () => {
     if (!requirement.trim()) return;
@@ -97,11 +97,11 @@ export default function GenerateModal({
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-200/10">
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-emerald-500" />
-            <span className="text-[15px] font-bold">
+            <span className="text-z-body font-semibold">
               {isRegen ? 'Regenerate Workflow with AI' : 'Generate Workflow with AI'}
             </span>
           </div>
-          <button onClick={onClose} className={`p-1 rounded-lg ${isDark ? 'hover:bg-[#252E3F]' : 'hover:bg-gray-100'}`}>
+          <button onClick={onClose} className={`p-1 rounded-lg ${isDark ? 'hover:bg-[#252E3F]' : 'hover:bg-z-card-2'}`}>
             <X size={16} />
           </button>
         </div>
@@ -114,13 +114,13 @@ export default function GenerateModal({
             return (
               <React.Fragment key={label}>
                 <div className="flex items-center gap-1.5">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors
-                    ${done || active ? 'bg-emerald-500 text-white' : isDark ? 'bg-[#252E3F] text-[#4B5563]' : 'bg-gray-100 text-gray-400'}`}>
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-z-nano font-semibold transition-colors
+                    ${done || active ? 'bg-emerald-500 text-white' : isDark ? 'bg-[#252E3F] text-[#4B5563]' : 'bg-z-card-2 text-z-text-3'}`}>
                     {done ? <Check size={10} /> : i + 1}
                   </div>
-                  <span className={`text-[11px] font-medium ${active ? (isDark ? 'text-[#E2E8F0]' : 'text-gray-900') : sub}`}>{label}</span>
+                  <span className={`text-z-micro font-medium ${active ? (isDark ? 'text-[#E2E8F0]' : 'text-z-text') : sub}`}>{label}</span>
                 </div>
-                {i < 2 && <div className={`flex-1 h-px ${isDark ? 'bg-[#252E3F]' : 'bg-gray-200'}`} />}
+                {i < 2 && <div className={`flex-1 h-px ${isDark ? 'bg-[#252E3F]' : 'bg-z-border'}`} />}
               </React.Fragment>
             );
           })}
@@ -133,15 +133,15 @@ export default function GenerateModal({
           {step === 1 && (
             <>
               {isRegen && (
-                <div className={`rounded-xl border p-3 text-[12px] ${isDark ? 'border-amber-500/30 bg-amber-500/5 text-amber-400' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
+                <div className={`rounded-xl border p-3 text-z-small ${isDark ? 'border-amber-500/30 bg-amber-500/5 text-amber-400' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
                   This will replace the current workflow graph. Your name, slug, and status are kept.
                 </div>
               )}
               <div>
-                <p className={`text-[12px] font-semibold mb-1 ${isDark ? 'text-[#E2E8F0]' : 'text-gray-700'}`}>
+                <p className={`text-z-small font-semibold mb-1 ${isDark ? 'text-[#E2E8F0]' : 'text-z-text-2'}`}>
                   {isRegen ? 'Describe the corrected workflow' : 'Describe what you want this workflow to do'}
                 </p>
-                <p className={`text-[11px] mb-3 ${sub}`}>
+                <p className={`text-z-micro mb-3 ${sub}`}>
                   Be specific — mention the trigger, what data to query, any conditions, and what the output should look like.
                 </p>
                 <textarea
@@ -151,7 +151,7 @@ export default function GenerateModal({
                   onChange={e => setReq(e.target.value)}
                 />
               </div>
-              {error && <p className="text-red-500 text-[12px]">{error}</p>}
+              {error && <p className="text-red-500 text-z-small">{error}</p>}
             </>
           )}
 
@@ -159,18 +159,18 @@ export default function GenerateModal({
           {step === 2 && analysis && (
             <>
               <div className={`rounded-xl border p-3 ${card}`}>
-                <p className={`text-[11px] font-semibold mb-1 ${sub}`}>AI Summary</p>
-                <p className="text-[13px]">{analysis.summary}</p>
+                <p className={`text-z-micro font-semibold mb-1 ${sub}`}>AI Summary</p>
+                <p className="text-z-caption">{analysis.summary}</p>
               </div>
 
               {analysis.proposedSteps?.length > 0 && (
                 <div>
-                  <p className={`text-[11px] font-semibold mb-2 ${sub}`}>Proposed workflow steps</p>
+                  <p className={`text-z-micro font-semibold mb-2 ${sub}`}>Proposed workflow steps</p>
                   <ol className="space-y-1">
                     {analysis.proposedSteps.map((s, i) => (
                       <li key={i} className="flex items-start gap-2">
-                        <span className="text-emerald-500 text-[11px] font-bold shrink-0 mt-0.5">{i + 1}.</span>
-                        <span className="text-[12px]">{s}</span>
+                        <span className="text-emerald-500 text-z-micro font-semibold shrink-0 mt-0.5">{i + 1}.</span>
+                        <span className="text-z-small">{s}</span>
                       </li>
                     ))}
                   </ol>
@@ -179,16 +179,16 @@ export default function GenerateModal({
 
               {analysis.suggestedConnections?.length > 0 && (
                 <div>
-                  <p className={`text-[11px] font-semibold mb-2 ${sub}`}>Connections <span className="font-normal">(tap to toggle)</span></p>
+                  <p className={`text-z-micro font-semibold mb-2 ${sub}`}>Connections <span className="font-normal">(tap to toggle)</span></p>
                   <div className="flex flex-wrap gap-2">
                     {analysis.suggestedConnections.map(conn => (
                       <button
                         key={conn}
                         onClick={() => toggleItem(selectedConns, setConns, conn)}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[12px] font-medium transition-colors
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-z-small font-medium transition-colors
                           ${selectedConns.includes(conn)
                             ? 'bg-emerald-500/10 border-emerald-500 text-emerald-600'
-                            : isDark ? 'border-[#252E3F] text-[#64748B] hover:border-[#374151]' : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                            : isDark ? 'border-[#252E3F] text-[#64748B] hover:border-[#374151]' : 'border-z-border text-z-text-3 hover:border-z-border-strong'}`}
                       >
                         <Database size={11} />
                         {conn}
@@ -201,16 +201,16 @@ export default function GenerateModal({
 
               {analysis.suggestedTables?.length > 0 && (
                 <div>
-                  <p className={`text-[11px] font-semibold mb-2 ${sub}`}>Tables <span className="font-normal">(tap to toggle)</span></p>
+                  <p className={`text-z-micro font-semibold mb-2 ${sub}`}>Tables <span className="font-normal">(tap to toggle)</span></p>
                   <div className="flex flex-wrap gap-2">
                     {analysis.suggestedTables.map(tbl => (
                       <button
                         key={tbl}
                         onClick={() => toggleItem(selectedTables, setTables, tbl)}
-                        className={`px-2.5 py-1 rounded-lg border text-[12px] font-mono transition-colors
+                        className={`px-2.5 py-1 rounded-lg border text-z-small font-mono transition-colors
                           ${selectedTables.includes(tbl)
                             ? 'bg-blue-500/10 border-blue-500 text-blue-600'
-                            : isDark ? 'border-[#252E3F] text-[#64748B] hover:border-[#374151]' : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                            : isDark ? 'border-[#252E3F] text-[#64748B] hover:border-[#374151]' : 'border-z-border text-z-text-3 hover:border-z-border-strong'}`}
                       >
                         {tbl}
                       </button>
@@ -221,16 +221,16 @@ export default function GenerateModal({
 
               {analysis.clarifications?.length > 0 && (
                 <div className={`rounded-xl border p-3 ${isDark ? 'border-amber-500/30 bg-amber-500/5' : 'border-amber-200 bg-amber-50'}`}>
-                  <p className="text-[11px] font-semibold text-amber-600 mb-1">Things to clarify (you can adjust after generation)</p>
+                  <p className="text-z-micro font-semibold text-amber-600 mb-1">Things to clarify (you can adjust after generation)</p>
                   <ul className="space-y-0.5">
                     {analysis.clarifications.map((q, i) => (
-                      <li key={i} className="text-[12px] text-amber-700">• {q}</li>
+                      <li key={i} className="text-z-small text-amber-700">• {q}</li>
                     ))}
                   </ul>
                 </div>
               )}
 
-              {error && <p className="text-red-500 text-[12px]">{error}</p>}
+              {error && <p className="text-red-500 text-z-small">{error}</p>}
             </>
           )}
 
@@ -238,10 +238,10 @@ export default function GenerateModal({
           {step === 3 && (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
               <Loader2 size={32} className="animate-spin text-emerald-500" />
-              <p className="text-[13px] font-semibold">
+              <p className="text-z-caption font-semibold">
                 {isRegen ? 'Rebuilding your workflow…' : 'Building your workflow…'}
               </p>
-              <p className={`text-[12px] ${sub}`}>GPT-4o is designing the nodes and connections</p>
+              <p className={`text-z-small ${sub}`}>GPT-4o is designing the nodes and connections</p>
             </div>
           )}
         </div>
@@ -251,8 +251,8 @@ export default function GenerateModal({
           <div className="flex items-center justify-between px-5 pb-5 pt-2 gap-3">
             <button
               onClick={step === 1 ? onClose : () => setStep(1)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium transition-colors
-                ${isDark ? 'text-[#64748B] hover:bg-[#252E3F] hover:text-[#E2E8F0]' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-z-caption font-medium transition-colors
+                ${isDark ? 'text-[#64748B] hover:bg-[#252E3F] hover:text-[#E2E8F0]' : 'text-z-text-3 hover:bg-z-card-2 hover:text-z-text-2'}`}
             >
               {step === 2 && <ArrowLeft size={13} />}
               {step === 1 ? 'Cancel' : 'Back'}
@@ -262,7 +262,7 @@ export default function GenerateModal({
               <button
                 onClick={analyze}
                 disabled={loading || !requirement.trim()}
-                className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-[13px] font-semibold rounded-xl transition-colors"
+                className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-z-caption font-semibold rounded-xl transition-colors"
               >
                 {loading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
                 {loading ? 'Analysing…' : 'Analyse with AI'}
@@ -273,7 +273,7 @@ export default function GenerateModal({
               <button
                 onClick={generate}
                 disabled={loading}
-                className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-[13px] font-semibold rounded-xl transition-colors"
+                className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-z-caption font-semibold rounded-xl transition-colors"
               >
                 <Sparkles size={13} />
                 {isRegen ? 'Rebuild Workflow' : 'Generate Workflow'}

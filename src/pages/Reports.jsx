@@ -162,7 +162,7 @@ function QuestionsEditor({ questions, onChange }) {
     <div className="space-y-2">
       {questions.map((q, i) => (
         <div key={i} className="flex items-center gap-2">
-          <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-z-round bg-z-primary text-[10px] font-bold text-z-on-accent">
+          <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-z-round bg-z-primary text-z-nano font-semibold text-z-on-accent">
             {i + 1}
           </span>
           <Input className="flex-1" value={q} onChange={e => update(i, e.target.value)} />
@@ -173,7 +173,7 @@ function QuestionsEditor({ questions, onChange }) {
       ))}
 
       <div className="mt-2 flex items-center gap-2">
-        <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-z-round border-2 border-dashed border-z-border-strong text-[10px] font-bold text-z-text-3">
+        <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-z-round border-2 border-dashed border-z-border-strong text-z-nano font-semibold text-z-text-3">
           +
         </span>
         <Input

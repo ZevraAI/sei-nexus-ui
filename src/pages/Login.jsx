@@ -29,7 +29,7 @@ function LoginThemeToggle() {
         style={{ background: isDark ? 'var(--z-primary)' : 'var(--z-border-strong)' }}
       >
         <span
-          className="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-sm transition-transform duration-200"
+          className="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-z-card shadow-sm transition-transform duration-200"
           style={{ transform: isDark ? 'translateX(18px)' : 'translateX(2px)' }}
         />
       </button>
@@ -264,16 +264,16 @@ export default function Login({ onLogin }) {
           <div className="flex md:hidden flex-col items-center text-center gap-2.5 mb-7">
             <div className="flex items-center gap-2.5">
               <ZevraLogo size={28} style={{ borderRadius: '8px' }} />
-              <span className="text-[15px] font-semibold zv-t1" style={{ color: 'var(--z-text)' }}>Zevra</span>
+              <span className="text-z-body font-semibold zv-t1" style={{ color: 'var(--z-text)' }}>Zevra</span>
             </div>
             <h1
-              className="mt-1 text-[19px] leading-snug tracking-tight zv-t1"
+              className="mt-1 text-z-h3 leading-snug tracking-tight zv-t1"
               style={{ fontFamily: 'var(--z-font-serif)', fontWeight: 450, color: 'var(--z-text)' }}
             >
               Understand your business.<br />
               Act with <span style={{ color: 'var(--z-primary)' }}>confidence.</span>
             </h1>
-            <p className="text-[12.5px] leading-snug max-w-[34ch] zv-t2" style={{ color: 'var(--z-text-2)' }}>
+            <p className="text-z-small leading-snug max-w-[34ch] zv-t2" style={{ color: 'var(--z-text-2)' }}>
               Zevra connects to the systems your organization already runs and turns operational data into intelligence your teams can trust.
             </p>
           </div>
@@ -302,13 +302,13 @@ export default function Login({ onLogin }) {
                       >
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--z-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                       </div>
-                      <p className="text-[14px] font-semibold zv-t1" style={{ color: 'var(--z-text)' }}>Check your inbox</p>
-                      <p className="text-[13px] zv-t3" style={{ color: 'var(--z-text-3)' }}>
+                      <p className="text-z-body-sm font-semibold zv-t1" style={{ color: 'var(--z-text)' }}>Check your inbox</p>
+                      <p className="text-z-caption zv-t3" style={{ color: 'var(--z-text-3)' }}>
                         A password reset link has been sent to <span className="font-medium zv-t2" style={{ color: 'var(--z-text-2)' }}>{form.email}</span>.
                         Check your spam folder if it doesn't arrive within a few minutes.
                       </p>
                       <button type="button" onClick={() => switchMode('login')}
-                        className="mt-2 text-[13px] font-medium hover:underline"
+                        className="mt-2 text-z-caption font-medium hover:underline"
                         style={{ color: 'var(--z-primary)' }}>
                         Back to sign in
                       </button>
@@ -316,10 +316,10 @@ export default function Login({ onLogin }) {
                   ) : (
                     <form onSubmit={handleResetPassword} className="space-y-4">
                       <div>
-                        <p className="text-[13px] mb-4 zv-t3" style={{ color: 'var(--z-text-3)' }}>
+                        <p className="text-z-caption mb-4 zv-t3" style={{ color: 'var(--z-text-3)' }}>
                           Enter your email address and we'll send you a link to reset your password.
                         </p>
-                        <label className="block text-[11.5px] font-semibold mb-1.5 zv-t2" style={{ color: 'var(--z-text-2)' }}>
+                        <label className="block text-z-micro font-semibold mb-1.5 zv-t2" style={{ color: 'var(--z-text-2)' }}>
                           Email address
                         </label>
                         <input type="email" required autoComplete="email"
@@ -333,7 +333,7 @@ export default function Login({ onLogin }) {
                         />
                       </div>
                       {error && (
-                        <div className="flex items-start gap-2.5 text-[13px] px-3.5 py-3 rounded-[var(--z-radius-sm)] border"
+                        <div className="flex items-start gap-2.5 text-z-caption px-3.5 py-3 rounded-[var(--z-radius-sm)] border"
                           style={{ background: 'color-mix(in srgb, var(--z-critical) 8%, transparent)', borderColor: 'color-mix(in srgb, var(--z-critical) 30%, transparent)', color: 'var(--z-critical)' }}>
                           <AlertCircle size={15} className="shrink-0 mt-0.5" />
                           <span>{error}</span>
@@ -348,7 +348,7 @@ export default function Login({ onLogin }) {
                         Send reset link
                       </button>
                       <button type="button" onClick={() => switchMode('login')}
-                        className="w-full text-[13px] font-medium transition-colors py-1 zv-t4"
+                        className="w-full text-z-caption font-medium transition-colors py-1 zv-t4"
                         style={{ color: 'var(--z-text-muted)' }}>
                         Back to sign in
                       </button>
@@ -362,8 +362,8 @@ export default function Login({ onLogin }) {
                   {/* Card head */}
                   <div className="mb-5 zv-card-head">
                     <ZevraLogo size={34} style={{ borderRadius: 'var(--z-radius-sm)', display: 'block', marginBottom: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.14)' }} />
-                    <h2 className="text-[20px] font-semibold tracking-tight zv-t1" style={{ color: 'var(--z-text)' }}>Welcome back</h2>
-                    <p className="mt-1 text-[13px] zv-t3" style={{ color: 'var(--z-text-3)' }}>Sign in to your Zevra workspace</p>
+                    <h2 className="text-z-h3 font-semibold tracking-tight zv-t1" style={{ color: 'var(--z-text)' }}>Welcome back</h2>
+                    <p className="mt-1 text-z-caption zv-t3" style={{ color: 'var(--z-text-3)' }}>Sign in to your Zevra workspace</p>
                   </div>
 
                   {/* SSO buttons — only when Supabase is configured */}
@@ -373,7 +373,7 @@ export default function Login({ onLogin }) {
                         type="button"
                         onClick={() => handleSso('google')}
                         disabled={!!ssoLoading}
-                        className="w-full flex items-center justify-center gap-2.5 rounded-[var(--z-radius-md)] py-2.5 text-[13px] font-medium transition-all border disabled:opacity-50 zv-t2"
+                        className="w-full flex items-center justify-center gap-2.5 rounded-[var(--z-radius-md)] py-2.5 text-z-caption font-medium transition-all border disabled:opacity-50 zv-t2"
                         style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border-strong)', color: 'var(--z-text-2)' }}
                         onMouseEnter={e => { e.currentTarget.style.background = 'var(--z-hover)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'var(--z-surface)'; e.currentTarget.style.transform = 'none'; }}
@@ -385,7 +385,7 @@ export default function Login({ onLogin }) {
                         type="button"
                         onClick={() => handleSso('azure')}
                         disabled={!!ssoLoading}
-                        className="w-full flex items-center justify-center gap-2.5 rounded-[var(--z-radius-md)] py-2.5 text-[13px] font-medium transition-all border disabled:opacity-50 zv-t2"
+                        className="w-full flex items-center justify-center gap-2.5 rounded-[var(--z-radius-md)] py-2.5 text-z-caption font-medium transition-all border disabled:opacity-50 zv-t2"
                         style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border-strong)', color: 'var(--z-text-2)' }}
                         onMouseEnter={e => { e.currentTarget.style.background = 'var(--z-hover)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'var(--z-surface)'; e.currentTarget.style.transform = 'none'; }}
@@ -395,7 +395,7 @@ export default function Login({ onLogin }) {
                       </button>
                       <div className="flex items-center gap-3 pt-1">
                         <div className="flex-1 h-px" style={{ background: 'var(--z-border)' }} />
-                        <span className="text-[11px] zv-t4" style={{ color: 'var(--z-text-muted)' }}>or sign in with email</span>
+                        <span className="text-z-micro zv-t4" style={{ color: 'var(--z-text-muted)' }}>or sign in with email</span>
                         <div className="flex-1 h-px" style={{ background: 'var(--z-border)' }} />
                       </div>
                     </div>
@@ -407,7 +407,7 @@ export default function Login({ onLogin }) {
                       {['login', 'signup'].map(m => (
                         <button key={m} type="button"
                           onClick={() => switchMode(m)}
-                          className="flex-1 py-3 text-[13px] font-semibold transition-colors border-b-2"
+                          className="flex-1 py-3 text-z-caption font-semibold transition-colors border-b-2"
                           style={
                             mode === m
                               ? { color: 'var(--z-primary)', borderColor: 'var(--z-primary)', background: 'var(--z-primary-soft)' }
@@ -425,7 +425,7 @@ export default function Login({ onLogin }) {
                     {/* Workspace ID — only shown in legacy mode (no Supabase) */}
                     {!supabase && (
                       <div className="mb-3 zv-field">
-                        <label className="block text-[11.5px] font-semibold mb-1.5 zv-t2" style={{ color: 'var(--z-text-2)' }}>
+                        <label className="block text-z-micro font-semibold mb-1.5 zv-t2" style={{ color: 'var(--z-text-2)' }}>
                           Workspace ID
                         </label>
                         <div className="relative">
@@ -441,7 +441,7 @@ export default function Login({ onLogin }) {
                             spellCheck={false}
                           />
                         </div>
-                        <p className="mt-1 text-[11px] zv-t4" style={{ color: 'var(--z-text-muted)' }}>
+                        <p className="mt-1 text-z-micro zv-t4" style={{ color: 'var(--z-text-muted)' }}>
                           {mode === 'login'
                             ? 'Your workspace ID was provided when your account was set up.'
                             : 'Ask your workspace administrator for the workspace ID.'}
@@ -452,7 +452,7 @@ export default function Login({ onLogin }) {
                     {/* Name (signup only, legacy mode) */}
                     {mode === 'signup' && !supabase && (
                       <div className="mb-3 zv-field">
-                        <label className="block text-[11.5px] font-semibold mb-1.5 zv-t2" style={{ color: 'var(--z-text-2)' }}>
+                        <label className="block text-z-micro font-semibold mb-1.5 zv-t2" style={{ color: 'var(--z-text-2)' }}>
                           Full Name
                         </label>
                         <input
@@ -468,7 +468,7 @@ export default function Login({ onLogin }) {
 
                     {/* Email */}
                     <div className="mb-3 zv-field">
-                      <label className="block text-[11.5px] font-semibold mb-1.5 zv-t2" style={{ color: 'var(--z-text-2)' }}>
+                      <label className="block text-z-micro font-semibold mb-1.5 zv-t2" style={{ color: 'var(--z-text-2)' }}>
                         Email address
                       </label>
                       <input type="email" required autoComplete="email"
@@ -485,12 +485,12 @@ export default function Login({ onLogin }) {
                     {/* Password */}
                     <div className="mb-3 zv-field">
                       <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-[11.5px] font-semibold zv-t2" style={{ color: 'var(--z-text-2)' }}>
+                        <label className="block text-z-micro font-semibold zv-t2" style={{ color: 'var(--z-text-2)' }}>
                           Password
                         </label>
                         {mode === 'login' && supabase && (
                           <button type="button" onClick={() => switchMode('reset')}
-                            className="text-[12.5px] font-medium hover:underline zv-t2"
+                            className="text-z-small font-medium hover:underline zv-t2"
                             style={{ color: 'var(--z-text-2)' }}>
                             Forgot password?
                           </button>
@@ -520,7 +520,7 @@ export default function Login({ onLogin }) {
                     </div>
 
                     {mode === 'login' && supabase && (
-                      <label className="flex items-center gap-2 mb-4 text-[12.5px] cursor-pointer zv-t2" style={{ color: 'var(--z-text-2)' }}>
+                      <label className="flex items-center gap-2 mb-4 text-z-small cursor-pointer zv-t2" style={{ color: 'var(--z-text-2)' }}>
                         <input
                           type="checkbox"
                           checked={rememberMe}
@@ -533,7 +533,7 @@ export default function Login({ onLogin }) {
                     )}
 
                     {error && (
-                      <div className="flex items-start gap-2.5 text-[13px] px-3.5 py-3 rounded-[var(--z-radius-sm)] border mb-4"
+                      <div className="flex items-start gap-2.5 text-z-caption px-3.5 py-3 rounded-[var(--z-radius-sm)] border mb-4"
                         style={{ background: 'color-mix(in srgb, var(--z-critical) 8%, transparent)', borderColor: 'color-mix(in srgb, var(--z-critical) 30%, transparent)', color: 'var(--z-critical)' }}>
                         <AlertCircle size={15} className="shrink-0 mt-0.5" />
                         <span>{error}</span>
@@ -550,7 +550,7 @@ export default function Login({ onLogin }) {
                     </button>
                   </form>
 
-                  <div className="text-center mt-3.5 text-[12px] zv-t4" style={{ color: 'var(--z-text-muted)' }}>
+                  <div className="text-center mt-3.5 text-z-small zv-t4" style={{ color: 'var(--z-text-muted)' }}>
                     Need help? <span style={{ color: 'var(--z-primary)', fontWeight: 500 }}>Contact your workspace administrator</span>
                   </div>
                 </>
@@ -558,10 +558,10 @@ export default function Login({ onLogin }) {
             </div>
           </div>
 
-          <p className="text-center mt-3.5 text-[11.5px] zv-t4" style={{ color: 'var(--z-text-muted)' }}>
+          <p className="text-center mt-3.5 text-z-micro zv-t4" style={{ color: 'var(--z-text-muted)' }}>
             Terms of Service <span style={{ color: 'var(--z-border-strong)' }}>&middot;</span> Privacy Policy
           </p>
-          <p className="hidden md:flex items-center justify-center gap-2 mt-2 text-[11px] italic zv-t4" style={{ color: 'var(--z-text-muted)' }}>
+          <p className="hidden md:flex items-center justify-center gap-2 mt-2 text-z-micro italic zv-t4" style={{ color: 'var(--z-text-muted)' }}>
             <span style={{ width: 16, height: 1, background: 'var(--z-border-strong)' }} />
             Real operations. Greater possibilities.
           </p>
@@ -571,7 +571,7 @@ export default function Login({ onLogin }) {
               login form stays short, but the "one platform, every industry" idea
               isn't dropped entirely. */}
           <div className="md:hidden mt-8 pt-6 border-t text-center" style={{ borderColor: 'var(--z-border)' }}>
-            <div className="text-[10.5px] font-bold uppercase tracking-[0.14em] zv-t3" style={{ color: 'var(--z-text-3)' }}>
+            <div className="text-z-nano font-semibold uppercase tracking-[0.14em] zv-t3" style={{ color: 'var(--z-text-3)' }}>
               One platform. Every industry.
             </div>
             {/* flex-wrap, not overflow-x-auto: a non-wrapping scroll row of
@@ -588,7 +588,7 @@ export default function Login({ onLogin }) {
                     style={{ background: 'var(--z-surface)', borderColor: 'var(--z-border)' }}
                   >
                     <Icon size={12} strokeWidth={1.8} style={{ color: 'var(--z-text-3)' }} />
-                    <span className="text-[11px] whitespace-nowrap zv-t3" style={{ color: 'var(--z-text-3)' }}>{ind.name}</span>
+                    <span className="text-z-micro whitespace-nowrap zv-t3" style={{ color: 'var(--z-text-3)' }}>{ind.name}</span>
                   </span>
                 );
               })}

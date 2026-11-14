@@ -56,7 +56,7 @@ export default function ReasoningTrace({ steps = [], loading = false }) {
       {/* Toggle */}
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 text-[11.5px] font-medium text-z-text-3 hover:text-z-text-2 transition-colors w-full text-left"
+        className="flex items-center gap-2 text-z-micro font-medium text-z-text-3 hover:text-z-text-2 transition-colors w-full text-left"
       >
         {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
         {loading
@@ -72,7 +72,7 @@ export default function ReasoningTrace({ steps = [], loading = false }) {
             <div key={step.stepNo ?? i} className="flex gap-3">
               {/* Step number + connector line */}
               <div className="flex flex-col items-center">
-                <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                <div className="w-5 h-5 rounded-full flex items-center justify-center text-z-nano font-semibold shrink-0"
                   style={{ background: 'var(--z-card-2)', color: 'var(--z-text-2)' }}>
                   {step.stepNo ?? i + 1}
                 </div>
@@ -84,13 +84,13 @@ export default function ReasoningTrace({ steps = [], loading = false }) {
               {/* Content */}
               <div className="flex-1 min-w-0 pb-2">
                 <div className="flex items-start justify-between gap-2 flex-wrap">
-                  <p className="text-[12.5px] font-medium leading-snug text-z-text">
+                  <p className="text-z-small font-medium leading-snug text-z-text">
                     {step.description}
                   </p>
                   {step.evaluatorDecision && (
                     <div className="flex items-center gap-1.5 shrink-0">
                       {decisionIcon(step.evaluatorDecision)}
-                      <span className="text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full" style={stepBadgeStyle(step.evaluatorDecision)}>
+                      <span className="text-z-nano font-semibold px-1.5 py-0.5 rounded-full" style={stepBadgeStyle(step.evaluatorDecision)}>
                         {decisionLabel(step.evaluatorDecision)}
                       </span>
                     </div>
@@ -98,7 +98,7 @@ export default function ReasoningTrace({ steps = [], loading = false }) {
                 </div>
 
                 {/* Metrics row */}
-                <div className="flex items-center gap-3 mt-0.5 text-[11px] text-z-text-3">
+                <div className="flex items-center gap-3 mt-0.5 text-z-micro text-z-text-3">
                   {step.rowCount != null && (
                     <span>{step.rowCount.toLocaleString()} row{step.rowCount !== 1 ? 's' : ''}</span>
                   )}
@@ -109,7 +109,7 @@ export default function ReasoningTrace({ steps = [], loading = false }) {
 
                 {/* Evaluator rationale */}
                 {step.evaluatorRationale && (
-                  <p className="mt-1 text-[11.5px] italic leading-snug text-z-text-3">
+                  <p className="mt-1 text-z-micro italic leading-snug text-z-text-3">
                     {step.evaluatorRationale}
                   </p>
                 )}
@@ -119,7 +119,7 @@ export default function ReasoningTrace({ steps = [], loading = false }) {
                   <>
                     <button
                       onClick={() => setExpandedSql(expandedSql === i ? null : i)}
-                      className="mt-1.5 text-[11px] text-z-text-3 transition-colors flex items-center gap-1"
+                      className="mt-1.5 text-z-micro text-z-text-3 transition-colors flex items-center gap-1"
                       style={{ color: undefined }}
                       onMouseEnter={e => { e.currentTarget.style.color = 'var(--z-primary)'; }}
                       onMouseLeave={e => { e.currentTarget.style.color = ''; }}
@@ -128,7 +128,7 @@ export default function ReasoningTrace({ steps = [], loading = false }) {
                       {expandedSql === i ? 'Hide SQL' : 'Show SQL'}
                     </button>
                     {expandedSql === i && (
-                      <pre className="mt-1.5 p-2.5 border rounded-lg text-[11px] font-mono overflow-x-auto whitespace-pre-wrap break-words leading-relaxed"
+                      <pre className="mt-1.5 p-2.5 border rounded-lg text-z-micro font-mono overflow-x-auto whitespace-pre-wrap break-words leading-relaxed"
                         style={{ background: 'var(--z-card-2)', borderColor: 'var(--z-border)', color: 'var(--z-text-2)' }}>
                         {step.sql}
                       </pre>

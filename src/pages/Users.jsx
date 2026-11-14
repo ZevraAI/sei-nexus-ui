@@ -8,7 +8,7 @@ import { Spinner } from '../components/Card.jsx';
 const ROLE_STYLES = {
   ADMIN:        'bg-purple-100 text-purple-700 border-purple-200',
   DOMAIN_OWNER: 'bg-blue-100   text-blue-700   border-blue-200',
-  ANALYST:      'bg-gray-100   text-gray-600   border-gray-200',
+  ANALYST:      'bg-z-card-2   text-z-text-2   border-z-border',
 };
 
 const STATUS_STYLES = {
@@ -57,21 +57,21 @@ function InviteModal({ onClose, onInvited, isPlatformAdmin, currentTenantSchema 
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+      <div className="bg-z-card rounded-2xl shadow-2xl w-full max-w-md p-8">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center">
             <Mail size={16} className="text-emerald-700" />
           </div>
-          <h2 className="text-[17px] font-bold text-gray-900">Invite Team Member</h2>
+          <h2 className="text-z-lead font-semibold text-z-text">Invite Team Member</h2>
         </div>
 
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            <label className="block text-z-micro font-semibold text-z-text-3 uppercase tracking-wide mb-1.5">
               Email Address *
             </label>
             <input type="email" required
-              className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+              className="w-full border border-z-border rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
               placeholder="colleague@company.com"
               value={form.email}
               onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
@@ -79,11 +79,11 @@ function InviteModal({ onClose, onInvited, isPlatformAdmin, currentTenantSchema 
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            <label className="block text-z-micro font-semibold text-z-text-3 uppercase tracking-wide mb-1.5">
               Display Name
             </label>
             <input type="text"
-              className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+              className="w-full border border-z-border rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
               placeholder="Jane Smith"
               value={form.display_name}
               onChange={e => setForm(f => ({ ...f, display_name: e.target.value }))}
@@ -92,12 +92,12 @@ function InviteModal({ onClose, onInvited, isPlatformAdmin, currentTenantSchema 
 
           {/* Workspace — dropdown for platform admin, read-only badge for regular admin */}
           <div>
-            <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            <label className="block text-z-micro font-semibold text-z-text-3 uppercase tracking-wide mb-1.5">
               Workspace
             </label>
             {isPlatformAdmin ? (
               <select required
-                className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 bg-white"
+                className="w-full border border-z-border rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 bg-z-card"
                 value={form.tenant_schema}
                 onChange={e => setForm(f => ({ ...f, tenant_schema: e.target.value }))}
               >
@@ -109,18 +109,18 @@ function InviteModal({ onClose, onInvited, isPlatformAdmin, currentTenantSchema 
                 ))}
               </select>
             ) : (
-              <div className="px-3.5 py-2.5 text-sm border border-gray-100 rounded-lg bg-gray-50 text-gray-500 font-mono">
+              <div className="px-3.5 py-2.5 text-sm border border-z-border rounded-lg bg-z-card-2 text-z-text-3 font-mono">
                 {currentTenantSchema}
               </div>
             )}
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            <label className="block text-z-micro font-semibold text-z-text-3 uppercase tracking-wide mb-1.5">
               Role
             </label>
             <select
-              className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 bg-white"
+              className="w-full border border-z-border rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 bg-z-card"
               value={form.role}
               onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
             >
@@ -131,14 +131,14 @@ function InviteModal({ onClose, onInvited, isPlatformAdmin, currentTenantSchema 
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-[13px] px-3.5 py-2.5 rounded-lg">
+            <div className="bg-red-50 border border-red-200 text-red-700 text-z-caption px-3.5 py-2.5 rounded-lg">
               {error}
             </div>
           )}
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}
-              className="flex-1 border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+              className="flex-1 border border-z-border rounded-lg py-2.5 text-sm font-medium text-z-text-2 hover:bg-z-card-2 transition-colors">
               Cancel
             </button>
             <button type="submit" disabled={loading}
@@ -157,12 +157,12 @@ function UserActionMenu({ user, currentEmail, onRoleChange, onDeactivate, onReac
   const otherRoles = Object.keys(ROLE_LABELS).filter(r => r !== user.role);
   const isSelf     = user.email === currentEmail;
   return (
-    <div className="absolute right-0 top-8 w-52 rounded-xl shadow-xl border border-gray-200 bg-white z-20 py-1 overflow-hidden">
+    <div className="absolute right-0 top-8 w-52 rounded-xl shadow-xl border border-z-border bg-z-card z-20 py-1 overflow-hidden">
       {/* Role changes — only for active/invited users who aren't self */}
       {user.status !== 'INACTIVE' && !isSelf && otherRoles.map(r => (
         <button key={r} onClick={() => { onRoleChange(user.email, r); onClose(); }}
-          className="w-full flex items-center gap-2.5 px-4 py-2 text-[13px] text-gray-600 hover:bg-gray-50 transition-colors">
-          <Shield size={12} className="text-gray-400" />
+          className="w-full flex items-center gap-2.5 px-4 py-2 text-z-caption text-z-text-2 hover:bg-z-card-2 transition-colors">
+          <Shield size={12} className="text-z-text-3" />
           Make {r.toLowerCase().replace('_', ' ')}
         </button>
       ))}
@@ -170,9 +170,9 @@ function UserActionMenu({ user, currentEmail, onRoleChange, onDeactivate, onReac
       {/* Resend invite — only for INVITED users */}
       {user.status === 'INVITED' && (
         <>
-          <div className="my-1 border-t border-gray-100" />
+          <div className="my-1 border-t border-z-border" />
           <button onClick={() => { onResendInvite(user.email); onClose(); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2 text-[13px] text-amber-600 hover:bg-amber-50 transition-colors">
+            className="w-full flex items-center gap-2.5 px-4 py-2 text-z-caption text-amber-600 hover:bg-amber-50 transition-colors">
             Resend Invite
           </button>
         </>
@@ -181,9 +181,9 @@ function UserActionMenu({ user, currentEmail, onRoleChange, onDeactivate, onReac
       {/* Deactivate — active/invited non-self */}
       {user.status !== 'INACTIVE' && !isSelf && (
         <>
-          <div className="my-1 border-t border-gray-100" />
+          <div className="my-1 border-t border-z-border" />
           <button onClick={() => { onDeactivate(user.email); onClose(); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2 text-[13px] text-red-500 hover:bg-red-50 transition-colors">
+            className="w-full flex items-center gap-2.5 px-4 py-2 text-z-caption text-red-500 hover:bg-red-50 transition-colors">
             Deactivate
           </button>
         </>
@@ -192,7 +192,7 @@ function UserActionMenu({ user, currentEmail, onRoleChange, onDeactivate, onReac
       {/* Reactivate — inactive users only */}
       {user.status === 'INACTIVE' && (
         <button onClick={() => { onReactivate(user.email); onClose(); }}
-          className="w-full flex items-center gap-2.5 px-4 py-2 text-[13px] text-emerald-600 hover:bg-emerald-50 transition-colors">
+          className="w-full flex items-center gap-2.5 px-4 py-2 text-z-caption text-emerald-600 hover:bg-emerald-50 transition-colors">
           Reactivate
         </button>
       )}
@@ -255,11 +255,11 @@ export default function Users() {
 
   const base = isDark
     ? 'bg-[#111827] text-[#F0F4F8] border-[#1E293B]'
-    : 'bg-white text-gray-900 border-gray-200';
+    : 'bg-z-card text-z-text border-z-border';
 
-  const sub = isDark ? 'text-[#64748B]' : 'text-gray-400';
-  const rowHover = isDark ? 'hover:bg-[#1A2333]' : 'hover:bg-gray-50';
-  const border = isDark ? 'border-[#1E293B]' : 'border-gray-100';
+  const sub = isDark ? 'text-[#64748B]' : 'text-z-text-3';
+  const rowHover = isDark ? 'hover:bg-[#1A2333]' : 'hover:bg-z-card-2';
+  const border = isDark ? 'border-[#1E293B]' : 'border-z-border';
 
   return (
     <div className="h-full overflow-y-auto p-8">
@@ -268,17 +268,17 @@ export default function Users() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className={`text-[22px] font-bold ${isDark ? 'text-[#F0F4F8]' : 'text-gray-900'}`}>
+            <h1 className={`text-z-h3 font-semibold ${isDark ? 'text-[#F0F4F8]' : 'text-z-text'}`}>
               Team Members
             </h1>
-            <p className={`text-[13px] mt-1 ${sub}`}>
+            <p className={`text-z-caption mt-1 ${sub}`}>
               Manage who has access to your workspace
             </p>
           </div>
           {isAdmin && (
             <button
               onClick={() => setShowInvite(true)}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-colors"
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-z-caption font-semibold transition-colors"
             >
               <UserPlus size={14} />
               Invite
@@ -292,14 +292,14 @@ export default function Users() {
             <div className="w-8 h-8 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
           </div>
         ) : users.length === 0 ? (
-          <div className={`text-center py-16 text-[13px] ${sub}`}>No team members found.</div>
+          <div className={`text-center py-16 text-z-caption ${sub}`}>No team members found.</div>
         ) : (
-          <div className={`rounded-2xl border overflow-hidden ${isDark ? 'border-[#1E293B]' : 'border-gray-200'}`}>
+          <div className={`rounded-2xl border overflow-hidden ${isDark ? 'border-[#1E293B]' : 'border-z-border'}`}>
             <table className="w-full">
               <thead>
-                <tr className={isDark ? 'bg-[#1A2333]' : 'bg-gray-50'}>
+                <tr className={isDark ? 'bg-[#1A2333]' : 'bg-z-card-2'}>
                   {['Member', 'Workspace', 'Role', 'Status', 'Joined', ...(isAdmin ? [''] : [])].map((h, i) => (
-                    <th key={i} className={`px-5 py-3.5 text-left text-[10.5px] font-semibold uppercase tracking-wide ${sub}`}>
+                    <th key={i} className={`px-5 py-3.5 text-left text-z-nano font-semibold uppercase tracking-wide ${sub}`}>
                       {h}
                     </th>
                   ))}
@@ -313,37 +313,37 @@ export default function Users() {
                     {/* Member */}
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center text-z-micro font-semibold text-white flex-shrink-0">
                           {(u.display_name || u.email).slice(0, 1).toUpperCase()}
                         </div>
                         <div>
-                          <p className={`text-[13px] font-medium ${isDark ? 'text-[#F0F4F8]' : 'text-gray-900'}`}>
+                          <p className={`text-z-caption font-medium ${isDark ? 'text-[#F0F4F8]' : 'text-z-text'}`}>
                             {u.display_name || u.email}
                           </p>
                           {u.display_name && (
-                            <p className={`text-[11px] ${sub}`}>{u.email}</p>
+                            <p className={`text-z-micro ${sub}`}>{u.email}</p>
                           )}
                         </div>
                       </div>
                     </td>
                     {/* Workspace */}
-                    <td className={`px-5 py-4 text-[12px] font-mono ${sub}`}>
+                    <td className={`px-5 py-4 text-z-small font-mono ${sub}`}>
                       {u.tenant_schema || '—'}
                     </td>
                     {/* Role */}
                     <td className="px-5 py-4">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${ROLE_STYLES[u.role] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                      <span className={`px-2.5 py-0.5 rounded-full text-z-micro font-semibold border ${ROLE_STYLES[u.role] || 'bg-z-card-2 text-z-text-2 border-z-border'}`}>
                         {u.role}
                       </span>
                     </td>
                     {/* Status */}
                     <td className="px-5 py-4">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${STATUS_STYLES[u.status] || ''}`}>
+                      <span className={`px-2.5 py-0.5 rounded-full text-z-micro font-semibold ${STATUS_STYLES[u.status] || ''}`}>
                         {u.status}
                       </span>
                     </td>
                     {/* Joined */}
-                    <td className={`px-5 py-4 text-[12px] ${sub}`}>
+                    <td className={`px-5 py-4 text-z-small ${sub}`}>
                       {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}
                     </td>
                     {/* Actions */}
@@ -353,7 +353,7 @@ export default function Users() {
                           <button
                             onClick={() => setOpenMenu(openMenu === u.email ? null : u.email)}
                             disabled={u.email === currentUser?.email}
-                            className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 ${isDark ? 'hover:bg-[#252E3F] text-[#64748B]' : 'hover:bg-gray-100 text-gray-400'}`}
+                            className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 ${isDark ? 'hover:bg-[#252E3F] text-[#64748B]' : 'hover:bg-z-card-2 text-z-text-3'}`}
                           >
                             <MoreHorizontal size={15} />
                           </button>

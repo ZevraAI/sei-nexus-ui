@@ -5,7 +5,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['var(--z-font-sans)'],
+        mono: ['var(--z-font-mono)'],
         // Signature — the verdict voice (additive; falls back to system serifs).
         'z-serif': ['var(--z-font-serif)', 'Georgia', 'serif'],
         // Signature — the micro-label / meta voice (mono).
@@ -152,6 +153,11 @@ export default {
         'z-h2': ['24px', { lineHeight: '1.22', letterSpacing: '-0.02em', fontWeight: '600' }],
         'z-h3': ['19px', { lineHeight: '1.3', letterSpacing: '-0.015em', fontWeight: '600' }],
         'z-body-lg': ['18px', { lineHeight: '1.6' }],
+        'z-lead': ['16px', { lineHeight: '1.55' }],
+        'z-body-sm': ['14px', { lineHeight: '1.55' }],
+        'z-small': ['12px', { lineHeight: '1.45' }],
+        'z-micro': ['11px', { lineHeight: '1.4' }],
+        'z-nano': ['10px', { lineHeight: '1.4' }],
         'z-body': ['15px', { lineHeight: '1.6' }],
         'z-caption': ['13px', { lineHeight: '1.5' }],
         'z-label': ['12px', { lineHeight: '1.3', letterSpacing: '0.06em', fontWeight: '600' }],
@@ -170,6 +176,7 @@ export default {
         'z-slow': '360ms',
       },
       keyframes: {
+        'z-fade': { from: { opacity: '0' }, to: { opacity: '1' } },
         'z-rise': { from: { opacity: '0', transform: 'translateY(12px)' }, to: { opacity: '1', transform: 'none' } },
         'z-rise-scale': { from: { opacity: '0', transform: 'translateY(-12px) scale(0.98)' }, to: { opacity: '1', transform: 'none' } },
         'z-pulse-ring': { '0%': { transform: 'scale(1)', opacity: '0.5' }, '70%,100%': { transform: 'scale(2.4)', opacity: '0' } },
@@ -178,6 +185,8 @@ export default {
         'z-spine-glint-y': { '0%': { top: '0%', opacity: '0' }, '15%': { opacity: '1' }, '85%': { opacity: '1' }, '100%': { top: '100%', opacity: '0' } },
       },
       animation: {
+        // Delayed so a fast page load never flashes the skeleton.
+        'z-fade': 'z-fade 200ms cubic-bezier(0.2,0.7,0.2,1) 150ms both',
         'z-rise': 'z-rise 360ms cubic-bezier(0.2,0.7,0.2,1) both',
         'z-rise-scale': 'z-rise-scale 360ms cubic-bezier(0.16,0.84,0.24,1) both',
         'z-pulse-ring': 'z-pulse-ring 2s cubic-bezier(0.2,0.7,0.2,1) infinite',

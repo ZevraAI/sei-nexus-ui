@@ -106,16 +106,16 @@ export default function Memory() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-medium text-gray-800 truncate">{doc.title}</p>
+                  <p className="text-sm font-medium text-z-text truncate">{doc.title}</p>
                   <Badge label={doc.status} color={STATUS_COLOR[doc.status] ?? 'gray'} />
                 </div>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-z-text-3 mt-0.5">
                   {doc.file_name} · {formatBytes(doc.file_size_bytes ?? 0)}
                 </p>
                 {doc.tags && (
                   <div className="flex items-center gap-1 mt-1">
-                    <Tag size={11} className="text-gray-400" />
-                    <span className="text-xs text-gray-400">{doc.tags}</span>
+                    <Tag size={11} className="text-z-text-3" />
+                    <span className="text-xs text-z-text-3">{doc.tags}</span>
                   </div>
                 )}
                 {doc.status === 'INDEXED' && (
@@ -149,11 +149,11 @@ export default function Memory() {
           {/* File drop zone */}
           <div
             onClick={() => fileRef.current?.click()}
-            className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
+            className="border-2 border-dashed border-z-border rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
           >
-            <Upload size={20} className="mx-auto text-gray-400 mb-2" />
-            <p className="text-sm text-gray-600">{file ? file.name : 'Click to select file'}</p>
-            <p className="text-xs text-gray-400 mt-1">PDF, DOCX, TXT, MD, HTML · max 50 MB</p>
+            <Upload size={20} className="mx-auto text-z-text-3 mb-2" />
+            <p className="text-sm text-z-text-2">{file ? file.name : 'Click to select file'}</p>
+            <p className="text-xs text-z-text-3 mt-1">PDF, DOCX, TXT, MD, HTML · max 50 MB</p>
           </div>
           <input ref={fileRef} type="file" className="hidden"
             accept=".pdf,.docx,.txt,.md,.html"

@@ -29,7 +29,7 @@ const FEATURE_COLORS = {
   chat:    { bar: 'bg-blue-500',    text: 'text-blue-700',    bg: 'bg-blue-50'    },
   brief:   { bar: 'bg-purple-500',  text: 'text-purple-700',  bg: 'bg-purple-50'  },
   report:  { bar: 'bg-amber-500',   text: 'text-amber-700',   bg: 'bg-amber-50'   },
-  routing: { bar: 'bg-gray-400',    text: 'text-gray-600',    bg: 'bg-gray-100'   },
+  routing: { bar: 'bg-gray-400',    text: 'text-z-text-2',    bg: 'bg-z-card-2'   },
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -37,22 +37,22 @@ const FEATURE_COLORS = {
 function MetricCard({ label, value, sub, highlight, isDark }) {
   return (
     <div className={`rounded-2xl border px-6 py-5 ${
-      isDark ? 'bg-[#111827] border-[#1E293B]' : 'bg-white border-gray-200'
+      isDark ? 'bg-[#111827] border-[#1E293B]' : 'bg-z-card border-z-border'
     }`}>
-      <p className={`text-[11px] font-semibold uppercase tracking-wide mb-1 ${
-        isDark ? 'text-[#64748B]' : 'text-gray-400'
+      <p className={`text-z-micro font-semibold uppercase tracking-wide mb-1 ${
+        isDark ? 'text-[#64748B]' : 'text-z-text-3'
       }`}>{label}</p>
-      <p className={`text-[28px] font-bold tracking-tight leading-none mb-1 ${
-        highlight ? 'text-emerald-600' : isDark ? 'text-[#F0F4F8]' : 'text-gray-900'
+      <p className={`text-z-h2 font-semibold tracking-tight leading-none mb-1 ${
+        highlight ? 'text-emerald-600' : isDark ? 'text-[#F0F4F8]' : 'text-z-text'
       }`}>{value}</p>
-      {sub && <p className={`text-[12px] ${isDark ? 'text-[#64748B]' : 'text-gray-400'}`}>{sub}</p>}
+      {sub && <p className={`text-z-small ${isDark ? 'text-[#64748B]' : 'text-z-text-3'}`}>{sub}</p>}
     </div>
   );
 }
 
 function BarChart({ rows, valueKey, labelKey, colorKey, max, isDark }) {
   if (!rows || rows.length === 0) return (
-    <p className={`text-[13px] py-6 text-center ${isDark ? 'text-[#64748B]' : 'text-gray-400'}`}>
+    <p className={`text-z-caption py-6 text-center ${isDark ? 'text-[#64748B]' : 'text-z-text-3'}`}>
       No data for this period
     </p>
   );
@@ -66,14 +66,14 @@ function BarChart({ rows, valueKey, labelKey, colorKey, max, isDark }) {
         return (
           <div key={i}>
             <div className="flex items-center justify-between mb-1">
-              <span className={`text-[13px] font-medium capitalize ${isDark ? 'text-[#CBD5E1]' : 'text-gray-700'}`}>
+              <span className={`text-z-caption font-medium capitalize ${isDark ? 'text-[#CBD5E1]' : 'text-z-text-2'}`}>
                 {label}
               </span>
-              <span className={`text-[12px] tabular-nums ${isDark ? 'text-[#64748B]' : 'text-gray-500'}`}>
+              <span className={`text-z-small tabular-nums ${isDark ? 'text-[#64748B]' : 'text-z-text-3'}`}>
                 {fmtTokens(val)}
               </span>
             </div>
-            <div className={`h-1.5 rounded-full ${isDark ? 'bg-[#1E293B]' : 'bg-gray-100'}`}>
+            <div className={`h-1.5 rounded-full ${isDark ? 'bg-[#1E293B]' : 'bg-z-card-2'}`}>
               <div className={`h-1.5 rounded-full transition-all ${color.bar}`}
                    style={{ width: pct + '%' }} />
             </div>
@@ -97,7 +97,7 @@ function DailyChart({ daily, showCost, isDark }) {
               <div className={`w-full rounded-t transition-all ${isDark ? 'bg-emerald-700 group-hover:bg-emerald-500' : 'bg-emerald-200 group-hover:bg-emerald-400'}`}
                    style={{ height: Math.max(2, pct * 0.8) + '%' }} />
               <div className="absolute -top-8 left-1/2 -translate-x-1/2 hidden group-hover:block
-                              bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap z-10">
+                              bg-gray-900 text-white text-z-nano px-1.5 py-0.5 rounded whitespace-nowrap z-10">
                 {fmtTokens(d.total_tokens)}
                 {showCost && d.cost_usd ? ` · ${fmtCost(d.cost_usd)}` : ''}
               </div>
@@ -106,10 +106,10 @@ function DailyChart({ daily, showCost, isDark }) {
         })}
       </div>
       <div className="flex justify-between mt-1">
-        <span className={`text-[10px] ${isDark ? 'text-[#64748B]' : 'text-gray-400'}`}>
+        <span className={`text-z-nano ${isDark ? 'text-[#64748B]' : 'text-z-text-3'}`}>
           {daily[0]?.day?.slice(5)}
         </span>
-        <span className={`text-[10px] ${isDark ? 'text-[#64748B]' : 'text-gray-400'}`}>
+        <span className={`text-z-nano ${isDark ? 'text-[#64748B]' : 'text-z-text-3'}`}>
           {daily[daily.length - 1]?.day?.slice(5)}
         </span>
       </div>
@@ -119,8 +119,8 @@ function DailyChart({ daily, showCost, isDark }) {
 
 function Section({ title, children, isDark }) {
   return (
-    <div className={`rounded-2xl border p-6 ${isDark ? 'bg-[#111827] border-[#1E293B]' : 'bg-white border-gray-200'}`}>
-      <h3 className={`text-[13px] font-semibold mb-4 ${isDark ? 'text-[#CBD5E1]' : 'text-gray-800'}`}>{title}</h3>
+    <div className={`rounded-2xl border p-6 ${isDark ? 'bg-[#111827] border-[#1E293B]' : 'bg-z-card border-z-border'}`}>
+      <h3 className={`text-z-caption font-semibold mb-4 ${isDark ? 'text-[#CBD5E1]' : 'text-z-text'}`}>{title}</h3>
       {children}
     </div>
   );
@@ -190,18 +190,18 @@ function TenantUsage({ period, isDark }) {
             {byUser.map((u, i) => (
               <div key={i} className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center text-z-nano font-semibold text-white flex-shrink-0">
                     {(u.user_email || '?').slice(0, 1).toUpperCase()}
                   </div>
-                  <span className={`text-[13px] ${isDark ? 'text-[#CBD5E1]' : 'text-gray-700'}`}>
+                  <span className={`text-z-caption ${isDark ? 'text-[#CBD5E1]' : 'text-z-text-2'}`}>
                     {u.user_email}
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className={`text-[13px] font-semibold tabular-nums ${isDark ? 'text-[#F0F4F8]' : 'text-gray-900'}`}>
+                  <span className={`text-z-caption font-semibold tabular-nums ${isDark ? 'text-[#F0F4F8]' : 'text-z-text'}`}>
                     {fmtTokens(u.total_tokens)}
                   </span>
-                  <span className={`text-[11px] ml-1.5 ${isDark ? 'text-[#64748B]' : 'text-gray-400'}`}>tokens</span>
+                  <span className={`text-z-micro ml-1.5 ${isDark ? 'text-[#64748B]' : 'text-z-text-3'}`}>tokens</span>
                 </div>
               </div>
             ))}
@@ -252,16 +252,16 @@ function PlatformUsage({ period, isDark }) {
       {/* Per-tenant table */}
       <Section title="Usage by Workspace" isDark={isDark}>
         {byTenant.length === 0 ? (
-          <p className={`text-[13px] text-center py-6 ${isDark ? 'text-[#64748B]' : 'text-gray-400'}`}>
+          <p className={`text-z-caption text-center py-6 ${isDark ? 'text-[#64748B]' : 'text-z-text-3'}`}>
             No usage recorded for this period
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className={isDark ? 'border-b border-[#1E293B]' : 'border-b border-gray-100'}>
+                <tr className={isDark ? 'border-b border-[#1E293B]' : 'border-b border-z-border'}>
                   {['Workspace', 'Tokens', 'Calls', 'Cost'].map(h => (
-                    <th key={h} className={`pb-2.5 text-left text-[11px] font-semibold uppercase tracking-wide ${isDark ? 'text-[#64748B]' : 'text-gray-400'}`}>
+                    <th key={h} className={`pb-2.5 text-left text-z-micro font-semibold uppercase tracking-wide ${isDark ? 'text-[#64748B]' : 'text-z-text-3'}`}>
                       {h}
                     </th>
                   ))}
@@ -270,17 +270,17 @@ function PlatformUsage({ period, isDark }) {
               <tbody>
                 {byTenant.map((t, i) => (
                   <tr key={i} className={`border-t ${isDark ? 'border-[#1E293B]' : 'border-gray-50'}`}>
-                    <td className={`py-3 text-[13px] font-medium ${isDark ? 'text-[#CBD5E1]' : 'text-gray-800'}`}>
+                    <td className={`py-3 text-z-caption font-medium ${isDark ? 'text-[#CBD5E1]' : 'text-z-text'}`}>
                       {t.tenant_schema?.replace(/^tenant_/, '').replace(/_/g, '-') || 'default'}
                     </td>
-                    <td className={`py-3 text-[13px] tabular-nums ${isDark ? 'text-[#94A3B8]' : 'text-gray-600'}`}>
+                    <td className={`py-3 text-z-caption tabular-nums ${isDark ? 'text-[#94A3B8]' : 'text-z-text-2'}`}>
                       {fmtTokens(t.total_tokens)}
                     </td>
-                    <td className={`py-3 text-[13px] tabular-nums ${isDark ? 'text-[#94A3B8]' : 'text-gray-600'}`}>
+                    <td className={`py-3 text-z-caption tabular-nums ${isDark ? 'text-[#94A3B8]' : 'text-z-text-2'}`}>
                       {Number(t.calls).toLocaleString()}
                     </td>
-                    <td className={`py-3 text-[13px] font-semibold tabular-nums ${
-                      Number(t.cost_usd) > 1 ? 'text-emerald-600' : isDark ? 'text-[#94A3B8]' : 'text-gray-600'
+                    <td className={`py-3 text-z-caption font-semibold tabular-nums ${
+                      Number(t.cost_usd) > 1 ? 'text-emerald-600' : isDark ? 'text-[#94A3B8]' : 'text-z-text-2'
                     }`}>
                       {fmtCost(t.cost_usd)}
                     </td>
@@ -311,7 +311,7 @@ export default function Usage() {
   });
   const [period, setPeriod] = useState(months[0]);
 
-  const sub = isDark ? 'text-[#64748B]' : 'text-gray-400';
+  const sub = isDark ? 'text-[#64748B]' : 'text-z-text-3';
 
   return (
     <div className="h-full overflow-y-auto p-8">
@@ -320,10 +320,10 @@ export default function Usage() {
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
-            <h1 className={`text-[22px] font-bold ${isDark ? 'text-[#F0F4F8]' : 'text-gray-900'}`}>
+            <h1 className={`text-z-h3 font-semibold ${isDark ? 'text-[#F0F4F8]' : 'text-z-text'}`}>
               {isPlatformAdmin ? 'Platform Usage & Cost' : 'Usage'}
             </h1>
-            <p className={`text-[13px] mt-1 ${sub}`}>
+            <p className={`text-z-caption mt-1 ${sub}`}>
               {isPlatformAdmin
                 ? 'AI consumption and estimated cost across all workspaces'
                 : 'Your workspace AI consumption this period'}
@@ -332,8 +332,8 @@ export default function Usage() {
 
           {/* Period selector */}
           <select value={period} onChange={e => setPeriod(e.target.value)}
-            className={`border rounded-xl px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-emerald-500/30 ${
-              isDark ? 'bg-[#111827] border-[#1E293B] text-[#CBD5E1]' : 'bg-white border-gray-200 text-gray-700'
+            className={`border rounded-xl px-3 py-2 text-z-caption focus:outline-none focus:ring-2 focus:ring-emerald-500/30 ${
+              isDark ? 'bg-[#111827] border-[#1E293B] text-[#CBD5E1]' : 'bg-z-card border-z-border text-z-text-2'
             }`}>
             {months.map(m => (
               <option key={m} value={m}>{periodLabel(m)}</option>

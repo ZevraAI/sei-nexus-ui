@@ -166,10 +166,10 @@ function ChartTooltip({ active, payload, label, labelFormatter }) {
   if (!active || !payload?.length) return null;
   const displayLabel = labelFormatter ? labelFormatter(label) : label;
   return (
-    <div className="rounded-xl border px-4 py-3 text-[13px] shadow-z-2"
+    <div className="rounded-xl border px-4 py-3 text-z-caption shadow-z-2"
          style={{ minWidth: 140, background: 'var(--z-card)', borderColor: 'var(--z-border)' }}>
       {label != null && (
-        <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--z-text-3)' }}>
+        <p className="text-z-micro font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--z-text-3)' }}>
           {truncate(String(displayLabel), 24)}
         </p>
       )}
@@ -293,13 +293,13 @@ function ZevraDonutChart({ rows, config, palette }) {
           </PieChart>
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[16px] font-bold leading-none text-z-text">{fmtNum(total)}</span>
-          <span className="mt-0.5 text-[9px] uppercase tracking-wide text-z-text-3">records</span>
+          <span className="text-z-lead font-semibold leading-none text-z-text">{fmtNum(total)}</span>
+          <span className="mt-0.5 text-z-nano uppercase tracking-wide text-z-text-3">records</span>
         </div>
       </div>
       <ul className="min-w-0 flex-1 space-y-1.5">
         {slices.map((s, i) => (
-          <li key={i} className="flex items-center gap-1.5 text-[11.5px]">
+          <li key={i} className="flex items-center gap-1.5 text-z-micro">
             <span className="h-2 w-2 flex-none rounded-full" style={{ background: s.color }} />
             <span className="min-w-0 truncate text-z-text-2">{truncate(s.name, 18)}</span>
             <span className="ml-auto flex-none font-semibold tabular-nums text-z-text">
@@ -322,10 +322,10 @@ function StatCards({ rows, config, palette }) {
         <div key={col.key}
              className="rounded-xl border px-5 py-4"
              style={{ borderColor: 'var(--z-border)', background: 'linear-gradient(160deg, var(--z-primary-soft) 0%, var(--z-card) 100%)' }}>
-          <p className="text-[11px] font-semibold uppercase tracking-widest mb-1.5 truncate" style={{ color: 'var(--z-text-3)' }}>
+          <p className="text-z-micro font-semibold uppercase tracking-widest mb-1.5 truncate" style={{ color: 'var(--z-text-3)' }}>
             {col.label}
           </p>
-          <p className="text-[28px] font-bold tracking-tight leading-none"
+          <p className="text-z-h2 font-semibold tracking-tight leading-none"
              style={{ color: palette[i % palette.length] }}>
             {fmtNum(row[col.key])}
           </p>
@@ -444,7 +444,7 @@ export default function DataViz({ queryData, chartHint, title }) {
         <span className="min-w-0 truncate text-z-caption font-semibold text-z-text">
           {headerTitle}
         </span>
-        <span className="ml-auto flex-none text-[11px] text-z-text-muted">
+        <span className="ml-auto flex-none text-z-micro text-z-text-muted">
           {queryData.length.toLocaleString()} row{queryData.length !== 1 ? 's' : ''}
         </span>
       </div>

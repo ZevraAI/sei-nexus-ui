@@ -23,32 +23,32 @@ function StepRow({ step, defaultOpen }) {
   const hasDetail = step.type === 'TOOL_CALL' || step.type === 'FINAL_ANSWER';
 
   return (
-    <div className="border border-gray-100 rounded-lg overflow-hidden">
+    <div className="border border-z-border rounded-lg overflow-hidden">
       <button
         onClick={() => hasDetail && setOpen(o => !o)}
         className={`w-full flex items-center gap-3 px-4 py-2.5 text-left
-                    ${hasDetail ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'}
-                    bg-white transition-colors`}>
+                    ${hasDetail ? 'cursor-pointer hover:bg-z-card-2' : 'cursor-default'}
+                    bg-z-card transition-colors`}>
         <Icon size={14} style={{ color: meta.color }} />
-        <span className="flex-1 text-[12.5px] font-medium text-[#374151]">{label}</span>
+        <span className="flex-1 text-z-small font-medium text-[#374151]">{label}</span>
         {ms != null && (
-          <span className="text-[11px] text-[#9CA3AF] bg-[#F9FAFB] px-2 py-0.5 rounded-full">
+          <span className="text-z-micro text-[#9CA3AF] bg-[#F9FAFB] px-2 py-0.5 rounded-full">
             {ms}ms
           </span>
         )}
         {hasDetail && (open
-          ? <ChevronDown size={13} className="text-gray-400" />
-          : <ChevronRight size={13} className="text-gray-400" />)}
+          ? <ChevronDown size={13} className="text-z-text-3" />
+          : <ChevronRight size={13} className="text-z-text-3" />)}
       </button>
 
       {open && hasDetail && (
-        <div className="border-t border-gray-100 bg-[#F9FAFB] px-4 py-3 space-y-2">
+        <div className="border-t border-z-border bg-[#F9FAFB] px-4 py-3 space-y-2">
           {/* Tool input (SQL or question) */}
           {step.type === 'TOOL_CALL' && step.input && (
             <div>
-              <div className="text-[10.5px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-1">Input</div>
-              <pre className="text-[11.5px] text-[#374151] whitespace-pre-wrap font-mono
-                              bg-white border border-gray-200 rounded-lg px-3 py-2 overflow-x-auto">
+              <div className="text-z-nano font-semibold text-[#9CA3AF] uppercase tracking-wide mb-1">Input</div>
+              <pre className="text-z-micro text-[#374151] whitespace-pre-wrap font-mono
+                              bg-z-card border border-z-border rounded-lg px-3 py-2 overflow-x-auto">
                 {formatOutput(step.input)}
               </pre>
             </div>
@@ -57,14 +57,14 @@ function StepRow({ step, defaultOpen }) {
           {/* Tool output */}
           {step.type === 'TOOL_CALL' && step.output != null && (
             <div>
-              <div className="text-[10.5px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-1">
+              <div className="text-z-nano font-semibold text-[#9CA3AF] uppercase tracking-wide mb-1">
                 Result
                 {Array.isArray(step.output) && (
                   <span className="ml-1 normal-case font-normal">({step.output.length} row{step.output.length !== 1 ? 's' : ''})</span>
                 )}
               </div>
-              <pre className="text-[11.5px] text-[#374151] whitespace-pre-wrap font-mono
-                              bg-white border border-gray-200 rounded-lg px-3 py-2 overflow-x-auto max-h-48">
+              <pre className="text-z-micro text-[#374151] whitespace-pre-wrap font-mono
+                              bg-z-card border border-z-border rounded-lg px-3 py-2 overflow-x-auto max-h-48">
                 {formatOutput(step.output)}
               </pre>
             </div>
@@ -72,7 +72,7 @@ function StepRow({ step, defaultOpen }) {
 
           {/* Final answer */}
           {step.type === 'FINAL_ANSWER' && step.answer && (
-            <div className="text-[13px] text-[#111827] leading-[1.6]">{step.answer}</div>
+            <div className="text-z-caption text-[#111827] leading-[1.6]">{step.answer}</div>
           )}
         </div>
       )}
@@ -83,7 +83,7 @@ function StepRow({ step, defaultOpen }) {
 export default function AgentStepTrace({ steps, status }) {
   if (!steps || steps.length === 0) {
     return (
-      <div className="text-[12.5px] text-[#9CA3AF] text-center py-6">
+      <div className="text-z-small text-[#9CA3AF] text-center py-6">
         {status === 'RUNNING' ? (
           <div className="flex items-center justify-center gap-2">
             <Loader size={14} className="animate-spin text-[#6B7280]" />

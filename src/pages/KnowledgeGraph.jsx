@@ -70,18 +70,18 @@ function EntityList({ entities, selected, onSelect, search, onSearchChange }) {
       {/* Search */}
       <div className="px-3 py-3 border-b border-gray-200/70 flex-shrink-0">
         <div className="relative">
-          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-z-text-3" />
           <input
             value={search}
             onChange={e => onSearchChange(e.target.value)}
             placeholder="Search entities…"
-            className="w-full h-8 rounded-[8px] bg-gray-100/80 pl-8 pr-8 text-[12.5px]
+            className="w-full h-8 rounded-[8px] bg-gray-100/80 pl-8 pr-8 text-z-small
                        text-[#111827] focus:outline-none focus:ring-2 focus:ring-emerald-400/30
-                       focus:bg-white transition-all placeholder:text-gray-300"
+                       focus:bg-z-card transition-all placeholder:text-z-text-3"
           />
           {search && (
             <button onClick={() => onSearchChange('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-z-text-3 hover:text-z-text-2">
               <X size={12} />
             </button>
           )}
@@ -91,7 +91,7 @@ function EntityList({ entities, selected, onSelect, search, onSearchChange }) {
       {/* Grouped entity list */}
       <div className="overflow-y-auto flex-1 py-2">
         {grouped.length === 0 && (
-          <p className="px-4 py-6 text-[12px] text-gray-400 text-center">No entities found</p>
+          <p className="px-4 py-6 text-z-small text-z-text-3 text-center">No entities found</p>
         )}
         {grouped.map(([type, items]) => {
           const conf = typeConf(type);
@@ -100,7 +100,7 @@ function EntityList({ entities, selected, onSelect, search, onSearchChange }) {
               <div className="flex items-center gap-2 px-4 py-1.5">
                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                      style={{ background: conf.color }} />
-                <span className="text-[10px] font-semibold uppercase tracking-widest"
+                <span className="text-z-nano font-semibold uppercase tracking-widest"
                       style={{ color: conf.color }}>
                   {conf.label} ({items.length})
                 </span>
@@ -115,13 +115,13 @@ function EntityList({ entities, selected, onSelect, search, onSearchChange }) {
                       ${active
                         ? 'bg-emerald-50/80 border-l-2 border-emerald-500'
                         : 'hover:bg-gray-50/60 border-l-2 border-transparent'}`}>
-                    <span className={`text-[12.5px] font-medium truncate
+                    <span className={`text-z-small font-medium truncate
                       ${active ? 'text-emerald-700' : 'text-[#374151] group-hover:text-[#111827]'}`}>
                       {name}
                     </span>
                     <ChevronRight size={11}
                       className={`ml-auto flex-shrink-0 transition-opacity
-                        ${active ? 'text-emerald-500 opacity-100' : 'text-gray-300 opacity-0 group-hover:opacity-100'}`} />
+                        ${active ? 'text-emerald-500 opacity-100' : 'text-z-text-3 opacity-0 group-hover:opacity-100'}`} />
                   </button>
                 );
               })}
@@ -145,7 +145,7 @@ function ColFlags({ col }) {
   return (
     <div className="flex flex-wrap gap-1">
       {flags.map(f => (
-        <span key={f} className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${FLAG_STYLES[f] ?? ''}`}>{f}</span>
+        <span key={f} className={`px-1.5 py-0.5 rounded-full text-z-nano font-semibold ${FLAG_STYLES[f] ?? ''}`}>{f}</span>
       ))}
     </div>
   );
@@ -225,25 +225,25 @@ function EntityDetail({ entity, allEdges, entityIndex }) {
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
             <div className="flex items-center gap-2.5 mb-2">
-              <span className="px-2.5 py-1 rounded-[7px] text-[11.5px] font-semibold"
+              <span className="px-2.5 py-1 rounded-[7px] text-z-micro font-semibold"
                     style={{ background: conf.bg, color: conf.color }}>
                 {conf.label}
               </span>
               {domainKey && (
-                <span className="text-[12px] text-gray-400 font-medium">{domainKey}</span>
+                <span className="text-z-small text-z-text-3 font-medium">{domainKey}</span>
               )}
             </div>
-            <h1 className="text-[22px] font-bold text-[#111827] tracking-[-0.025em]">
+            <h1 className="text-z-h3 font-semibold text-[#111827] tracking-[-0.025em]">
               {entity.entity_name}
             </h1>
             {primaryObjectKey && (
-              <p className="text-[12.5px] text-gray-400 font-mono mt-1">{primaryObjectKey}</p>
+              <p className="text-z-small text-z-text-3 font-mono mt-1">{primaryObjectKey}</p>
             )}
           </div>
 
           {/* Ask Zevra CTA */}
           <button onClick={askZevra}
-            className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-[9px] text-[13px]
+            className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-[9px] text-z-caption
                        font-semibold text-white shadow-sm transition-all hover:shadow-md hover:opacity-90"
             style={{ background: `linear-gradient(135deg, ${conf.color}, ${conf.color}CC)` }}>
             <MessageSquare size={14} />
@@ -255,10 +255,10 @@ function EntityDetail({ entity, allEdges, entityIndex }) {
         <div className="flex gap-0">
           {TABS.map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)}
-              className={`px-4 py-2.5 text-[13px] font-medium border-b-2 -mb-px transition-colors
+              className={`px-4 py-2.5 text-z-caption font-medium border-b-2 -mb-px transition-colors
                 ${tab === k
                   ? 'border-emerald-500 text-emerald-600'
-                  : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
+                  : 'border-transparent text-z-text-3 hover:text-z-text-2'}`}>
               {l}
             </button>
           ))}
@@ -278,20 +278,20 @@ function EntityDetail({ entity, allEdges, entityIndex }) {
                 {entity.description ? (
                   <div className="bg-white/80 backdrop-blur-sm border border-gray-200/70
                                   rounded-xl p-5">
-                    <p className="text-[10.5px] font-semibold text-gray-400 uppercase tracking-widest mb-2">
+                    <p className="text-z-nano font-semibold text-z-text-3 uppercase tracking-widest mb-2">
                       Description
                     </p>
-                    <p className="text-[14px] text-[#374151] leading-relaxed">{entity.description}</p>
+                    <p className="text-z-body-sm text-[#374151] leading-relaxed">{entity.description}</p>
                   </div>
                 ) : null}
 
                 {entity.operational_meaning ?? entity.operationalMeaning ? (
                   <div className="bg-white/80 backdrop-blur-sm border border-gray-200/70
                                   rounded-xl p-5">
-                    <p className="text-[10.5px] font-semibold text-gray-400 uppercase tracking-widest mb-2">
+                    <p className="text-z-nano font-semibold text-z-text-3 uppercase tracking-widest mb-2">
                       Operational context
                     </p>
-                    <p className="text-[13.5px] text-[#374151] leading-relaxed">
+                    <p className="text-z-caption text-[#374151] leading-relaxed">
                       {entity.operational_meaning ?? entity.operationalMeaning}
                     </p>
                   </div>
@@ -299,17 +299,17 @@ function EntityDetail({ entity, allEdges, entityIndex }) {
 
                 {(entity.investigation_hints ?? entity.investigationHints) ? (
                   <div className="bg-amber-50/80 border border-amber-200/70 rounded-xl p-5">
-                    <p className="text-[10.5px] font-semibold text-amber-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                    <p className="text-z-nano font-semibold text-amber-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                       <Zap size={11} /> Investigation hint
                     </p>
-                    <code className="text-[12.5px] text-amber-700 font-mono leading-relaxed block whitespace-pre-wrap">
+                    <code className="text-z-small text-amber-700 font-mono leading-relaxed block whitespace-pre-wrap">
                       {entity.investigation_hints ?? entity.investigationHints}
                     </code>
                   </div>
                 ) : null}
 
                 {!entity.description && !(entity.operational_meaning ?? entity.operationalMeaning) && (
-                  <div className="text-center py-10 text-[13px] text-gray-400">
+                  <div className="text-center py-10 text-z-caption text-z-text-3">
                     No description yet.{' '}
                     <button onClick={() => navigate('/semantic')}
                       className="text-emerald-600 hover:underline">
@@ -329,8 +329,8 @@ function EntityDetail({ entity, allEdges, entityIndex }) {
                     <div key={label}
                       className="bg-white/80 backdrop-blur-sm border border-gray-200/70
                                  rounded-xl p-4 text-center">
-                      <div className="text-[24px] font-bold text-[#111827]">{value}</div>
-                      <div className="text-[11.5px] text-gray-400 mt-0.5">{label}</div>
+                      <div className="text-z-h2 font-semibold text-[#111827]">{value}</div>
+                      <div className="text-z-micro text-z-text-3 mt-0.5">{label}</div>
                     </div>
                   ))}
                 </div>
@@ -340,36 +340,36 @@ function EntityDetail({ entity, allEdges, entityIndex }) {
             {/* ── Columns ── */}
             {tab === 'columns' && (
               columns.length === 0 ? (
-                <div className="text-center py-12 text-[13px] text-gray-400">
+                <div className="text-center py-12 text-z-caption text-z-text-3">
                   No column data. Run a scan from the Enterprise Map page.
                 </div>
               ) : (
                 <div className="bg-white/80 backdrop-blur-sm border border-gray-200/70
                                 rounded-xl overflow-hidden max-w-4xl">
-                  <table className="w-full border-collapse text-[13px]">
+                  <table className="w-full border-collapse text-z-caption">
                     <thead>
                       <tr className="bg-gray-50/80 border-b border-gray-200/70">
-                        <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Column</th>
-                        <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Type</th>
-                        <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Flags</th>
-                        <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Business meaning</th>
+                        <th className="px-4 py-3 text-left text-z-micro font-semibold text-z-text-3 uppercase tracking-wide">Column</th>
+                        <th className="px-4 py-3 text-left text-z-micro font-semibold text-z-text-3 uppercase tracking-wide">Type</th>
+                        <th className="px-4 py-3 text-left text-z-micro font-semibold text-z-text-3 uppercase tracking-wide">Flags</th>
+                        <th className="px-4 py-3 text-left text-z-micro font-semibold text-z-text-3 uppercase tracking-wide">Business meaning</th>
                       </tr>
                     </thead>
                     <tbody>
                       {columns.map((col, i) => (
                         <tr key={col.column_key ?? col.columnKey ?? i}
                           className="border-b border-gray-100/80 hover:bg-gray-50/40 transition-colors">
-                          <td className="px-4 py-3 font-mono text-[12.5px] text-[#374151] font-medium">
+                          <td className="px-4 py-3 font-mono text-z-small text-[#374151] font-medium">
                             {col.column_name ?? col.columnName}
                           </td>
                           <td className="px-4 py-3">
-                            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold
-                                             bg-gray-100 text-gray-600">
+                            <span className="px-2 py-0.5 rounded-full text-z-micro font-semibold
+                                             bg-z-card-2 text-z-text-2">
                               {col.data_type ?? col.dataType ?? '—'}
                             </span>
                           </td>
                           <td className="px-4 py-3"><ColFlags col={col} /></td>
-                          <td className="px-4 py-3 text-[12.5px] text-gray-500">
+                          <td className="px-4 py-3 text-z-small text-z-text-3">
                             {col.business_meaning ?? col.businessMeaning ?? '—'}
                           </td>
                         </tr>
@@ -383,7 +383,7 @@ function EntityDetail({ entity, allEdges, entityIndex }) {
             {/* ── Vocabulary ── */}
             {tab === 'vocab' && (
               vocab.length === 0 ? (
-                <div className="text-center py-12 text-[13px] text-gray-400">
+                <div className="text-center py-12 text-z-caption text-z-text-3">
                   No vocabulary terms for this entity.{' '}
                   <button onClick={() => navigate('/semantic')}
                     className="text-emerald-600 hover:underline">
@@ -397,14 +397,14 @@ function EntityDetail({ entity, allEdges, entityIndex }) {
                       className="bg-white/80 backdrop-blur-sm border border-gray-200/70
                                  rounded-xl p-4 flex items-start gap-4">
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-[13.5px] text-[#111827] mb-1">
+                        <div className="font-semibold text-z-caption text-[#111827] mb-1">
                           {v.term}
                         </div>
-                        <p className="text-[13px] text-gray-500">{v.definition}</p>
+                        <p className="text-z-caption text-z-text-3">{v.definition}</p>
                       </div>
                       {(v.sql_equivalent ?? v.sqlEquivalent) && (
                         <code className="flex-shrink-0 px-3 py-1.5 bg-emerald-50 text-emerald-700
-                                         rounded-[7px] text-[12px] font-mono border border-emerald-200/70">
+                                         rounded-[7px] text-z-small font-mono border border-emerald-200/70">
                           {v.sql_equivalent ?? v.sqlEquivalent}
                         </code>
                       )}
@@ -419,7 +419,7 @@ function EntityDetail({ entity, allEdges, entityIndex }) {
               <div className="space-y-5 max-w-4xl">
                 {outbound.length > 0 && (
                   <div>
-                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+                    <p className="text-z-micro font-semibold text-z-text-3 uppercase tracking-widest mb-3">
                       {entity.entity_name} connects to
                     </p>
                     <div className="space-y-2.5">
@@ -432,30 +432,30 @@ function EntityDetail({ entity, allEdges, entityIndex }) {
                             className="bg-white/80 backdrop-blur-sm border border-gray-200/70
                                        rounded-xl p-4">
                             <div className="flex items-center gap-3 mb-2">
-                              <div className="flex items-center gap-2 text-[13.5px] font-semibold text-[#111827]">
-                                <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold"
+                              <div className="flex items-center gap-2 text-z-caption font-semibold text-[#111827]">
+                                <span className="px-2 py-0.5 rounded-md text-z-micro font-semibold"
                                       style={{ background: conf.bg, color: conf.color }}>
                                   {entity.entity_name}
                                 </span>
-                                <ArrowRight size={14} className="text-gray-300" />
-                                <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold"
+                                <ArrowRight size={14} className="text-z-text-3" />
+                                <span className="px-2 py-0.5 rounded-md text-z-micro font-semibold"
                                       style={{ background: tConf.bg, color: tConf.color }}>
                                   {tEnt?.entity_name ?? tid}
                                 </span>
                               </div>
-                              <span className="ml-auto px-2 py-0.5 rounded-full text-[11px] font-semibold
-                                               bg-gray-100 text-gray-500">
+                              <span className="ml-auto px-2 py-0.5 rounded-full text-z-micro font-semibold
+                                               bg-z-card-2 text-z-text-3">
                                 {e.relationshipType ?? e.relationship_type}
                                 {e.cardinality ? ` · ${e.cardinality}` : ''}
                               </span>
                             </div>
                             {(e.sourceColumn ?? e.source_column) && (
-                              <p className="text-[12px] text-gray-400 mb-2 font-mono">
+                              <p className="text-z-small text-z-text-3 mb-2 font-mono">
                                 ON {e.sourceColumn ?? e.source_column} = {e.targetColumn ?? e.target_column}
                               </p>
                             )}
                             {(e.joinGuidance ?? e.join_guidance) && (
-                              <code className="block text-[12px] text-emerald-700 bg-emerald-50/80
+                              <code className="block text-z-small text-emerald-700 bg-emerald-50/80
                                                border border-emerald-200/70 rounded-[8px] px-3 py-2
                                                font-mono whitespace-pre-wrap">
                                 {e.joinGuidance ?? e.join_guidance}
@@ -470,7 +470,7 @@ function EntityDetail({ entity, allEdges, entityIndex }) {
 
                 {inbound.length > 0 && (
                   <div>
-                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+                    <p className="text-z-micro font-semibold text-z-text-3 uppercase tracking-widest mb-3">
                       Referenced by
                     </p>
                     <div className="space-y-2.5">
@@ -483,15 +483,15 @@ function EntityDetail({ entity, allEdges, entityIndex }) {
                             className="bg-white/80 backdrop-blur-sm border border-gray-200/70
                                        rounded-xl p-4 opacity-75">
                             <div className="flex items-center gap-3">
-                              <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold"
+                              <span className="px-2 py-0.5 rounded-md text-z-micro font-semibold"
                                     style={{ background: sConf.bg, color: sConf.color }}>
                                 {sEnt?.entity_name ?? sid}
                               </span>
-                              <ArrowRight size={13} className="text-gray-300" />
-                              <span className="text-[13px] font-semibold text-[#111827]">
+                              <ArrowRight size={13} className="text-z-text-3" />
+                              <span className="text-z-caption font-semibold text-[#111827]">
                                 {entity.entity_name}
                               </span>
-                              <span className="ml-auto text-[11.5px] text-gray-400">
+                              <span className="ml-auto text-z-micro text-z-text-3">
                                 {e.relationshipType ?? e.relationship_type}
                               </span>
                             </div>
@@ -503,7 +503,7 @@ function EntityDetail({ entity, allEdges, entityIndex }) {
                 )}
 
                 {outbound.length === 0 && inbound.length === 0 && (
-                  <div className="text-center py-12 text-[13px] text-gray-400">
+                  <div className="text-center py-12 text-z-caption text-z-text-3">
                     No relationships defined. Add them in the Semantic Layer.
                   </div>
                 )}
@@ -615,10 +615,10 @@ function JoinPathFinder({ entities, allEdges, entityIndex }) {
 
         {/* Header */}
         <div className="mb-7">
-          <h2 className="text-[20px] font-bold text-[#111827] tracking-[-0.025em] mb-1.5">
+          <h2 className="text-z-h3 font-semibold text-[#111827] tracking-[-0.025em] mb-1.5">
             JOIN Path Finder
           </h2>
-          <p className="text-[13.5px] text-gray-500 leading-relaxed">
+          <p className="text-z-caption text-z-text-3 leading-relaxed">
             Select any two entities and Zevra finds the shortest join chain connecting them —
             with the exact SQL you need to query across them.
           </p>
@@ -627,11 +627,11 @@ function JoinPathFinder({ entities, allEdges, entityIndex }) {
         {/* Entity selectors */}
         <div className="flex items-center gap-3 mb-6">
           <div className="flex-1">
-            <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
+            <label className="block text-z-micro font-semibold text-z-text-3 uppercase tracking-widest mb-1.5">
               From entity
             </label>
             <select value={fromKey} onChange={e => setFromKey(e.target.value)}
-              className="w-full border border-gray-200 rounded-[10px] px-3.5 py-2.5 text-[13.5px]
+              className="w-full border border-z-border rounded-[10px] px-3.5 py-2.5 text-z-caption
                          text-[#111827] bg-white/80 focus:outline-none focus:border-emerald-400
                          focus:ring-2 focus:ring-emerald-400/20 transition-all">
               <option value="">Select entity…</option>
@@ -642,17 +642,17 @@ function JoinPathFinder({ entities, allEdges, entityIndex }) {
           </div>
 
           <div className="mt-5 flex-shrink-0">
-            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-              <Shuffle size={14} className="text-gray-400" />
+            <div className="w-8 h-8 rounded-full bg-z-card-2 flex items-center justify-center">
+              <Shuffle size={14} className="text-z-text-3" />
             </div>
           </div>
 
           <div className="flex-1">
-            <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
+            <label className="block text-z-micro font-semibold text-z-text-3 uppercase tracking-widest mb-1.5">
               To entity
             </label>
             <select value={toKey} onChange={e => setToKey(e.target.value)}
-              className="w-full border border-gray-200 rounded-[10px] px-3.5 py-2.5 text-[13.5px]
+              className="w-full border border-z-border rounded-[10px] px-3.5 py-2.5 text-z-caption
                          text-[#111827] bg-white/80 focus:outline-none focus:border-emerald-400
                          focus:ring-2 focus:ring-emerald-400/20 transition-all">
               <option value="">Select entity…</option>
@@ -665,7 +665,7 @@ function JoinPathFinder({ entities, allEdges, entityIndex }) {
           <div className="mt-5 flex-shrink-0">
             <button onClick={findPath}
               disabled={!fromKey || !toKey || fromKey === toKey || loading}
-              className="h-10 px-5 bg-[#111827] text-white text-[13px] font-semibold
+              className="h-10 px-5 bg-[#111827] text-white text-z-caption font-semibold
                          rounded-[10px] hover:bg-[#1F2937] disabled:opacity-40 transition-colors
                          flex items-center gap-2">
               {loading ? <Spinner size={4} /> : <Zap size={14} />}
@@ -677,7 +677,7 @@ function JoinPathFinder({ entities, allEdges, entityIndex }) {
         {/* Error */}
         {error && (
           <div className="mb-5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl
-                          text-[13px] text-amber-700">
+                          text-z-caption text-amber-700">
             {error}
           </div>
         )}
@@ -688,7 +688,7 @@ function JoinPathFinder({ entities, allEdges, entityIndex }) {
 
             {/* Visual chain */}
             <div className="bg-white/80 backdrop-blur-sm border border-gray-200/70 rounded-xl p-5">
-              <p className="text-[10.5px] font-semibold text-gray-400 uppercase tracking-widest mb-4">
+              <p className="text-z-nano font-semibold text-z-text-3 uppercase tracking-widest mb-4">
                 Join chain · {pathNodes.length} entities · {pathEdges.length} joins
               </p>
               <div className="flex items-center flex-wrap gap-2">
@@ -697,17 +697,17 @@ function JoinPathFinder({ entities, allEdges, entityIndex }) {
                   return (
                     <React.Fragment key={n.id}>
                       <div className="flex flex-col items-center gap-1.5">
-                        <div className="px-3 py-2 rounded-[9px] text-[13px] font-semibold"
+                        <div className="px-3 py-2 rounded-[9px] text-z-caption font-semibold"
                              style={{ background: conf.bg, color: conf.color }}>
                           {n.name}
                         </div>
-                        <span className="text-[10px] text-gray-400">{conf.label}</span>
+                        <span className="text-z-nano text-z-text-3">{conf.label}</span>
                       </div>
                       {i < pathNodes.length - 1 && (
                         <div className="flex flex-col items-center gap-1">
-                          <ArrowRight size={16} className="text-gray-300" />
+                          <ArrowRight size={16} className="text-z-text-3" />
                           {pathEdges[i] && (
-                            <span className="text-[10px] text-gray-400 whitespace-nowrap">
+                            <span className="text-z-nano text-z-text-3 whitespace-nowrap">
                               {pathEdges[i].type}
                               {pathEdges[i].card ? ` · ${pathEdges[i].card}` : ''}
                             </span>
@@ -723,7 +723,7 @@ function JoinPathFinder({ entities, allEdges, entityIndex }) {
             {/* JOIN steps */}
             {pathEdges.filter(e => e.join || (e.srcCol && e.tgtCol)).length > 0 && (
               <div>
-                <p className="text-[10.5px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+                <p className="text-z-nano font-semibold text-z-text-3 uppercase tracking-widest mb-3">
                   Join conditions
                 </p>
                 <div className="space-y-2.5">
@@ -737,15 +737,15 @@ function JoinPathFinder({ entities, allEdges, entityIndex }) {
                                    rounded-xl overflow-hidden">
                         <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50/80
                                         border-b border-gray-200/70">
-                          <span className="text-[12px] font-medium text-[#374151]">{from}</span>
-                          <ArrowRight size={11} className="text-gray-300" />
-                          <span className="text-[12px] font-medium text-[#374151]">{to}</span>
+                          <span className="text-z-small font-medium text-[#374151]">{from}</span>
+                          <ArrowRight size={11} className="text-z-text-3" />
+                          <span className="text-z-small font-medium text-[#374151]">{to}</span>
                           {e.card && (
-                            <span className="ml-auto text-[11px] text-gray-400">{e.card}</span>
+                            <span className="ml-auto text-z-micro text-z-text-3">{e.card}</span>
                           )}
                         </div>
                         <div className="px-4 py-3">
-                          <code className="text-[12.5px] text-emerald-700 font-mono">
+                          <code className="text-z-small text-emerald-700 font-mono">
                             {e.join || `ON ${to?.toLowerCase().charAt(0)}.${e.tgtCol} = ${from?.toLowerCase().charAt(0)}.${e.srcCol}`}
                           </code>
                         </div>
@@ -760,19 +760,19 @@ function JoinPathFinder({ entities, allEdges, entityIndex }) {
             {joinSQL && (
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10.5px] font-semibold text-gray-400 uppercase tracking-widest">
+                  <p className="text-z-nano font-semibold text-z-text-3 uppercase tracking-widest">
                     Complete SQL
                   </p>
                   <button onClick={() => copy(joinSQL)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-[12px]
-                               font-medium transition-all text-gray-500 hover:text-gray-700
-                               hover:bg-gray-100">
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-z-small
+                               font-medium transition-all text-z-text-3 hover:text-z-text-2
+                               hover:bg-z-card-2">
                     {copied ? <ClipboardCheck size={13} className="text-emerald-500" /> : <Clipboard size={13} />}
                     {copied ? 'Copied!' : 'Copy SQL'}
                   </button>
                 </div>
                 <div className="bg-[#0D1117] rounded-xl overflow-hidden border border-gray-800">
-                  <pre className="px-5 py-4 text-[13px] text-emerald-400 font-mono
+                  <pre className="px-5 py-4 text-z-caption text-emerald-400 font-mono
                                   leading-relaxed overflow-x-auto whitespace-pre">
                     {joinSQL}
                   </pre>
@@ -784,14 +784,14 @@ function JoinPathFinder({ entities, allEdges, entityIndex }) {
             <div className="flex gap-3 pt-1">
               <button onClick={askZevra}
                 className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-[10px]
-                           bg-[#111827] text-white text-[13.5px] font-semibold
+                           bg-[#111827] text-white text-z-caption font-semibold
                            hover:bg-[#1F2937] transition-colors">
                 <MessageSquare size={15} />
                 Investigate this path in Zevra
               </button>
               <button onClick={() => copy(joinSQL)}
-                className="px-5 py-3 rounded-[10px] border border-gray-200 bg-white/80
-                           text-[13px] font-medium text-gray-600 hover:bg-gray-50 transition-colors
+                className="px-5 py-3 rounded-[10px] border border-z-border bg-white/80
+                           text-z-caption font-medium text-z-text-2 hover:bg-z-card-2 transition-colors
                            flex items-center gap-2">
                 {copied ? <ClipboardCheck size={14} className="text-emerald-500" /> : <Clipboard size={14} />}
                 {copied ? 'Copied' : 'Copy SQL'}
@@ -806,12 +806,12 @@ function JoinPathFinder({ entities, allEdges, entityIndex }) {
           <div className="text-center py-14">
             <div className="w-16 h-16 rounded-2xl bg-gray-100/80 flex items-center justify-center
                             mx-auto mb-4">
-              <Shuffle size={26} className="text-gray-300" />
+              <Shuffle size={26} className="text-z-text-3" />
             </div>
-            <p className="text-[14px] font-semibold text-[#374151] mb-2">
+            <p className="text-z-body-sm font-semibold text-[#374151] mb-2">
               Discover how entities connect
             </p>
-            <p className="text-[13px] text-gray-400 max-w-sm mx-auto leading-relaxed">
+            <p className="text-z-caption text-z-text-3 max-w-sm mx-auto leading-relaxed">
               Select a start and end entity above. Zevra will find the shortest join chain
               and generate the SQL you need.
             </p>
@@ -907,10 +907,10 @@ export default function KnowledgeGraph() {
                       border-b border-gray-200/70">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-[20px] font-bold text-[#111827] tracking-[-0.025em]">
+            <h1 className="text-z-h3 font-semibold text-[#111827] tracking-[-0.025em]">
               Knowledge Graph
             </h1>
-            <p className="text-[13px] text-gray-400 mt-1">
+            <p className="text-z-caption text-z-text-3 mt-1">
               {stats.total} entities · {stats.edges} relationships
               {domains.length > 1 && ` in domain ${selectedDomain}`}
               {discoverMsg && (
@@ -953,7 +953,7 @@ export default function KnowledgeGraph() {
                 }
               }}
               disabled={discovering || !selectedDomain}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-[8px] text-[13px]
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-[8px] text-z-caption
                          font-medium border border-emerald-200 bg-emerald-50 text-emerald-700
                          hover:bg-emerald-100 disabled:opacity-50 transition-colors"
             >
@@ -966,7 +966,7 @@ export default function KnowledgeGraph() {
             {domains.length > 1 && (
               <select value={selectedDomain}
                 onChange={e => setSelectedDomain(e.target.value)}
-                className="border border-gray-200 rounded-[8px] px-3 py-2 text-[13px]
+                className="border border-z-border rounded-[8px] px-3 py-2 text-z-caption
                            text-[#111827] bg-white/80 focus:outline-none focus:border-emerald-400
                            transition-colors">
                 {domains.map(d => {
@@ -980,10 +980,10 @@ export default function KnowledgeGraph() {
             <div className="flex gap-1 bg-gray-100/80 p-1 rounded-[9px]">
               {[['explore', 'Explore'], ['path', 'Find JOIN path']].map(([k, l]) => (
                 <button key={k} onClick={() => setView(k)}
-                  className={`px-3.5 py-1.5 rounded-[7px] text-[12.5px] font-medium transition-all
+                  className={`px-3.5 py-1.5 rounded-[7px] text-z-small font-medium transition-all
                     ${view === k
-                      ? 'bg-white text-[#111827] shadow-sm'
-                      : 'text-gray-400 hover:text-gray-600'}`}>
+                      ? 'bg-z-card text-[#111827] shadow-sm'
+                      : 'text-z-text-3 hover:text-z-text-2'}`}>
                   {l}
                 </button>
               ))}
@@ -1022,19 +1022,19 @@ export default function KnowledgeGraph() {
                   <div className="text-center max-w-sm">
                     <div className="w-16 h-16 rounded-2xl bg-white/80 border border-gray-200/70
                                     flex items-center justify-center mx-auto mb-4 shadow-sm">
-                      <Search size={26} className="text-gray-300" />
+                      <Search size={26} className="text-z-text-3" />
                     </div>
-                    <p className="text-[15px] font-semibold text-[#374151] mb-2">
+                    <p className="text-z-body font-semibold text-[#374151] mb-2">
                       Select an entity
                     </p>
-                    <p className="text-[13px] text-gray-400 leading-relaxed">
+                    <p className="text-z-caption text-z-text-3 leading-relaxed">
                       Choose an entity from the list to explore its columns, vocabulary,
                       relationships, and JOIN guidance.
                     </p>
                     <button onClick={() => setView('path')}
                       className="mt-4 flex items-center gap-2 mx-auto px-4 py-2 rounded-[8px]
-                                 border border-gray-200 bg-white/80 text-[13px] font-medium
-                                 text-gray-600 hover:bg-gray-50 transition-colors">
+                                 border border-z-border bg-white/80 text-z-caption font-medium
+                                 text-z-text-2 hover:bg-z-card-2 transition-colors">
                       <Shuffle size={13} /> Or find a JOIN path between two entities
                     </button>
                   </div>

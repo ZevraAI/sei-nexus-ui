@@ -12,11 +12,11 @@
    ============================================================================ */
 
 :root {
-  /* Fonts — sans + mono UNCHANGED; serif is additive (the verdict voice). */
-  --z-font-sans: -apple-system, "SF Pro Display", "SF Pro Text", "Segoe UI Variable",
-                 "Inter", "Segoe UI", system-ui, sans-serif;
+  /* Fonts — ONE sans (Inter, self-hosted in main.jsx so every OS renders identically), the serif
+     verdict voice (Newsreader, self-hosted), and mono for micro-labels/IDs only. */
+  --z-font-sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --z-font-mono: "SF Mono", "JetBrains Mono", "Cascadia Code", ui-monospace, monospace;
-  --z-font-serif: "Newsreader", "Iowan Old Style", "Palatino Linotype", "Book Antiqua",
+  --z-font-serif: "Newsreader Variable", "Newsreader", "Iowan Old Style", "Palatino Linotype", "Book Antiqua",
                   Palatino, Georgia, "Times New Roman", serif;
 
   /* Radius (unchanged) */

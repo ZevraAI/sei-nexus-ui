@@ -39,19 +39,19 @@ function AgentCard({ agent, idx, onEdit, onDelete }) {
             <Bot size={18} style={{ color: tile.stroke }} strokeWidth={1.6} />
           </div>
           <div>
-            <div className="text-[14px] font-semibold text-[#111827]">{agent.name}</div>
-            <div className="text-[11.5px] text-[#9CA3AF] mt-[1px]">
+            <div className="text-z-body-sm font-semibold text-[#111827]">{agent.name}</div>
+            <div className="text-z-micro text-[#9CA3AF] mt-[1px]">
               {connCount} connection{connCount !== 1 ? 's' : ''}
             </div>
           </div>
         </div>
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${statusBadge(agent.status)}`}>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-z-micro font-semibold ${statusBadge(agent.status)}`}>
           {agent.status}
         </span>
       </div>
 
       {/* Goal */}
-      <p className="text-[12.5px] text-[#6B7280] leading-[1.55] line-clamp-2">
+      <p className="text-z-small text-[#6B7280] leading-[1.55] line-clamp-2">
         {agent.goal || '—'}
       </p>
 
@@ -59,25 +59,25 @@ function AgentCard({ agent, idx, onEdit, onDelete }) {
       <div className="grid grid-cols-2 gap-2">
         <div className="flex items-center gap-1.5 px-3 py-2 bg-[#F9FAFB] rounded-lg">
           <Database size={12} className="text-[#9CA3AF]" />
-          <span className="text-[12px] text-[#374151]">{connCount} connection{connCount !== 1 ? 's' : ''}</span>
+          <span className="text-z-small text-[#374151]">{connCount} connection{connCount !== 1 ? 's' : ''}</span>
         </div>
         <div className="flex items-center gap-1.5 px-3 py-2 bg-[#F9FAFB] rounded-lg">
           <Zap size={12} className="text-[#9CA3AF]" />
-          <span className="text-[12px] text-[#374151]">max {agent.max_iterations ?? agent.maxIterations ?? 10} steps</span>
+          <span className="text-z-small text-[#374151]">max {agent.max_iterations ?? agent.maxIterations ?? 10} steps</span>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+      <div className="flex items-center gap-2 pt-1 border-t border-z-border">
         <button
           onClick={() => navigate(`/agents/${agent.id}`)}
           className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5
-                     bg-[#111827] text-white text-[12px] font-medium rounded-[7px]
+                     bg-[#111827] text-white text-z-small font-medium rounded-[7px]
                      hover:bg-[#1F2937] transition-colors">
           <MessageSquare size={12} /> Chat
         </button>
         <button onClick={() => onEdit(agent)}
-          className="p-1.5 text-[#6B7280] hover:text-[#111827] hover:bg-gray-100
+          className="p-1.5 text-[#6B7280] hover:text-[#111827] hover:bg-z-card-2
                      rounded-[7px] transition-colors">
           <Pencil size={13} />
         </button>
@@ -94,16 +94,16 @@ function AgentCard({ agent, idx, onEdit, onDelete }) {
 function AddCard({ onClick }) {
   return (
     <div onClick={onClick}
-      className="bg-white/60 backdrop-blur-sm rounded-xl border border-dashed border-gray-300
+      className="bg-white/60 backdrop-blur-sm rounded-xl border border-dashed border-z-border-strong
                  flex flex-col items-center justify-center gap-3 min-h-[220px] cursor-pointer
                  hover:border-gray-400 hover:bg-white/80 transition-all">
-      <div className="w-[44px] h-[44px] rounded-[12px] border border-dashed border-gray-300
+      <div className="w-[44px] h-[44px] rounded-[12px] border border-dashed border-z-border-strong
                       flex items-center justify-center">
-        <Plus size={18} className="text-gray-400" strokeWidth={1.6} />
+        <Plus size={18} className="text-z-text-3" strokeWidth={1.6} />
       </div>
       <div className="text-center">
-        <div className="text-[13.5px] font-medium text-[#374151] mb-1">Create new agent</div>
-        <div className="text-[12px] text-[#9CA3AF]">Give it a goal and data connections</div>
+        <div className="text-z-caption font-medium text-[#374151] mb-1">Create new agent</div>
+        <div className="text-z-small text-[#9CA3AF]">Give it a goal and data connections</div>
       </div>
     </div>
   );
@@ -140,20 +140,20 @@ export default function Agents() {
       {/* Header */}
       <div className="flex items-start justify-between mb-7">
         <div>
-          <h1 className="text-[20px] font-bold text-[#111827] tracking-[-0.025em]">Agents</h1>
-          <p className="text-[13px] text-[#9CA3AF] mt-1">
+          <h1 className="text-z-h3 font-semibold text-[#111827] tracking-[-0.025em]">Agents</h1>
+          <p className="text-z-caption text-[#9CA3AF] mt-1">
             Autonomous AI agents that reason over your data — no workflow to draw
           </p>
         </div>
         <button onClick={openAdd}
           className="flex items-center gap-1.5 px-[14px] py-[7px] bg-[#111827] text-white
-                     text-[13px] font-medium rounded-[8px] hover:bg-[#1F2937] transition-colors shadow-sm">
+                     text-z-caption font-medium rounded-[8px] hover:bg-[#1F2937] transition-colors shadow-sm">
           <Plus size={13} /> New Agent
         </button>
       </div>
 
       {error && (
-        <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-[13px] text-red-600">
+        <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-z-caption text-red-600">
           {error}
         </div>
       )}

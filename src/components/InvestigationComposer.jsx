@@ -153,7 +153,7 @@ export default function InvestigationComposer({
           role={menuOpen ? 'combobox' : undefined}
           aria-expanded={menuOpen}
           aria-haspopup={menuOpen ? 'listbox' : undefined}
-          className="max-h-[40vh] flex-1 resize-none overflow-y-auto bg-transparent text-[16px] text-z-text outline-none placeholder:text-z-text-3"
+          className="max-h-[40vh] flex-1 resize-none overflow-y-auto bg-transparent text-z-lead text-z-text outline-none placeholder:text-z-text-3"
           style={{ lineHeight: '1.6' }}
         />
         <button

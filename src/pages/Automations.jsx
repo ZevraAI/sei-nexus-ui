@@ -13,12 +13,12 @@ import {
 
 function StatusBadge({ status }) {
   const cfg = {
-    DRAFT:    { color: 'bg-gray-100 text-gray-600',     label: 'Draft'    },
+    DRAFT:    { color: 'bg-z-card-2 text-z-text-2',     label: 'Draft'    },
     ACTIVE:   { color: 'bg-emerald-100 text-emerald-700', label: 'Active' },
     ARCHIVED: { color: 'bg-red-50 text-red-500',          label: 'Archived' },
-  }[status] ?? { color: 'bg-gray-100 text-gray-500', label: status };
+  }[status] ?? { color: 'bg-z-card-2 text-z-text-3', label: status };
   return (
-    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.color}`}>{cfg.label}</span>
+    <span className={`text-z-nano font-semibold px-2 py-0.5 rounded-full ${cfg.color}`}>{cfg.label}</span>
   );
 }
 
@@ -28,7 +28,7 @@ function ExecIcon({ status }) {
   if (status === 'SUCCESS')  return <CheckCircle2 size={12} className="text-emerald-500" />;
   if (status === 'FAILED')   return <XCircle size={12} className="text-red-500" />;
   if (status === 'RUNNING')  return <Loader2 size={12} className="animate-spin text-blue-500" />;
-  return <Clock size={12} className="text-gray-400" />;
+  return <Clock size={12} className="text-z-text-3" />;
 }
 
 // ── Workflow card ─────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ function WorkflowCard({ workflow, onDelete, isDark }) {
 
   const card = isDark
     ? 'bg-[#1A1F2B] border-[#252E3F] hover:border-[#374151]'
-    : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-md';
+    : 'bg-z-card border-z-border hover:border-z-border-strong hover:shadow-md';
 
   const graphNodeCount = (() => {
     try {
@@ -79,17 +79,17 @@ function WorkflowCard({ workflow, onDelete, isDark }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <Zap size={14} className="text-emerald-500 shrink-0" />
-            <span className={`text-[14px] font-semibold truncate ${isDark ? 'text-[#F0F4F8]' : 'text-gray-900'}`}>
+            <span className={`text-z-body-sm font-semibold truncate ${isDark ? 'text-[#F0F4F8]' : 'text-z-text'}`}>
               {workflow.name}
             </span>
             <StatusBadge status={workflow.status} />
           </div>
           {workflow.description && (
-            <p className={`text-[12px] truncate mt-0.5 ${isDark ? 'text-[#64748B]' : 'text-gray-500'}`}>
+            <p className={`text-z-small truncate mt-0.5 ${isDark ? 'text-[#64748B]' : 'text-z-text-3'}`}>
               {workflow.description}
             </p>
           )}
-          <div className={`flex items-center gap-3 mt-2 text-[11px] ${isDark ? 'text-[#4B5563]' : 'text-gray-400'}`}>
+          <div className={`flex items-center gap-3 mt-2 text-z-micro ${isDark ? 'text-[#4B5563]' : 'text-z-text-3'}`}>
             <span className="font-mono">/{workflow.slug}</span>
             <span>·</span>
             <span>{graphNodeCount} node{graphNodeCount !== 1 ? 's' : ''}</span>
@@ -117,7 +117,7 @@ function WorkflowCard({ workflow, onDelete, isDark }) {
           <button
             onClick={e => { e.stopPropagation(); navigate(`/automations/${workflow.id}/edit`); }}
             title="Edit"
-            className={`p-1.5 rounded-lg transition-colors ${isDark ? 'text-[#64748B] hover:bg-[#252E3F] hover:text-[#E2E8F0]' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-700'}`}
+            className={`p-1.5 rounded-lg transition-colors ${isDark ? 'text-[#64748B] hover:bg-[#252E3F] hover:text-[#E2E8F0]' : 'text-z-text-3 hover:bg-z-card-2 hover:text-z-text-2'}`}
           >
             <Pencil size={13} />
           </button>
@@ -162,9 +162,9 @@ export default function Automations() {
   };
 
   const surface = isDark ? 'bg-[#0F1117]' : 'bg-[#F8FAFC]';
-  const heading = isDark ? 'text-[#F0F4F8]' : 'text-gray-900';
-  const sub     = isDark ? 'text-[#64748B]' : 'text-gray-500';
-  const card    = isDark ? 'bg-[#1A1F2B] border-[#252E3F]' : 'bg-white border-gray-200';
+  const heading = isDark ? 'text-[#F0F4F8]' : 'text-z-text';
+  const sub     = isDark ? 'text-[#64748B]' : 'text-z-text-3';
+  const card    = isDark ? 'bg-[#1A1F2B] border-[#252E3F]' : 'bg-z-card border-z-border';
 
   return (
     <div className={`flex flex-col h-full ${surface} overflow-y-auto`}>
@@ -180,15 +180,15 @@ export default function Automations() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className={`text-[22px] font-bold ${heading}`}>Automations</h1>
-            <p className={`text-[13px] mt-0.5 ${sub}`}>
+            <h1 className={`text-z-h3 font-semibold ${heading}`}>Automations</h1>
+            <p className={`text-z-caption mt-0.5 ${sub}`}>
               Build visual workflows that connect your data, AI, and business logic.
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowGenerate(true)}
-              className={`flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-xl border transition-colors
+              className={`flex items-center gap-2 px-4 py-2 text-z-caption font-semibold rounded-xl border transition-colors
                 ${isDark
                   ? 'border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10'
                   : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'}`}
@@ -197,7 +197,7 @@ export default function Automations() {
             </button>
             <button
               onClick={() => navigate('/automations/new/edit')}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-semibold rounded-xl transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-z-caption font-semibold rounded-xl transition-colors"
             >
               <Plus size={14} /> New Workflow
             </button>
@@ -206,8 +206,8 @@ export default function Automations() {
 
         {/* Demo callout */}
         <div className={`rounded-xl border p-4 mb-6 ${card}`}>
-          <p className={`text-[12px] font-semibold ${heading} mb-1`}>Demo Workflows Available</p>
-          <p className={`text-[12px] ${sub}`}>
+          <p className={`text-z-small font-semibold ${heading} mb-1`}>Demo Workflows Available</p>
+          <p className={`text-z-small ${sub}`}>
             Two pre-built demo workflows ship with Zevra: <span className="font-mono font-medium">order-fulfillment</span> and{' '}
             <span className="font-mono font-medium">damage-claim-processor</span>. Open them to explore the canvas and run a live test.
           </p>
@@ -221,19 +221,19 @@ export default function Automations() {
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-[13px] px-4 py-3 rounded-xl">{error}</div>
+          <div className="bg-red-50 border border-red-200 text-red-700 text-z-caption px-4 py-3 rounded-xl">{error}</div>
         )}
 
         {!loading && !error && workflows.length === 0 && (
-          <div className={`rounded-xl border border-dashed flex flex-col items-center justify-center py-20 gap-4 ${isDark ? 'border-[#252E3F]' : 'border-gray-200'}`}>
-            <Zap size={32} className="text-gray-300" />
+          <div className={`rounded-xl border border-dashed flex flex-col items-center justify-center py-20 gap-4 ${isDark ? 'border-[#252E3F]' : 'border-z-border'}`}>
+            <Zap size={32} className="text-z-text-3" />
             <div className="text-center">
-              <p className={`text-[14px] font-semibold ${heading}`}>No workflows yet</p>
-              <p className={`text-[12px] mt-1 ${sub}`}>Create your first workflow or run the Flyway migration to load the demo workflows.</p>
+              <p className={`text-z-body-sm font-semibold ${heading}`}>No workflows yet</p>
+              <p className={`text-z-small mt-1 ${sub}`}>Create your first workflow or run the Flyway migration to load the demo workflows.</p>
             </div>
             <button
               onClick={() => navigate('/automations/new/edit')}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-semibold rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-z-caption font-semibold rounded-lg transition-colors"
             >
               <Plus size={13} /> Create Workflow
             </button>

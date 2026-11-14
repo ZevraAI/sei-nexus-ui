@@ -139,7 +139,7 @@ export function HomePageMockup() {
             <PulseSpine className="mb-6" />
 
             <p className="text-z-text-2 text-base mb-3">{timeLabel}, <span className="text-z-text font-medium">{USER_NAME}</span>.</p>
-            <h1 className="font-sans font-semibold text-[26px] md:text-[30px] leading-[1.3] tracking-[-0.01em] text-z-text max-w-[46ch]">
+            <h1 className="font-sans font-semibold text-z-h2 md:text-z-h2 leading-[1.3] tracking-[-0.01em] text-z-text max-w-[46ch]">
               Two situations <span className="text-z-warning">need your attention</span> — the rest is nominal.
             </h1>
 
@@ -178,7 +178,7 @@ export function HomePageMockup() {
               before:bg-[linear-gradient(180deg,transparent,var(--z-spine-strong)_18%,var(--z-spine-strong)_82%,transparent)] before:shadow-[0_0_12px_var(--z-spine-glow)]">
               {KPIS.map((k, i) => (
                 <div key={k.label} className={`flex-1 px-6 py-5 ${i > 0 ? 'border-t sm:border-t-0 sm:border-l border-z-border' : ''}`}>
-                  <div className="text-[28px] font-semibold text-z-text tabular-nums leading-none">{k.value}</div>
+                  <div className="text-z-h2 font-semibold text-z-text tabular-nums leading-none">{k.value}</div>
                   <div className="text-z-caption text-z-text-3 mt-2">{k.label}</div>
                   <div className="text-2xs text-z-up mt-1.5 font-medium">{k.trend}</div>
                 </div>

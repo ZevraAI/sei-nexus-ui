@@ -15,7 +15,7 @@ import {
   Badge, StatusDot, statusKind,
 } from '../ds';
 import { IntelligencePage, ReadingColumn, Eyebrow, Verdict, HighlightSurface } from '../ds/intelligence';
-import InvestigationComposer from '../components/InvestigationComposer.jsx';
+import DraftComposer from '../components/DraftComposer.jsx';
 import TeachZevraModal from '../components/TeachZevraModal.jsx';
 
 import DataViz, { hasChartConfig } from '../components/DataViz.jsx';
@@ -366,7 +366,7 @@ function FloatingHistory({ conversations, loading, onOpen, onClose }) {
         {['Today', 'Yesterday', 'Earlier'].map((label) =>
           grouped[label]?.length ? (
             <div key={label} className="mb-3">
-              <div className="mb-1 px-2 font-z-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-z-text-3">
+              <div className="mb-1 px-2 font-z-mono text-z-nano font-semibold uppercase tracking-[0.14em] text-z-text-3">
                 {label}
               </div>
               <div className="space-y-px">
@@ -381,12 +381,12 @@ function FloatingHistory({ conversations, loading, onOpen, onClose }) {
                       <span className="line-clamp-1 text-z-caption font-medium leading-snug text-z-text">
                         {item.first_question || item.title || 'Investigation'}
                       </span>
-                      <span className="mt-px shrink-0 font-z-mono text-[10.5px] text-z-text-3">
+                      <span className="mt-px shrink-0 font-z-mono text-z-nano text-z-text-3">
                         {timeAgo(item.last_activity)}
                       </span>
                     </div>
                     {item.run_count > 0 && (
-                      <span className="mt-0.5 block text-[11px] text-z-text-3">
+                      <span className="mt-0.5 block text-z-micro text-z-text-3">
                         {item.run_count} {item.run_count === 1 ? 'run' : 'runs'}
                       </span>
                     )}
@@ -466,7 +466,7 @@ export function DataTable({ rows }) {
           </TBody>
         </Table>
       </div>
-      <div className="border-t border-z-border bg-z-card-2 px-3.5 py-1.5 font-z-mono text-[11px] text-z-text-3">
+      <div className="border-t border-z-border bg-z-card-2 px-3.5 py-1.5 text-z-micro tabular-nums text-z-text-3">
         {rows.length.toLocaleString()} row{rows.length !== 1 ? 's' : ''}
       </div>
     </TableWrap>
@@ -513,7 +513,7 @@ function SuggestedQuestions({ quickRefinements, queryData, onAsk }) {
   if (!chips.length) return null;
   return (
     <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-z-border pt-4">
-      <span className="mr-0.5 self-center font-z-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-z-text-3">
+      <span className="mr-0.5 self-center font-z-mono text-z-nano font-semibold uppercase tracking-[0.14em] text-z-text-3">
         Ask next
       </span>
       {chips.map((c, i) => (
@@ -544,7 +544,7 @@ function AttachmentChip({ attachment, onRemove }) {
         <img src={`data:image/jpeg;base64,${attachment.thumbnail}`}
              alt="preview" className="h-8 w-8 flex-shrink-0 rounded-z-sm object-cover" />
       ) : (
-        <span className="flex-shrink-0 text-[16px]">{s.icon}</span>
+        <span className="flex-shrink-0 text-z-lead">{s.icon}</span>
       )}
       <span className="flex-1 truncate text-z-text">{attachment.fileName}</span>
       {onRemove && (
@@ -560,9 +560,9 @@ function AttachmentChip({ attachment, onRemove }) {
 function UserMessage({ text, attachment }) {
   return (
     <div className="mb-6 animate-z-rise">
-      <div className="mb-1.5 font-z-mono text-[10px] uppercase tracking-[0.14em] text-z-text-3">You · just now</div>
+      <div className="mb-1.5 font-z-mono text-z-nano uppercase tracking-[0.14em] text-z-text-3">You · just now</div>
       {attachment && <div className="mb-2"><AttachmentChip attachment={attachment} /></div>}
-      <div className="inline-block max-w-[80%] rounded-[14px_14px_14px_4px] border border-z-border bg-z-card-2 px-4 py-2.5 text-[14.5px] leading-[1.5] text-z-text">
+      <div className="inline-block max-w-[80%] rounded-[14px_14px_14px_4px] border border-z-border bg-z-card-2 px-4 py-2.5 text-z-body-sm leading-[1.5] text-z-text">
         {text}
       </div>
     </div>
@@ -603,7 +603,7 @@ export function AgentStepsToggle({ sessionId }) {
         type="button"
         onClick={toggle}
         title="View the steps the agent executed"
-        className="inline-flex cursor-pointer items-center gap-1.5 rounded-z-pill border border-z-border bg-z-card-2 px-2.5 py-0.5 text-[10.5px] font-medium text-z-text-2 transition-colors hover:border-z-primary hover:text-z-text focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-z-focus-ring">
+        className="inline-flex cursor-pointer items-center gap-1.5 rounded-z-pill border border-z-border bg-z-card-2 px-2.5 py-0.5 text-z-nano font-medium text-z-text-2 transition-colors hover:border-z-primary hover:text-z-text focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-z-focus-ring">
         <ListTree size={10} />
         {open
           ? `Hide steps${toolCalls > 0 ? ` (${toolCalls} tool call${toolCalls !== 1 ? 's' : ''})` : ''}`
@@ -720,7 +720,7 @@ export function RuntimeProgress({ phases, renderDetail }) {
         const isOpen = expanded.has(p.phase);
         return (
           <div key={p.phase ?? i} className="flex flex-col gap-2">
-            <div className="flex animate-z-rise items-center gap-3 text-[13.5px]">
+            <div className="flex animate-z-rise items-center gap-3 text-z-caption">
               <span className={cn(
                 'grid h-[15px] w-[15px] flex-none place-items-center rounded-full border-[1.5px]',
                 p.done ? 'border-z-primary bg-z-primary text-z-on-accent'
@@ -741,7 +741,7 @@ export function RuntimeProgress({ phases, renderDetail }) {
               )}
             </div>
             {detail && isOpen && (
-              <div className="ml-[27px] text-[12.5px] text-z-text-3">{detail}</div>
+              <div className="ml-[27px] text-z-small text-z-text-3">{detail}</div>
             )}
           </div>
         );
@@ -759,7 +759,7 @@ export function LiveReasoningSteps({ steps }) {
         const done = s.rowCount != null || s.evaluatorDecision != null;
         const meta = s.rowSummary ?? (s.rowCount != null ? `${s.rowCount.toLocaleString()} row${s.rowCount !== 1 ? 's' : ''}` : null);
         return (
-          <div key={s.stepNo ?? i} className="flex animate-z-rise items-center gap-3 text-[13.5px]">
+          <div key={s.stepNo ?? i} className="flex animate-z-rise items-center gap-3 text-z-caption">
             <span className={cn(
               'grid h-[15px] w-[15px] flex-none place-items-center rounded-full border-[1.5px]',
               done ? 'border-z-primary bg-z-primary text-z-on-accent'
@@ -768,7 +768,7 @@ export function LiveReasoningSteps({ steps }) {
               {done && <Check size={9} strokeWidth={3} />}
             </span>
             <span className={done ? 'text-z-text-3' : 'text-z-text-2'}>{s.description}</span>
-            {meta && <span className="ml-auto font-z-mono text-[11px] text-z-text-3">{meta}</span>}
+            {meta && <span className="ml-auto font-z-mono text-z-micro text-z-text-3">{meta}</span>}
           </div>
         );
       })}
@@ -789,7 +789,7 @@ function AssistantMessage({ content, decisionType, agentName, loading, exportMen
       {/* Role line — the mono Intelligence voice, emerald, with a live dot */}
       <Eyebrow dot className="mb-3 text-z-primary">
         Zevra
-        <span className="text-[11.5px] normal-case tracking-[0.04em] text-z-text-3">
+        <span className="text-z-micro normal-case tracking-[0.04em] text-z-text-3">
           {loading ? (milestones.length > 0 || stepCount > 0 ? 'thinking…' : 'understanding…') : 'answered'}
         </span>
       </Eyebrow>
@@ -827,22 +827,22 @@ function AssistantMessage({ content, decisionType, agentName, loading, exportMen
             <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-z-border pt-3">
               {agentName && decisionType === 'ZEVRA_AGENT' ? (
                 <>
-                  <span className="inline-flex items-center gap-1.5 rounded-z-pill border border-z-border bg-z-primary-soft px-2.5 py-0.5 text-[10.5px] font-medium text-z-primary">
+                  <span className="inline-flex items-center gap-1.5 rounded-z-pill border border-z-border bg-z-primary-soft px-2.5 py-0.5 text-z-nano font-medium text-z-primary">
                     <Bot size={10} />
                     Answered by {agentName}
                   </span>
                   {agentSessionId && <AgentStepsToggle sessionId={agentSessionId} />}
                 </>
               ) : decisionType && (
-                <span className="font-z-mono text-[10px] uppercase tracking-[0.1em] text-z-text-3">
+                <span className="font-z-mono text-z-nano uppercase tracking-[0.1em] text-z-text-3">
                   via <span className="font-medium text-z-primary">{decisionType}</span>
                 </span>
               )}
               {reasoningSteps?.length > 0 && (
-                <span className="text-[10px] text-z-text-3">· {reasoningSteps.length} step{reasoningSteps.length !== 1 ? 's' : ''}</span>
+                <span className="text-z-nano text-z-text-3">· {reasoningSteps.length} step{reasoningSteps.length !== 1 ? 's' : ''}</span>
               )}
               {learningsApplied?.length > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-z-pill border border-z-border bg-z-primary-soft px-2 py-0.5 text-[10px] font-medium text-z-primary"
+                <span className="inline-flex items-center gap-1 rounded-z-pill border border-z-border bg-z-primary-soft px-2 py-0.5 text-z-nano font-medium text-z-primary"
                   title={`Learned terms applied: ${learningsApplied.join(', ')}`}>
                   🧠 {learningsApplied.length} learned term{learningsApplied.length !== 1 ? 's' : ''} applied
                 </span>
@@ -947,7 +947,7 @@ function PinReportModal({ conversationTitle, messages, user, onClose }) {
             <Field label="At">
               <Input type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} />
             </Field>
-            <div className="pb-2.5 font-z-mono text-z-caption text-z-text-3">{tz}</div>
+            <div className="pb-2.5 text-z-caption text-z-text-3">{tz}</div>
           </div>
 
           <Field label="Deliver via">
@@ -979,7 +979,7 @@ function PinReportModal({ conversationTitle, messages, user, onClose }) {
           )}
 
           <div className="rounded-z-md border border-z-border bg-z-card-2 px-3 py-2.5">
-            <p className="mb-1.5 font-z-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-z-text-3">
+            <p className="mb-1.5 font-z-mono text-z-nano font-semibold uppercase tracking-[0.14em] text-z-text-3">
               Questions to run
             </p>
             <div className="max-h-[72px] space-y-1 overflow-y-auto">
@@ -1126,7 +1126,7 @@ function InvestigationDataset({ rows, title = 'Dataset' }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search in results…"
-              className="w-full rounded-z-sm border border-z-border-strong bg-z-surface py-1 pl-7 pr-2.5 text-[11.5px] text-z-text placeholder:text-z-text-3 focus:outline-none focus:ring-[3px] focus:ring-z-focus-ring"
+              className="w-full rounded-z-sm border border-z-border-strong bg-z-surface py-1 pl-7 pr-2.5 text-z-micro text-z-text placeholder:text-z-text-3 focus:outline-none focus:ring-[3px] focus:ring-z-focus-ring"
             />
           </div>
           <div className="relative" ref={colsMenuRef}>
@@ -1166,7 +1166,7 @@ function InvestigationDataset({ rows, title = 'Dataset' }) {
             </TBody>
           </Table>
         </div>
-        <div className="border-t border-z-border bg-z-card-2 px-3 py-1 font-z-mono text-[10.5px] text-z-text-3">
+        <div className="border-t border-z-border bg-z-card-2 px-3 py-1 text-z-nano tabular-nums text-z-text-3">
           {filtered.length.toLocaleString()} of {rows.length.toLocaleString()} row{rows.length !== 1 ? 's' : ''}
         </div>
       </TableWrap>
@@ -1228,7 +1228,7 @@ function InvestigationProgress({ milestones, loading }) {
               ) : (
                 <span className="h-2 w-2 flex-none rounded-full border border-z-border-strong" />
               )}
-              <span className={cn('text-[11px]', done ? 'text-z-text-2' : active ? 'text-z-text' : 'text-z-text-3')}>
+              <span className={cn('text-z-micro', done ? 'text-z-text-2' : active ? 'text-z-text' : 'text-z-text-3')}>
                 {label}
               </span>
             </div>
@@ -1251,17 +1251,17 @@ function InvestigationHeader({ finding, loading, title, startedLabel, answeredBy
         <Eyebrow dot className="shrink-0 text-z-primary">Active</Eyebrow>
       )}
       {!finding && !loading && (
-        <span className="flex shrink-0 items-center gap-1.5 text-[11px] text-z-text-3">
+        <span className="flex shrink-0 items-center gap-1.5 text-z-micro text-z-text-3">
           <StatusDot status="healthy" />Answered
         </span>
       )}
-      {finding && <span className="shrink-0 text-[11px] uppercase tracking-[0.08em] text-z-primary">{reportStatus(finding.status)}</span>}
+      {finding && <span className="shrink-0 text-z-micro uppercase tracking-[0.08em] text-z-primary">{reportStatus(finding.status)}</span>}
 
-      <h1 className="min-w-0 flex-1 truncate font-z-serif text-[16px] font-medium leading-[1.2] tracking-[-0.005em] text-z-text sm:text-[18px]" title={title}>
+      <h1 className="min-w-0 flex-1 truncate font-z-serif text-z-lead font-medium leading-[1.2] tracking-[-0.005em] text-z-text sm:text-z-body-lg" title={title}>
         {title}
       </h1>
       {(answeredBy || startedLabel) && (
-        <p className="ml-auto flex shrink-0 flex-wrap items-center gap-x-2 font-z-mono text-[10.5px] uppercase tracking-[0.1em] text-z-text-3">
+        <p className="ml-auto flex shrink-0 flex-wrap items-center gap-x-2 font-z-mono text-z-nano uppercase tracking-[0.1em] text-z-text-3">
           {answeredBy && <span>{answeredBy}</span>}
           {answeredBy && startedLabel && <span aria-hidden>·</span>}
           {startedLabel && <span>{startedLabel}</span>}
@@ -1297,10 +1297,10 @@ export function BriefCard({ question, onRerun }) {
   return (
     <section aria-label="Brief" className="mb-3 rounded-z-lg border border-z-border bg-z-card-2 px-4 py-3">
       <div className="mb-1 flex items-center justify-between gap-3">
-        <span className="font-z-mono text-[10px] uppercase tracking-[0.14em] text-z-text-3">Brief</span>
+        <span className="font-z-mono text-z-nano uppercase tracking-[0.14em] text-z-text-3">Brief</span>
         {onRerun && !editing && (
           <button type="button" onClick={() => { setDraft(question); setEditing(true); }}
-            className="text-[12px] text-z-primary hover:underline">
+            className="text-z-small text-z-primary hover:underline">
             Edit and re-run
           </button>
         )}
@@ -1314,7 +1314,7 @@ export function BriefCard({ question, onRerun }) {
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); rerun(); } }}
             rows={Math.min(12, Math.max(4, draft.split('\n').length + 1))}
-            className="w-full resize-y rounded-z-md border border-z-border-strong bg-z-surface p-2.5 text-[14.5px] leading-[1.6] text-z-text outline-none focus:border-z-primary"
+            className="w-full resize-y rounded-z-md border border-z-border-strong bg-z-surface p-2.5 text-z-body-sm leading-[1.6] text-z-text outline-none focus:border-z-primary"
           />
           <div className="mt-2 flex gap-2">
             <Button size="sm" onClick={rerun} disabled={!draft.trim()}>Re-run</Button>
@@ -1324,12 +1324,12 @@ export function BriefCard({ question, onRerun }) {
       ) : (
         <>
           <p ref={bodyRef}
-            className={cn('max-w-[78ch] whitespace-pre-wrap break-words text-[14.5px] leading-[1.6] text-z-text', !expanded && 'line-clamp-6')}>
+            className={cn('max-w-[78ch] whitespace-pre-wrap break-words text-z-body-sm leading-[1.6] text-z-text', !expanded && 'line-clamp-6')}>
             {question}
           </p>
           {long && (
             <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}
-              className="mt-1 text-[12px] text-z-primary hover:underline">
+              className="mt-1 text-z-small text-z-primary hover:underline">
               {expanded ? 'Show less' : 'Show more'}
             </button>
           )}
@@ -1389,7 +1389,7 @@ function InvestigationAssistant({ milestones, loading, followUpQuestions, onAsk 
         </span>
         <div className="min-w-0">
           <div className="text-z-caption font-semibold text-z-text">Investigation Assistant</div>
-          <div className="text-[10.5px] text-z-text-3">
+          <div className="text-z-nano text-z-text-3">
             {loading ? 'Continuously analyzing your data' : 'Keep exploring. Here are some next steps.'}
           </div>
         </div>
@@ -1400,7 +1400,7 @@ function InvestigationAssistant({ milestones, loading, followUpQuestions, onAsk 
           const m = milestones.find((x) => x.phase === phase);
           const done = !loading || !!m?.done;
           return (
-            <div key={phase} className="flex items-center gap-2 text-[11.5px]">
+            <div key={phase} className="flex items-center gap-2 text-z-micro">
               {done ? (
                 <span className="grid h-3.5 w-3.5 flex-none place-items-center rounded-full bg-z-primary">
                   <Check size={8} strokeWidth={3} className="text-z-on-accent" />
@@ -1696,7 +1696,7 @@ function InvestigationMetrics({ single, strip, overflow }) {
   if (single) {
     return (
       <div className="mb-2 flex items-baseline gap-2.5 animate-z-rise motion-reduce:animate-none">
-        <span className="text-[20px] font-semibold leading-none tabular-nums text-z-text">{single.value}</span>
+        <span className="text-z-h3 font-semibold leading-none tabular-nums text-z-text">{single.value}</span>
         <span className="text-z-caption text-z-text-3">{single.label}</span>
       </div>
     );
@@ -1711,8 +1711,8 @@ function InvestigationMetrics({ single, strip, overflow }) {
           <div key={i} className="flex min-w-[110px] flex-1 items-center gap-1.5 rounded-z-md border border-z-border bg-z-card px-2.5 py-1">
             <IconBadge icon={METRIC_ICONS[i % METRIC_ICONS.length]} size={16} />
             <div className="min-w-0">
-              <div className="text-[12.5px] font-semibold leading-tight tabular-nums text-z-text">{m.value}</div>
-              <div className="text-[10px] text-z-text-3">{m.label}</div>
+              <div className="text-z-small font-semibold leading-tight tabular-nums text-z-text">{m.value}</div>
+              <div className="text-z-nano text-z-text-3">{m.label}</div>
             </div>
           </div>
         ))}
@@ -1865,18 +1865,18 @@ function InvestigationReasoning({ reasoningSteps, artifactTrail, runKey, agentSe
                 <div key={row.title} className="flex items-start gap-2.5">
                   <span
                     className={cn(
-                      'mt-0.5 grid h-6 w-6 flex-none place-items-center rounded-full text-[11px] font-semibold text-z-on-accent',
+                      'mt-0.5 grid h-6 w-6 flex-none place-items-center rounded-full text-z-micro font-semibold text-z-on-accent',
                       STEP_TONES[i % STEP_TONES.length],
                     )}
                   >
                     {i + 1}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[12.5px] font-semibold text-z-text">{row.title}</div>
-                    <div className="text-[11px] leading-[1.4] text-z-text-3">{row.detail}</div>
+                    <div className="text-z-small font-semibold text-z-text">{row.title}</div>
+                    <div className="text-z-micro leading-[1.4] text-z-text-3">{row.detail}</div>
                   </div>
                   {row.badge && (
-                    <span className="mt-0.5 flex-none whitespace-nowrap rounded-z-round bg-z-investigating-soft px-2 py-0.5 text-[10.5px] font-medium text-z-investigating">
+                    <span className="mt-0.5 flex-none whitespace-nowrap rounded-z-round bg-z-investigating-soft px-2 py-0.5 text-z-nano font-medium text-z-investigating">
                       {row.badge} ›
                     </span>
                   )}
@@ -2036,7 +2036,7 @@ export function IntelligenceResponse({ finding, messages, onAsk, onRerun }) {
                     <ReportLabel>Related Facts</ReportLabel>
                     <ul className="space-y-1">
                       {r.relatedFacts.map((f, i) => (
-                        <li key={i} className="flex gap-2 text-[11.5px] leading-[1.35] text-z-text-3">
+                        <li key={i} className="flex gap-2 text-z-micro leading-[1.35] text-z-text-3">
                           <IconBadge icon={FileText} tone="quiet" size={14} />
                           <span className="pt-0.5">{f}</span>
                         </li>
@@ -2072,7 +2072,7 @@ export function IntelligenceResponse({ finding, messages, onAsk, onRerun }) {
                     {s.datasets.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {s.datasets.map((ds, j) => (
-                          <span key={j} className="rounded-z-round bg-z-card-2 px-1.5 py-0.5 text-[10px] text-z-text-3">
+                          <span key={j} className="rounded-z-round bg-z-card-2 px-1.5 py-0.5 text-z-nano text-z-text-3">
                             step-{ds.stepNo} · {ds.rowCount} row{ds.rowCount === 1 ? '' : 's'}
                           </span>
                         ))}
@@ -2121,7 +2121,7 @@ export function IntelligenceResponse({ finding, messages, onAsk, onRerun }) {
                 ("Investigation context"); only fields genuinely known are ever shown. */}
             {(r.answeredBy || r.fieldsAnalyzed || startedLabel) && (
               <Panel eyebrow="Investigation context">
-                <dl className="space-y-1 text-[11px]">
+                <dl className="space-y-1 text-z-micro">
                   {r.answeredBy && (
                     <div className="flex items-start justify-between gap-3">
                       <dt className="text-z-text-3">Answered by</dt>
@@ -2167,8 +2167,9 @@ export function IntelligenceResponse({ finding, messages, onAsk, onRerun }) {
 export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
   const { user } = useAuth();
 
-  // blank-workspace composer value (a new investigation before its first question)
-  const [landingQuery, setLandingQuery] = useState('');
+  // The composers own their draft text (DraftComposer), so typing never re-renders this page.
+  // Changing composerKey resets the docked composer's draft (new investigation).
+  const [composerKey, setComposerKey] = useState(0);
 
   // history floating panel
   const [historyOpen,    setHistoryOpen]    = useState(false);
@@ -2188,7 +2189,6 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
   // right there in IntelligenceResponse, so there is no separate composer-bar chip row here
   // to keep in sync (avoids the duplicate-suggestions problem spec §19 warns against).
   const conversationIdRef = useRef(null);   // useRef avoids stale-closure bugs in async handlers
-  const [chatQuery, setChatQuery] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [teachModalOpen, setTeachModalOpen] = useState(false); // /TeachZevra (Part B)
@@ -2215,8 +2215,17 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
   const messagesEndRef = useRef(null);
   const chatInputRef = useRef(null);
 
-  const scrollToBottom = () =>
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  // Follow new content only while the reader is already near the bottom (or just asked something),
+  // so a reader scrolling up through an earlier answer is never yanked back down.
+  const scrollToBottom = () => {
+    const end = messagesEndRef.current;
+    if (!end) return;
+    const scroller = end.closest('.overflow-y-auto');
+    const last = messages[messages.length - 1];
+    const nearBottom = !scroller
+      || scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 280;
+    if (nearBottom || last?.role === 'user') end.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  };
 
   useEffect(() => {
     if (chatMode) scrollToBottom();
@@ -2519,19 +2528,17 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
     }
   };
 
-  // Submit handlers are invoked by InvestigationComposer, which already prevents the
+  // submit handlers are invoked by DraftComposer, which already prevents the
   // default form submit — so they take no event.
-  const handleLandingSubmit = () => {
-    const q = landingQuery.trim() || (attachment ? 'Please analyse this attached file.' : '');
+  const handleLandingSubmit = (text) => {
+    const q = (text || '').trim() || (attachment ? 'Please analyse this attached file.' : '');
     if (!q) return;
-    setLandingQuery('');
     sendQuestion(q, true);   // isNewConv=true: generate a fresh conversation ID
   };
 
-  const handleChatSubmit = () => {
-    const q = chatQuery.trim();
+  const handleChatSubmit = (text) => {
+    const q = (text || '').trim();
     if (!q) return;
-    setChatQuery('');
     sendQuestion(q);
   };
 
@@ -2571,7 +2578,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
   const startNewChat = () => {
     setMessages([]);
     conversationIdRef.current = null;
-    setChatQuery('');
+    setComposerKey((k) => k + 1);
     setSubmitError('');
     setOpenExportMenu(null);
     setPresentationMode('live');
@@ -2715,16 +2722,15 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                 )}
               </div>
             )}
-            <InvestigationComposer
-              value={landingQuery}
-              onChange={setLandingQuery}
+            <DraftComposer
               onSubmit={handleLandingSubmit}
               onSlashCommand={handleSlashCommand}
               placeholder="Describe it the way you would brief an analyst — sales, operations, finance, suppliers… Several lines are fine."
               submitKey="mod-enter"
               minRows={4}
               autoFocus
-              disabled={submitting || (!landingQuery.trim() && !attachment)}
+              busy={submitting}
+              canSubmitEmpty={!!attachment}
               allowAttachments
               onAttachClick={() => fileInputRef.current?.click()}
               onPaste={handlePaste}
@@ -2775,7 +2781,7 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
             {/* Zevra Intelligence Response — one response dominates the page (see
                 IntelligenceResponse above); this replaces the previous plain chat-bubble
                 thread as the default presentation, not just Report Mode's. */}
-            <div className="relative min-h-0 flex-1 overflow-y-auto scroll-smooth">
+            <div className="relative min-h-0 flex-1 overflow-y-auto">
               {/* The Signature canvas atmosphere — same emerald-light glow every other
                   Intelligence Experience page uses; an Investigation is signature-forward. */}
               <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-[image:var(--z-ai-atmo)]" />
@@ -2816,21 +2822,21 @@ export default function Chat({ prefillQuestion = null, onPrefillUsed = null }) {
                   )}
                 </div>
               )}
-              <InvestigationComposer
+              <DraftComposer
+                key={composerKey}
                 className="mx-auto max-w-[1600px]"
-                value={chatQuery}
-                onChange={setChatQuery}
                 onSubmit={handleChatSubmit}
                 onSlashCommand={handleSlashCommand}
                 placeholder={presentationMode === 'report' ? 'Ask a follow-up about this analysis… (type / for commands)' : 'Ask a follow-up or start a new investigation… (type / for commands)'}
-                disabled={submitting || (!chatQuery.trim() && !attachment)}
+                busy={submitting}
+                canSubmitEmpty={!!attachment}
                 allowAttachments
                 onAttachClick={() => fileInputRef.current?.click()}
                 onPaste={handlePaste}
                 attachmentBusy={attachmentLoading}
                 inputRef={chatInputRef}
               />
-              <p className="mt-1.5 text-center font-z-mono text-[11px] text-z-text-3">
+              <p className="mt-1.5 text-center text-z-micro text-z-text-3">
                 Zevra queries approved data sources only · Results may require validation
               </p>
             </div>

@@ -1,41 +1,55 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, lazy, Suspense, useContext, useEffect, useState, useCallback } from 'react';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 import { api } from './api.js';
 import { getImpersonation, saveImpersonation } from './api.js';
 import { supabase } from './supabase.js';
-import Login from './pages/Login.jsx';
-import SetNewPassword from './pages/SetNewPassword.jsx';
-import OnboardingWizard from './pages/OnboardingWizard.jsx';
 import Layout from './components/Layout.jsx';
 import { TenantProvider } from './context/TenantContext.jsx';
-import Chat from './pages/Chat.jsx';
-import Memory from './pages/Memory.jsx';
-import Connections from './pages/Connections.jsx';
-import Domains from './pages/Domains.jsx';
-import EnterpriseMap from './pages/EnterpriseMap.jsx';
-import KnowledgeGraph from './pages/KnowledgeGraph.jsx';
-import TenantAdmin from './pages/TenantAdmin.jsx';
-import Reports from './pages/Reports.jsx';
-import Semantic from './pages/Semantic.jsx';
-import Agents from './pages/Agents.jsx';
-import Reasoning from './pages/Reasoning.jsx';
-import Temporal from './pages/Temporal.jsx';
-import KnowledgeGaps from './pages/KnowledgeGaps.jsx';
-import Instructions from './pages/Instructions.jsx';
-import Governance from './pages/Governance.jsx';
-import Settings   from './pages/Settings.jsx';
-import Automations from './pages/Automations.jsx';
-import AutomationEditor from './pages/AutomationEditor.jsx';
-import AgentChat from './pages/AgentChat.jsx';
-import Users from './pages/Users.jsx';
-import Brief from './pages/Brief.jsx';
-import Usage from './pages/Usage.jsx';
-import Templates from './pages/Templates.jsx';
-import Guide from './pages/Guide.jsx';
 import HomePage from './pages/home/HomePage.tsx';
+import PageSkeleton from './components/PageSkeleton.jsx';
 import { ExperienceProvider } from './experience';
 import { DerivedPulseSource } from './pulse/DerivedPulseSource';
 import { EmptyPreviewResolver } from './preview/EmptyPreviewResolver';
+
+// ─── Pages (code-split: each page loads on first visit, so the first paint stays light) ──
+const loaders = {
+  Login: () => import('./pages/Login.jsx'),
+  SetNewPassword: () => import('./pages/SetNewPassword.jsx'),
+  OnboardingWizard: () => import('./pages/OnboardingWizard.jsx'),
+  Chat: () => import('./pages/Chat.jsx'),
+  Memory: () => import('./pages/Memory.jsx'),
+  Connections: () => import('./pages/Connections.jsx'),
+  Domains: () => import('./pages/Domains.jsx'),
+  EnterpriseMap: () => import('./pages/EnterpriseMap.jsx'),
+  KnowledgeGraph: () => import('./pages/KnowledgeGraph.jsx'),
+  TenantAdmin: () => import('./pages/TenantAdmin.jsx'),
+  Reports: () => import('./pages/Reports.jsx'),
+  Semantic: () => import('./pages/Semantic.jsx'),
+  Agents: () => import('./pages/Agents.jsx'),
+  Reasoning: () => import('./pages/Reasoning.jsx'),
+  Temporal: () => import('./pages/Temporal.jsx'),
+  KnowledgeGaps: () => import('./pages/KnowledgeGaps.jsx'),
+  Instructions: () => import('./pages/Instructions.jsx'),
+  Governance: () => import('./pages/Governance.jsx'),
+  Settings: () => import('./pages/Settings.jsx'),
+  Automations: () => import('./pages/Automations.jsx'),
+  AutomationEditor: () => import('./pages/AutomationEditor.jsx'),
+  AgentChat: () => import('./pages/AgentChat.jsx'),
+  Users: () => import('./pages/Users.jsx'),
+  Brief: () => import('./pages/Brief.jsx'),
+  Usage: () => import('./pages/Usage.jsx'),
+  Templates: () => import('./pages/Templates.jsx'),
+  Guide: () => import('./pages/Guide.jsx'),
+};
+const { Login, SetNewPassword, OnboardingWizard, Chat, Memory, Connections, Domains, EnterpriseMap, KnowledgeGraph, TenantAdmin, Reports, Semantic, Agents, Reasoning, Temporal, KnowledgeGaps, Instructions, Governance, Settings, Automations, AutomationEditor, AgentChat, Users, Brief, Usage, Templates, Guide } = Object.fromEntries(
+  Object.entries(loaders).map(([name, load]) => [name, lazy(load)])
+);
+
+// After sign-in, quietly fetch the remaining pages while the browser is idle so navigation is instant.
+function prefetchPages() {
+  const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1500));
+  idle(() => Object.values(loaders).forEach((load) => load().catch(() => {})));
+}
 
 // Runtime data boundaries (Rule 2 / Rule 5) — REAL sources in BOTH dev and production, so local
 // development behaves exactly like production. No representative/mock data is ever injected.
@@ -262,6 +276,8 @@ export default function App() {
       .finally(() => setChecking(false));
   }, []);
 
+  useEffect(() => { if (user) prefetchPages(); }, [!!user]);
+
   // ── Check onboarding status once authenticated ─────────────────────────────
   useEffect(() => {
     if (!user) return;
@@ -294,8 +310,8 @@ export default function App() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-[3px] border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
-          <p className="text-sm text-gray-400">Loading Zevra…</p>
+          <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-z-border border-t-z-primary" />
+          <p className="text-z-caption text-z-text-3">Loading Zevra…</p>
         </div>
       </div>
     );
@@ -305,7 +321,9 @@ export default function App() {
   if (needsPasswordReset) {
     return (
       <ThemeProvider>
-        <SetNewPassword onComplete={() => setNeedsPasswordReset(false)} />
+        <Suspense fallback={<PageSkeleton />}>
+          <SetNewPassword onComplete={() => setNeedsPasswordReset(false)} />
+        </Suspense>
       </ThemeProvider>
     );
   }
@@ -314,11 +332,13 @@ export default function App() {
   if (!user) {
     return (
       <ThemeProvider>
-        <Login onLogin={payload => {
-          const nextUser = normalizeAuth(payload);
-          setUser(nextUser);
-          localStorage.setItem('nexus_user', JSON.stringify(nextUser));
-        }} />
+        <Suspense fallback={<PageSkeleton />}>
+          <Login onLogin={payload => {
+            const nextUser = normalizeAuth(payload);
+            setUser(nextUser);
+            localStorage.setItem('nexus_user', JSON.stringify(nextUser));
+          }} />
+        </Suspense>
       </ThemeProvider>
     );
   }
@@ -328,6 +348,7 @@ export default function App() {
     return (
       <ThemeProvider>
         <AuthContext.Provider value={{ user, logout, impersonation, startImpersonation, exitImpersonation }}>
+          <Suspense fallback={<PageSkeleton />}>
           <OnboardingWizard
             user={user}
             onComplete={(question) => {
@@ -338,6 +359,7 @@ export default function App() {
               navigate('/chat');
             }}
           />
+          </Suspense>
         </AuthContext.Provider>
       </ThemeProvider>
     );
@@ -362,12 +384,14 @@ export default function App() {
         <AuthContext.Provider value={{ user, logout, impersonation, startImpersonation, exitImpersonation }}>
           <TenantProvider>
             <Layout currentPath={hash}>
+              <Suspense fallback={<PageSkeleton />}>
               {hash === '/'
                 ? <HomePage user={user} />
                 : hash === '/chat'
                 ? React.cloneElement(<Chat />, { prefillQuestion: firstQuestion,
                                                  onPrefillUsed: () => setFirstQuestion(null) })
                 : page}
+              </Suspense>
             </Layout>
           </TenantProvider>
         </AuthContext.Provider>

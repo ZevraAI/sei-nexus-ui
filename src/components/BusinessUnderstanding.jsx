@@ -25,7 +25,7 @@ export default function BusinessUnderstanding({ steps = [], runKey = null }) {
     <div className="mt-2 pt-2 border-t border-z-border">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 text-[11.5px] font-medium text-z-text-3 hover:text-z-text-2 transition-colors w-full text-left"
+        className="flex items-center gap-2 text-z-micro font-medium text-z-text-3 hover:text-z-text-2 transition-colors w-full text-left"
       >
         {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
         Business Understanding ({concepts.length} concept{concepts.length !== 1 ? 's' : ''})
@@ -87,9 +87,9 @@ function ConceptRow({ concept, runKey, selected, onToggle }) {
           >
             {selected && <Check size={9} strokeWidth={3} style={{ color: 'var(--z-primary-on)' }} />}
           </span>
-          <span className="text-[12.5px] font-semibold text-z-text truncate">{concept.surface}</span>
+          <span className="text-z-small font-semibold text-z-text truncate">{concept.surface}</span>
         </span>
-        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0"
+        <span className="text-z-nano font-medium px-1.5 py-0.5 rounded-full shrink-0"
           style={{ background: 'var(--z-primary-soft)', color: 'var(--z-primary)' }}>
           {source}
         </span>
@@ -107,12 +107,12 @@ function ConceptDetail({ concept, runKey, source, businessObjects }) {
   const [feedbackMode, setFeedbackMode] = useState(null); // 'definition' | 'incorrect' | null
 
   return (
-    <div className="px-3 py-2.5 space-y-2 text-[11.5px] border-t border-z-border">
+    <div className="px-3 py-2.5 space-y-2 text-z-micro border-t border-z-border">
       <Field label="Knowledge Source" value={source} />
       <Field label="Enterprise Definition" value="Not Available"
         hint="No enterprise-authored definition is currently reachable for this term." />
       <Field label="Enterprise Metadata">
-        <code className="px-1 py-0.5 border rounded text-[10.5px] font-mono"
+        <code className="px-1 py-0.5 border rounded text-z-nano font-mono"
           style={{ background: 'var(--z-card-2)', borderColor: 'var(--z-border)', color: 'var(--z-text-2)' }}>
           {concept.target}
         </code>
@@ -121,19 +121,19 @@ function ConceptDetail({ concept, runKey, source, businessObjects }) {
         value={businessObjects.length > 0 ? businessObjects.join(', ') : '—'} />
 
       <div className="pt-1">
-        <p className="text-[10.5px] font-semibold uppercase tracking-wide text-z-text-2">Why Zevra used this understanding</p>
+        <p className="text-z-nano font-semibold uppercase tracking-wide text-z-text-2">Why Zevra used this understanding</p>
         <p className="mt-0.5 italic leading-snug text-z-text-3">{whyThisUnderstanding(concept.tier)}</p>
       </div>
 
       {!feedbackMode ? (
         <div className="flex items-center gap-3 pt-1.5">
           <button onClick={() => setFeedbackMode('definition')}
-            className="text-[11px] font-medium transition-colors"
+            className="text-z-micro font-medium transition-colors"
             style={{ color: 'var(--z-primary)' }}>
             Add Enterprise Definition
           </button>
           <button onClick={() => setFeedbackMode('incorrect')}
-            className="text-[11px] font-medium text-z-text-3 hover:text-z-text-2 transition-colors">
+            className="text-z-micro font-medium text-z-text-3 hover:text-z-text-2 transition-colors">
             Report Incorrect Understanding
           </button>
         </div>
@@ -155,7 +155,7 @@ function Field({ label, value, children, hint }) {
       <span className="text-z-text-3 shrink-0">{label}</span>
       <span className="text-right min-w-0">
         {children ?? <span className="font-medium text-z-text">{value}</span>}
-        {hint && <span className="block text-[10px] mt-0.5 max-w-[26ch] text-z-text-3">{hint}</span>}
+        {hint && <span className="block text-z-nano mt-0.5 max-w-[26ch] text-z-text-3">{hint}</span>}
       </span>
     </div>
   );
@@ -199,12 +199,12 @@ function ConceptFeedbackForm({ concept, runKey, mode, onDone }) {
   };
 
   if (submitted) {
-    return <p className="pt-1.5 text-[11px] font-medium" style={{ color: 'var(--z-primary)' }}>Thanks — this has been recorded for review.</p>;
+    return <p className="pt-1.5 text-z-micro font-medium" style={{ color: 'var(--z-primary)' }}>Thanks — this has been recorded for review.</p>;
   }
 
   return (
     <div className="pt-1.5 space-y-2 border-t border-z-border mt-1.5">
-      <p className="text-[10.5px] font-semibold uppercase tracking-wide text-z-text-2">
+      <p className="text-z-nano font-semibold uppercase tracking-wide text-z-text-2">
         Improve Zevra&rsquo;s understanding of &ldquo;{concept}&rdquo;
       </p>
       <div className="space-y-1">
@@ -221,23 +221,23 @@ function ConceptFeedbackForm({ concept, runKey, mode, onDone }) {
         onChange={e => setComment(e.target.value)}
         placeholder="Comments (optional)"
         rows={2}
-        className="w-full text-[11.5px] p-1.5 border rounded-md resize-none focus:outline-none focus:ring-[3px]"
+        className="w-full text-z-micro p-1.5 border rounded-md resize-none focus:outline-none focus:ring-[3px]"
         style={{ borderColor: 'var(--z-border-strong)', background: 'var(--z-surface)', color: 'var(--z-text)' }}
         onFocus={e => { e.target.style.boxShadow = '0 0 0 3px var(--z-focus-ring)'; }}
         onBlur={e => { e.target.style.boxShadow = 'none'; }}
       />
       <div className="flex items-center gap-3">
         <button onClick={submit} disabled={submitting || !runKey}
-          className="text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors disabled:opacity-50"
+          className="text-z-micro font-semibold px-2.5 py-1 rounded-md transition-colors disabled:opacity-50"
           style={{ background: 'var(--z-primary)', color: 'var(--z-primary-on)' }}>
           {submitting ? 'Submitting…' : 'Submit'}
         </button>
-        <button onClick={onDone} className="text-[11px] text-z-text-3 hover:text-z-text-2 transition-colors">
+        <button onClick={onDone} className="text-z-micro text-z-text-3 hover:text-z-text-2 transition-colors">
           Cancel
         </button>
       </div>
       {!runKey && (
-        <p className="text-[10px]" style={{ color: 'var(--z-warning)' }}>This answer doesn&rsquo;t have a run reference yet — try again once it finishes loading.</p>
+        <p className="text-z-nano" style={{ color: 'var(--z-warning)' }}>This answer doesn&rsquo;t have a run reference yet — try again once it finishes loading.</p>
       )}
     </div>
   );

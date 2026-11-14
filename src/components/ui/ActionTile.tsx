@@ -15,8 +15,8 @@ export function ActionTile({ tile, className }: ActionTileProps) {
       href={tile.href}
       className={cn(
         'group relative flex flex-col min-h-[220px] p-6 rounded-[8px]',
-        'bg-surface border border-line',
-        'hover:border-line-strong hover:bg-surface-muted',
+        'bg-z-card border border-z-border',
+        'hover:border-z-border-strong hover:bg-z-card-2',
         'transition-colors shadow-sm',
         'focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2',
         className
@@ -32,10 +32,10 @@ export function ActionTile({ tile, className }: ActionTileProps) {
         <Icon className="w-8 h-8 text-accent stroke-[1.8]" aria-hidden="true" />
       </div>
 
-      <p className="text-[18px] font-semibold text-foreground leading-snug mb-2">
+      <p className="text-z-body-lg font-semibold text-z-text leading-snug mb-2">
         {tile.title}
       </p>
-      <p className="text-[16px] text-muted-fg leading-[1.55] pr-8 max-w-[220px]">
+      <p className="text-z-lead text-z-text-2 leading-[1.55] pr-8 max-w-[220px]">
         {tile.description}
       </p>
 

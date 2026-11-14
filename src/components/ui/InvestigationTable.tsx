@@ -45,28 +45,28 @@ export function InvestigationTable({
       <div className="flex items-center justify-between mb-2">
         <h2
           id="investigations-table-label"
-          className="text-[20px] font-semibold text-foreground"
+          className="text-z-h3 font-semibold text-z-text"
         >
           Recent investigations
         </h2>
       </div>
 
-      <div className="border border-line rounded-[6px] overflow-hidden bg-surface shadow-sm">
+      <div className="border border-z-border rounded-[6px] overflow-hidden bg-z-card shadow-sm">
         <div className="overflow-x-auto scrollbar-thin">
           <table className="w-full text-sm border-collapse" aria-label="Recent investigations">
             <thead>
-              <tr className="border-b border-line bg-surface">
-                <th scope="col" className="px-5 py-3 text-left text-[13px] font-medium text-dim-fg w-auto">
+              <tr className="border-b border-z-border bg-z-card">
+                <th scope="col" className="px-5 py-3 text-left text-z-caption font-medium text-z-text-3 w-auto">
                   Investigation
                 </th>
-                <th scope="col" className="px-5 py-3 text-left text-[13px] font-medium text-dim-fg w-56">
+                <th scope="col" className="px-5 py-3 text-left text-z-caption font-medium text-z-text-3 w-56">
                   Owner
                 </th>
-                <th scope="col" className="px-5 py-3 text-left text-[13px] font-medium text-dim-fg w-44">
+                <th scope="col" className="px-5 py-3 text-left text-z-caption font-medium text-z-text-3 w-44">
                   Status
                 </th>
-                <th scope="col" className="px-5 py-3 text-left text-[13px] font-medium text-dim-fg w-56">
-                  <button type="button" className="inline-flex items-center gap-2 hover:text-foreground transition-colors">
+                <th scope="col" className="px-5 py-3 text-left text-z-caption font-medium text-z-text-3 w-56">
+                  <button type="button" className="inline-flex items-center gap-2 hover:text-z-text transition-colors">
                     Updated
                     <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
@@ -78,14 +78,14 @@ export function InvestigationTable({
             </thead>
             <tbody className="divide-y divide-line">
               {investigations.map((inv) => (
-                <tr key={inv.id} className="hover:bg-surface-muted transition-colors group">
+                <tr key={inv.id} className="hover:bg-z-card-2 transition-colors group">
                   <td className="px-5 py-[13px]">
                     <div className="flex items-center gap-3">
                       <Folder className="w-5 h-5 text-accent flex-shrink-0 stroke-[1.7]" aria-hidden="true" />
                       <a
                         href={`/investigations/${inv.id}`}
                         className={cn(
-                          'text-[14px] text-foreground font-medium',
+                          'text-z-body-sm text-z-text font-medium',
                           'group-hover:text-accent transition-colors',
                           'focus-visible:outline-2 focus-visible:outline-accent focus-visible:rounded-xs'
                         )}
@@ -99,13 +99,13 @@ export function InvestigationTable({
                       <div
                         aria-hidden="true"
                         className={cn(
-                          'w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-[12px] font-medium',
+                          'w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-z-small font-medium',
                           avatarClass
                         )}
                       >
                         {inv.ownerInitials}
                       </div>
-                      <span className="text-[14px] text-muted-fg whitespace-nowrap">
+                      <span className="text-z-body-sm text-z-text-2 whitespace-nowrap">
                         {inv.owner}
                       </span>
                     </div>
@@ -113,7 +113,7 @@ export function InvestigationTable({
                   <td className="px-5 py-[13px]">
                     <StatusPill status={inv.status} />
                   </td>
-                  <td className="px-5 py-[13px] text-[14px] text-muted-fg whitespace-nowrap tabular-nums">
+                  <td className="px-5 py-[13px] text-z-body-sm text-z-text-2 whitespace-nowrap tabular-nums">
                     {formatDateTime(inv.updatedAt)}
                   </td>
                   <td className="px-5 py-[13px]">
@@ -122,7 +122,7 @@ export function InvestigationTable({
                       aria-label={`More options for ${inv.title}`}
                       className={cn(
                         'flex items-center justify-center w-6 h-6 rounded-xs',
-                        'text-[#4B5563] hover:bg-item-hover hover:text-foreground',
+                        'text-[#4B5563] hover:bg-z-hover hover:text-z-text',
                         'transition-all'
                       )}
                     >
@@ -135,8 +135,8 @@ export function InvestigationTable({
           </table>
         </div>
 
-        <div className="flex items-center justify-between px-5 py-3 border-t border-line bg-surface">
-          <span className="text-[13px] text-muted-fg tabular-nums">
+        <div className="flex items-center justify-between px-5 py-3 border-t border-z-border bg-z-card">
+          <span className="text-z-caption text-z-text-2 tabular-nums">
             {startItem}-{endItem} of {totalCount}
           </span>
 
@@ -147,8 +147,8 @@ export function InvestigationTable({
               disabled={page === 1}
               aria-label="Previous page"
               className={cn(
-                'flex items-center justify-center w-8 h-8 rounded-[6px] text-[14px]',
-                'bg-surface border border-transparent hover:bg-item-hover transition-colors',
+                'flex items-center justify-center w-8 h-8 rounded-[6px] text-z-body-sm',
+                'bg-z-card border border-transparent hover:bg-z-hover transition-colors',
                 'disabled:opacity-40 disabled:cursor-not-allowed'
               )}
             >
@@ -163,11 +163,11 @@ export function InvestigationTable({
                 aria-label={`Page ${p}`}
                 aria-current={p === page ? 'page' : undefined}
                 className={cn(
-                  'flex items-center justify-center w-10 h-9 rounded-[6px] text-[14px]',
+                  'flex items-center justify-center w-10 h-9 rounded-[6px] text-z-body-sm',
                   'border transition-colors',
                   p === page
                     ? 'bg-accent text-surface border-accent font-medium shadow-sm'
-                    : 'bg-surface border-transparent text-muted-fg hover:bg-item-hover'
+                    : 'bg-z-card border-transparent text-z-text-2 hover:bg-z-hover'
                 )}
               >
                 {p}
@@ -180,8 +180,8 @@ export function InvestigationTable({
               disabled={page === totalPages}
               aria-label="Next page"
               className={cn(
-                'flex items-center justify-center w-8 h-8 rounded-[6px] text-[14px]',
-                'bg-surface border border-transparent hover:bg-item-hover transition-colors',
+                'flex items-center justify-center w-8 h-8 rounded-[6px] text-z-body-sm',
+                'bg-z-card border border-transparent hover:bg-z-hover transition-colors',
                 'disabled:opacity-40 disabled:cursor-not-allowed'
               )}
             >
@@ -189,13 +189,13 @@ export function InvestigationTable({
             </button>
           </div>
 
-          <div className="flex items-center gap-2 text-[13px] text-muted-fg">
+          <div className="flex items-center gap-2 text-z-caption text-z-text-2">
             Show
             <select
               aria-label="Rows per page"
               className={cn(
-                'h-8 px-3 text-[13px] rounded-[6px]',
-                'bg-surface border border-line text-muted-fg',
+                'h-8 px-3 text-z-caption rounded-[6px]',
+                'bg-z-card border border-z-border text-z-text-2',
                 'focus:outline-none focus:border-accent'
               )}
               defaultValue={perPage}

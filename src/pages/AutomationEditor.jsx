@@ -59,7 +59,7 @@ function DbQueryConfig({ data, onChange }) {
       <input className={INPUT} placeholder="e.g. nexus-local" value={data.connectionKey ?? ''} onChange={e => onChange('connectionKey', e.target.value)} />
     </Field>
     <Field label="SQL">
-      <textarea className={`${INPUT} h-28 resize-none font-mono text-[11px]`} placeholder="SELECT * FROM demo_order WHERE order_id = '{{trigger.order_id}}'" value={data.sql ?? ''} onChange={e => onChange('sql', e.target.value)} />
+      <textarea className={`${INPUT} h-28 resize-none font-mono text-z-micro`} placeholder="SELECT * FROM demo_order WHERE order_id = '{{trigger.order_id}}'" value={data.sql ?? ''} onChange={e => onChange('sql', e.target.value)} />
     </Field>
     <Field label="Max Rows">
       <input className={INPUT} type="number" placeholder="100" value={data.maxRows ?? ''} onChange={e => onChange('maxRows', e.target.value)} />
@@ -73,10 +73,10 @@ function AiReasonConfig({ data, onChange }) {
       <input className={INPUT} value={data.label ?? ''} onChange={e => onChange('label', e.target.value)} />
     </Field>
     <Field label="System Prompt (optional)">
-      <textarea className={`${INPUT} h-20 resize-none text-[11px]`} placeholder="You are a logistics analyst…" value={data.systemPrompt ?? ''} onChange={e => onChange('systemPrompt', e.target.value)} />
+      <textarea className={`${INPUT} h-20 resize-none text-z-micro`} placeholder="You are a logistics analyst…" value={data.systemPrompt ?? ''} onChange={e => onChange('systemPrompt', e.target.value)} />
     </Field>
     <Field label="User Prompt">
-      <textarea className={`${INPUT} h-28 resize-none text-[11px]`} placeholder="Analyse order {{nodes.step1.rows[0].status}}…" value={data.userPrompt ?? ''} onChange={e => onChange('userPrompt', e.target.value)} />
+      <textarea className={`${INPUT} h-28 resize-none text-z-micro`} placeholder="Analyse order {{nodes.step1.rows[0].status}}…" value={data.userPrompt ?? ''} onChange={e => onChange('userPrompt', e.target.value)} />
     </Field>
     <Field label="Output Format">
       <select className={INPUT} value={data.outputFormat ?? 'text'} onChange={e => onChange('outputFormat', e.target.value)}>
@@ -93,7 +93,7 @@ function ImageAnalyseConfig({ data, onChange }) {
       <input className={INPUT} value={data.label ?? ''} onChange={e => onChange('label', e.target.value)} />
     </Field>
     <Field label="Question">
-      <textarea className={`${INPUT} h-20 resize-none text-[11px]`} placeholder="Describe the damage visible in this image." value={data.question ?? ''} onChange={e => onChange('question', e.target.value)} />
+      <textarea className={`${INPUT} h-20 resize-none text-z-micro`} placeholder="Describe the damage visible in this image." value={data.question ?? ''} onChange={e => onChange('question', e.target.value)} />
     </Field>
     <Field label="Image Ref ({{variable}} path)">
       <input className={INPUT} placeholder="{{nodes.step1.rows[0].image_base64}}" value={data.imageRef ?? ''} onChange={e => onChange('imageRef', e.target.value)} />
@@ -148,11 +148,11 @@ function MappingListConfig({ data, onChange, fieldKey, addLabel, keyPlaceholder,
       {items.map((m, idx) => (
         <div key={idx} className="flex gap-1 items-start">
           <input className={`${INPUT} flex-1`} placeholder={keyPlaceholder} value={m.key ?? ''} onChange={e => update(idx, 'key', e.target.value)} />
-          <input className={`${INPUT} flex-1 font-mono text-[11px]`} placeholder={valPlaceholder} value={m.value ?? ''} onChange={e => update(idx, 'value', e.target.value)} />
-          <button onClick={() => remove(idx)} className="mt-0.5 text-gray-400 hover:text-red-500"><X size={12} /></button>
+          <input className={`${INPUT} flex-1 font-mono text-z-micro`} placeholder={valPlaceholder} value={m.value ?? ''} onChange={e => update(idx, 'value', e.target.value)} />
+          <button onClick={() => remove(idx)} className="mt-0.5 text-z-text-3 hover:text-red-500"><X size={12} /></button>
         </div>
       ))}
-      <button onClick={add} className="flex items-center gap-1 text-[11px] text-emerald-600 hover:text-emerald-700 font-medium">
+      <button onClick={add} className="flex items-center gap-1 text-z-micro text-emerald-600 hover:text-emerald-700 font-medium">
         <Plus size={11} />{addLabel}
       </button>
     </div>
@@ -176,7 +176,7 @@ function ResponseConfig({ data, onChange }) {
       <input className={INPUT} value={data.label ?? ''} onChange={e => onChange('label', e.target.value)} />
     </Field>
     <Field label="Output Fields (optional)">
-      <p className="text-[10px] text-gray-400 mb-1.5">Leave empty to pass the last node's output through.</p>
+      <p className="text-z-nano text-z-text-3 mb-1.5">Leave empty to pass the last node's output through.</p>
       <MappingListConfig data={data} onChange={onChange} fieldKey="fields" addLabel="Add field" keyPlaceholder="field name" valPlaceholder="{{variable}}" />
     </Field>
   </>;
@@ -194,12 +194,12 @@ const CONFIG_PANELS = {
 
 // ── Shared form primitives ────────────────────────────────────────────────────
 
-const INPUT = 'w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 bg-white';
+const INPUT = 'w-full border border-z-border rounded-lg px-2.5 py-1.5 text-z-small text-z-text focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 bg-z-card';
 
 function Field({ label, children }) {
   return (
     <div className="space-y-1">
-      <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{label}</label>
+      <label className="block text-z-nano font-semibold text-z-text-3 uppercase tracking-wide">{label}</label>
       {children}
     </div>
   );
@@ -233,20 +233,20 @@ function TestPanel({ workflowId, onClose, isDark }) {
     ? result.step_traces_json
     : (parseJsonField(result?.step_traces_json) ?? []);
 
-  const panel = isDark ? 'bg-[#1A1F2B] border-[#252E3F] text-[#E2E8F0]' : 'bg-white border-gray-200 text-gray-900';
-  const sub   = isDark ? 'text-[#94A3B8]' : 'text-gray-500';
+  const panel = isDark ? 'bg-[#1A1F2B] border-[#252E3F] text-[#E2E8F0]' : 'bg-z-card border-z-border text-z-text';
+  const sub   = isDark ? 'text-[#94A3B8]' : 'text-z-text-3';
 
   return (
     <div className={`flex flex-col h-full border-l ${panel}`}>
-      <div className={`flex items-center justify-between px-4 py-3 border-b ${isDark ? 'border-[#252E3F]' : 'border-gray-100'}`}>
-        <span className="text-[13px] font-semibold">Test Run</span>
+      <div className={`flex items-center justify-between px-4 py-3 border-b ${isDark ? 'border-[#252E3F]' : 'border-z-border'}`}>
+        <span className="text-z-caption font-semibold">Test Run</span>
         <button onClick={onClose} className={`${sub} hover:text-red-500`}><X size={14} /></button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         <Field label="Trigger Payload (JSON)">
           <textarea
-            className={`${INPUT} h-28 resize-none font-mono text-[11px]`}
+            className={`${INPUT} h-28 resize-none font-mono text-z-micro`}
             value={payload}
             onChange={e => setPayload(e.target.value)}
           />
@@ -255,14 +255,14 @@ function TestPanel({ workflowId, onClose, isDark }) {
         <button
           onClick={run}
           disabled={running}
-          className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-semibold py-2 rounded-lg transition-colors disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-z-small font-semibold py-2 rounded-lg transition-colors disabled:opacity-50"
         >
           {running ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
           {running ? 'Running…' : 'Run Workflow'}
         </button>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-[12px] px-3 py-2.5 rounded-lg">{error}</div>
+          <div className="bg-red-50 border border-red-200 text-red-700 text-z-small px-3 py-2.5 rounded-lg">{error}</div>
         )}
 
         {result && (
@@ -271,9 +271,9 @@ function TestPanel({ workflowId, onClose, isDark }) {
               {result.status === 'SUCCESS'
                 ? <CheckCircle2 size={14} className="text-emerald-500" />
                 : <XCircle size={14} className="text-red-500" />}
-              <span className="text-[12px] font-semibold">{result.status}</span>
+              <span className="text-z-small font-semibold">{result.status}</span>
               {result.error_message && (
-                <span className="text-red-500 text-[11px]">{result.error_message}</span>
+                <span className="text-red-500 text-z-micro">{result.error_message}</span>
               )}
             </div>
 
@@ -281,19 +281,19 @@ function TestPanel({ workflowId, onClose, isDark }) {
               const open = expanded[i];
               const ok   = trace.status === 'SUCCESS';
               return (
-                <div key={i} className={`rounded-lg border overflow-hidden ${isDark ? 'border-[#252E3F]' : 'border-gray-100'}`}>
+                <div key={i} className={`rounded-lg border overflow-hidden ${isDark ? 'border-[#252E3F]' : 'border-z-border'}`}>
                   <button
                     onClick={() => setExpanded(p => ({ ...p, [i]: !open }))}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:opacity-80 transition-opacity ${isDark ? 'bg-[#252E3F]' : 'bg-gray-50'}`}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:opacity-80 transition-opacity ${isDark ? 'bg-[#252E3F]' : 'bg-z-card-2'}`}
                   >
                     {ok ? <CheckCircle2 size={11} className="text-emerald-500 shrink-0" />
                         : <XCircle size={11} className="text-red-500 shrink-0" />}
-                    <span className="text-[11px] font-medium flex-1 truncate">{trace.node_label || trace.node_type}</span>
-                    <span className={`text-[10px] ${sub} mr-1`}>{trace.duration_ms}ms</span>
+                    <span className="text-z-micro font-medium flex-1 truncate">{trace.node_label || trace.node_type}</span>
+                    <span className={`text-z-nano ${sub} mr-1`}>{trace.duration_ms}ms</span>
                     {open ? <ChevronDown size={10} className={sub} /> : <ChevronRight size={10} className={sub} />}
                   </button>
                   {open && (
-                    <div className={`px-3 py-2 text-[10px] font-mono space-y-1.5 ${isDark ? 'bg-[#13171F]' : 'bg-white'}`}>
+                    <div className={`px-3 py-2 text-z-nano font-mono space-y-1.5 ${isDark ? 'bg-[#13171F]' : 'bg-z-card'}`}>
                       {trace.sql_executed && (
                         <div><span className={`${sub} font-sans`}>SQL: </span>{trace.sql_executed}</div>
                       )}
@@ -301,7 +301,7 @@ function TestPanel({ workflowId, onClose, isDark }) {
                         <div className="text-red-500">Error: {trace.error_message}</div>
                       )}
                       <div className={sub}>Output:</div>
-                      <pre className="overflow-auto max-h-40 text-[10px] leading-relaxed whitespace-pre-wrap">
+                      <pre className="overflow-auto max-h-40 text-z-nano leading-relaxed whitespace-pre-wrap">
                         {JSON.stringify(trace.output, null, 2)}
                       </pre>
                     </div>
@@ -465,9 +465,9 @@ export default function AutomationEditor({ workflowId }) {
   }, [setNodes, setEdges]);
 
   // ── Styles ────────────────────────────────────────────────────────────────
-  const surface = isDark ? 'bg-[#0F1117] text-[#E2E8F0]' : 'bg-[#F8FAFC] text-gray-900';
-  const panel   = isDark ? 'bg-[#1A1F2B] border-[#252E3F]' : 'bg-white border-gray-200';
-  const sub     = isDark ? 'text-[#94A3B8]' : 'text-gray-500';
+  const surface = isDark ? 'bg-[#0F1117] text-[#E2E8F0]' : 'bg-[#F8FAFC] text-z-text';
+  const panel   = isDark ? 'bg-[#1A1F2B] border-[#252E3F]' : 'bg-z-card border-z-border';
+  const sub     = isDark ? 'text-[#94A3B8]' : 'text-z-text-3';
 
   if (loading) return (
     <div className={`flex items-center justify-center h-full ${surface}`}>
@@ -493,13 +493,13 @@ export default function AutomationEditor({ workflowId }) {
       {/* ── Top bar ──────────────────────────────────────────────────────── */}
       <div className={`h-[52px] shrink-0 flex items-center px-4 gap-3 border-b ${panel}`}>
         <button onClick={() => navigate('/automations')}
-          className={`flex items-center gap-1.5 text-[12px] ${sub} hover:text-emerald-500 transition-colors`}>
+          className={`flex items-center gap-1.5 text-z-small ${sub} hover:text-emerald-500 transition-colors`}>
           <ArrowLeft size={14} /> Back
         </button>
-        <div className="w-px h-5 bg-gray-200 dark:bg-[#252E3F]" />
+        <div className="w-px h-5 bg-z-border dark:bg-[#252E3F]" />
 
         <input
-          className={`text-[14px] font-semibold bg-transparent border-none outline-none flex-1 min-w-0 ${isDark ? 'text-[#F0F4F8] placeholder:text-[#4B5563]' : 'text-gray-900 placeholder:text-gray-300'}`}
+          className={`text-z-body-sm font-semibold bg-transparent border-none outline-none flex-1 min-w-0 ${isDark ? 'text-[#F0F4F8] placeholder:text-[#4B5563]' : 'text-z-text placeholder:text-z-text-3'}`}
           placeholder="Workflow name…"
           value={name}
           onChange={e => setName(e.target.value)}
@@ -509,7 +509,7 @@ export default function AutomationEditor({ workflowId }) {
           <select
             value={status}
             onChange={e => setStatus(e.target.value)}
-            className={`text-[11px] font-medium border rounded-lg px-2 py-1 ${isDark ? 'bg-[#1A1F2B] border-[#252E3F] text-[#94A3B8]' : 'bg-white border-gray-200 text-gray-600'}`}
+            className={`text-z-micro font-medium border rounded-lg px-2 py-1 ${isDark ? 'bg-[#1A1F2B] border-[#252E3F] text-[#94A3B8]' : 'bg-z-card border-z-border text-z-text-2'}`}
           >
             <option value="DRAFT">Draft</option>
             <option value="ACTIVE">Active</option>
@@ -517,14 +517,14 @@ export default function AutomationEditor({ workflowId }) {
           </select>
 
           {saveMsg && (
-            <span className={`text-[11px] ${saveMsg === 'Saved' ? 'text-emerald-500' : 'text-red-500'}`}>{saveMsg}</span>
+            <span className={`text-z-micro ${saveMsg === 'Saved' ? 'text-emerald-500' : 'text-red-500'}`}>{saveMsg}</span>
           )}
 
           {!isNew && (
             <button
               onClick={() => setShowRegenerate(true)}
               title="Re-describe this workflow to rebuild it with AI"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-colors
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-z-small font-medium border transition-colors
                 ${isDark ? 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'}`}
             >
               <Sparkles size={12} /> Regenerate
@@ -533,8 +533,8 @@ export default function AutomationEditor({ workflowId }) {
 
           <button
             onClick={() => setShowTest(t => !t)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-colors
-              ${isDark ? 'border-[#252E3F] text-[#94A3B8] hover:bg-[#252E3F]' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-z-small font-medium border transition-colors
+              ${isDark ? 'border-[#252E3F] text-[#94A3B8] hover:bg-[#252E3F]' : 'border-z-border text-z-text-2 hover:bg-z-card-2'}`}
           >
             <Play size={12} /> Test
           </button>
@@ -542,7 +542,7 @@ export default function AutomationEditor({ workflowId }) {
           <button
             onClick={save}
             disabled={saving}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-z-small font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50"
           >
             {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
             Save
@@ -555,7 +555,7 @@ export default function AutomationEditor({ workflowId }) {
 
         {/* Palette */}
         <div className={`w-[180px] shrink-0 flex flex-col border-r ${panel} overflow-y-auto py-3 px-2 gap-1`}>
-          <p className={`text-[10px] font-semibold uppercase tracking-widest px-1 mb-2 ${sub}`}>Nodes</p>
+          <p className={`text-z-nano font-semibold uppercase tracking-widest px-1 mb-2 ${sub}`}>Nodes</p>
           {PALETTE.map(({ type, hint }) => {
             const meta = NODE_META[type];
             return (
@@ -564,9 +564,9 @@ export default function AutomationEditor({ workflowId }) {
                 draggable
                 onDragStart={e => e.dataTransfer.setData('application/nexus-node-type', type)}
                 title={hint}
-                className={`flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-grab active:cursor-grabbing text-[11px] font-medium
+                className={`flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-grab active:cursor-grabbing text-z-micro font-medium
                            transition-colors select-none
-                           ${isDark ? 'hover:bg-[#252E3F] text-[#CBD5E1]' : 'hover:bg-gray-100 text-gray-700'}`}
+                           ${isDark ? 'hover:bg-[#252E3F] text-[#CBD5E1]' : 'hover:bg-z-card-2 text-z-text-2'}`}
               >
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: nodeColor(type) }} />
                 {meta?.label ?? type}
@@ -597,7 +597,7 @@ export default function AutomationEditor({ workflowId }) {
               style={{ background: isDark ? '#1A1F2B' : '#F8FAFC' }}
             />
             <Panel position="top-center">
-              <p className={`text-[10px] ${sub} select-none`}>
+              <p className={`text-z-nano ${sub} select-none`}>
                 Drag nodes from the palette · Connect by dragging between handles · Click a node to configure it
               </p>
             </Panel>
@@ -607,10 +607,10 @@ export default function AutomationEditor({ workflowId }) {
         {/* Config drawer */}
         {selectedNode && ConfigPanel && (
           <div className={`w-[280px] shrink-0 flex flex-col border-l ${panel}`}>
-            <div className={`flex items-center justify-between px-4 py-3 border-b ${isDark ? 'border-[#252E3F]' : 'border-gray-100'}`}>
-              <span className="text-[13px] font-semibold">Configure node</span>
+            <div className={`flex items-center justify-between px-4 py-3 border-b ${isDark ? 'border-[#252E3F]' : 'border-z-border'}`}>
+              <span className="text-z-caption font-semibold">Configure node</span>
               <div className="flex items-center gap-2">
-                <button onClick={deleteSelectedNode} className="text-red-400 hover:text-red-600 text-[10px] font-medium">Delete</button>
+                <button onClick={deleteSelectedNode} className="text-red-400 hover:text-red-600 text-z-nano font-medium">Delete</button>
                 <button onClick={() => setSelectedNode(null)} className={`${sub} hover:text-red-500`}><X size={14} /></button>
               </div>
             </div>

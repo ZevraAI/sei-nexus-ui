@@ -73,7 +73,7 @@ function AmbientArc() {
         style={{ left: '78.5%', top: '46%', width: 7, height: 7, background: 'var(--z-primary)' }}
       />
       <div
-        className="absolute text-[9px] font-semibold uppercase tracking-[0.14em] leading-snug text-right zv-t4"
+        className="absolute text-z-nano font-semibold uppercase tracking-[0.14em] leading-snug text-right zv-t4"
         style={{ left: '82%', top: '42%', width: 100, color: 'var(--z-text-muted)' }}
       >
         A clearer path forward
@@ -148,10 +148,10 @@ function FlowCard({ title, desc, icon: Icon, accent, align, delay = 0 }) {
         />
       </div>
       <div className="min-w-0">
-        <div className="text-[12px] font-semibold leading-snug zv-t1" style={{ color: 'var(--z-text)' }}>
+        <div className="text-z-small font-semibold leading-snug zv-t1" style={{ color: 'var(--z-text)' }}>
           {title}
         </div>
-        <div className="text-[10.5px] leading-snug zv-t3" style={{ color: 'var(--z-text-3)' }}>
+        <div className="text-z-nano leading-snug zv-t3" style={{ color: 'var(--z-text-3)' }}>
           {desc}
         </div>
       </div>
@@ -282,7 +282,7 @@ function IntelligenceFlow() {
             }}
           >
             <span className="w-1.5 h-1.5 rounded-full flex-none zv-indicator-pulse" style={{ background: 'var(--z-primary)' }} />
-            <span className="text-[12.5px] font-bold text-center leading-tight px-1.5" style={{ color: 'var(--z-primary)' }}>
+            <span className="text-z-small font-semibold text-center leading-tight px-1.5" style={{ color: 'var(--z-primary)' }}>
               Zevra<br />Intelligence
             </span>
           </div>
@@ -294,7 +294,7 @@ function IntelligenceFlow() {
         </div>
       </div>
 
-      <div className="mt-3.5 text-center text-[10px] font-semibold uppercase tracking-[0.22em] zv-t4" style={{ color: 'var(--z-text-muted)' }}>
+      <div className="mt-3.5 text-center text-z-nano font-semibold uppercase tracking-[0.22em] zv-t4" style={{ color: 'var(--z-text-muted)' }}>
         Understand &nbsp;·&nbsp; Reason &nbsp;·&nbsp; Act
       </div>
     </div>
@@ -346,11 +346,11 @@ export default function LoginIntelligencePanel({ logo }) {
 
       <div className="relative z-10 flex items-center gap-2.5 flex-none">
         {logo}
-        <span className="text-[14px] font-semibold tracking-tight zv-t1" style={{ color: 'var(--z-text)' }}>Zevra</span>
+        <span className="text-z-body-sm font-semibold tracking-tight zv-t1" style={{ color: 'var(--z-text)' }}>Zevra</span>
       </div>
 
       <div
-        className="relative z-10 flex-none text-[11px] font-bold uppercase tracking-[0.16em] zv-t3 zv-panel-eyebrow"
+        className="relative z-10 flex-none text-z-micro font-semibold uppercase tracking-[0.16em] zv-t3 zv-panel-eyebrow"
         style={{ marginTop: 'clamp(10px,1.8vh,18px)', color: 'var(--z-text-3)' }}
       >
         Enterprise Operational Intelligence
@@ -373,7 +373,7 @@ export default function LoginIntelligencePanel({ logo }) {
       </h1>
 
       <p
-        className="relative z-10 flex-none mt-2.5 text-[14.5px] leading-snug max-w-[58ch] zv-t2 zv-panel-sub"
+        className="relative z-10 flex-none mt-2.5 text-z-body-sm leading-snug max-w-[58ch] zv-t2 zv-panel-sub"
         style={{ color: 'var(--z-text-2)' }}
       >
         Zevra understands your business, connects the right context, identifies
@@ -387,14 +387,14 @@ export default function LoginIntelligencePanel({ logo }) {
       <div className="relative z-10 flex-none zv-panel-industries" style={{ marginTop: 'clamp(16px,2.4vh,26px)' }}>
         <div className="flex items-baseline justify-between flex-wrap gap-x-4 gap-y-1">
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-[0.14em] zv-t3" style={{ color: 'var(--z-text-3)' }}>
+            <div className="text-z-micro font-semibold uppercase tracking-[0.14em] zv-t3" style={{ color: 'var(--z-text-3)' }}>
               One intelligence platform. Every industry.
             </div>
-            <p className="mt-1 text-[12px] max-w-[42ch] zv-t4" style={{ color: 'var(--z-text-muted)' }}>
+            <p className="mt-1 text-z-small max-w-[42ch] zv-t4" style={{ color: 'var(--z-text-muted)' }}>
               Zevra becomes industry-specific through Industry Packs.
             </p>
           </div>
-          <div className="flex items-center gap-2 text-[9.5px] font-semibold uppercase tracking-[0.14em] zv-t4" style={{ color: 'var(--z-text-muted)' }}>
+          <div className="flex items-center gap-2 text-z-nano font-semibold uppercase tracking-[0.14em] zv-t4" style={{ color: 'var(--z-text-muted)' }}>
             <span style={{ width: 16, height: 1, background: 'var(--z-border-strong)' }} />
             Same intelligence. Different possibilities.
           </div>
@@ -421,10 +421,10 @@ export default function LoginIntelligencePanel({ logo }) {
                 >
                   <Icon size={15} strokeWidth={1.8} style={{ color: 'var(--z-primary)' }} />
                 </div>
-                <div className="text-[12.5px] font-semibold leading-snug zv-t1" style={{ color: 'var(--z-text)' }}>
+                <div className="text-z-small font-semibold leading-snug zv-t1" style={{ color: 'var(--z-text)' }}>
                   {ind.name}
                 </div>
-                <div className="text-[10.5px] mt-0.5 leading-snug zv-t3" style={{ color: 'var(--z-text-3)' }}>
+                <div className="text-z-nano mt-0.5 leading-snug zv-t3" style={{ color: 'var(--z-text-3)' }}>
                   {ind.descriptor}
                 </div>
               </div>
@@ -440,12 +440,12 @@ export default function LoginIntelligencePanel({ logo }) {
             >
               <Plus size={14} strokeWidth={1.8} style={{ color: 'var(--z-text-3)' }} />
             </div>
-            <div className="text-[11.5px] zv-t4" style={{ color: 'var(--z-text-muted)' }}>More industries</div>
+            <div className="text-z-micro zv-t4" style={{ color: 'var(--z-text-muted)' }}>More industries</div>
           </div>
         </div>
       </div>
 
-      <div className="relative z-10 mt-auto pt-4 flex-none flex items-center justify-between text-[11px] zv-t4" style={{ color: 'var(--z-text-muted)' }}>
+      <div className="relative z-10 mt-auto pt-4 flex-none flex items-center justify-between text-z-micro zv-t4" style={{ color: 'var(--z-text-muted)' }}>
         <span>&copy; Zevra. All rights reserved.</span>
         <span className="hidden lg:inline-flex items-center gap-2">
           <span style={{ width: 16, height: 1, background: 'var(--z-border-strong)' }} />

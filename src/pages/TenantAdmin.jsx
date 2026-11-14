@@ -12,7 +12,7 @@ import {
 function safeArray(v) { return Array.isArray(v) ? v : []; }
 
 const PLAN_COLORS = {
-  TRIAL:        'bg-gray-100 text-gray-600',
+  TRIAL:        'bg-z-card-2 text-z-text-2',
   STANDARD:     'bg-blue-100 text-blue-700',
   PROFESSIONAL: 'bg-purple-100 text-purple-700',
   ENTERPRISE:   'bg-amber-100 text-amber-700',
@@ -82,24 +82,24 @@ function TenantDetail({ tenant, onSuspend, onActivate, onDeprovision, onEdit }) 
   return (
     <Card className="overflow-hidden">
       {/* Header row */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-z-border">
         <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0">
           <Building2 size={17} className="text-white" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-gray-900">{tenant.name}</span>
+            <span className="text-sm font-semibold text-z-text">{tenant.name}</span>
             <StatusBadge status={tenant.status} />
             <PlanBadge plan={tenant.plan} />
           </div>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            <span className="text-xs text-gray-400 font-mono">{tenant.slug}</span>
+            <span className="text-xs text-z-text-3 font-mono">{tenant.slug}</span>
             <span className="text-gray-200 select-none">·</span>
-            <span className="text-xs text-gray-400 font-mono flex items-center gap-1">
+            <span className="text-xs text-z-text-3 font-mono flex items-center gap-1">
               <Database size={10} /> {tenant.schema_name}
             </span>
             <span className="text-gray-200 select-none">·</span>
-            <span className="text-xs text-gray-400 flex items-center gap-1">
+            <span className="text-xs text-z-text-3 flex items-center gap-1">
               <Users size={10} /> max {tenant.max_users}
             </span>
           </div>
@@ -129,43 +129,43 @@ function TenantDetail({ tenant, onSuspend, onActivate, onDeprovision, onEdit }) 
       </div>
 
       {/* Info grid */}
-      <div className="grid grid-cols-4 gap-x-4 gap-y-2 px-4 py-3 border-b border-gray-100">
+      <div className="grid grid-cols-4 gap-x-4 gap-y-2 px-4 py-3 border-b border-z-border">
         <div>
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5 flex items-center gap-1">
+          <p className="text-z-nano font-semibold text-z-text-3 uppercase tracking-wide mb-0.5 flex items-center gap-1">
             <Mail size={9} /> Contact
           </p>
-          <p className="text-xs text-gray-700 truncate">{tenant.contact_email || '—'}</p>
+          <p className="text-xs text-z-text-2 truncate">{tenant.contact_email || '—'}</p>
         </div>
         <div>
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5 flex items-center gap-1">
+          <p className="text-z-nano font-semibold text-z-text-3 uppercase tracking-wide mb-0.5 flex items-center gap-1">
             <Database size={9} /> Schema
           </p>
-          <p className="text-xs text-gray-700 font-mono">{tenant.schema_name}</p>
+          <p className="text-xs text-z-text-2 font-mono">{tenant.schema_name}</p>
         </div>
         <div>
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5 flex items-center gap-1">
+          <p className="text-z-nano font-semibold text-z-text-3 uppercase tracking-wide mb-0.5 flex items-center gap-1">
             <Calendar size={9} /> Created
           </p>
-          <p className="text-xs text-gray-700">
+          <p className="text-xs text-z-text-2">
             {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : '—'}
           </p>
         </div>
         <div>
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5 flex items-center gap-1">
+          <p className="text-z-nano font-semibold text-z-text-3 uppercase tracking-wide mb-0.5 flex items-center gap-1">
             <Hash size={9} /> Tenant ID
           </p>
-          <p className="text-[10px] text-gray-500 font-mono truncate">{tenant.tenant_id}</p>
+          <p className="text-z-nano text-z-text-3 font-mono truncate">{tenant.tenant_id}</p>
         </div>
       </div>
 
       {/* SSO domains + resend invite side by side */}
       {!isDeprovisioned && (
-        <div className="grid grid-cols-2 divide-x divide-gray-100">
+        <div className="grid grid-cols-2 divide-x divide-z-border">
           <div className="px-4 py-3">
             <DomainManager tenant={tenant} compact />
           </div>
           <div className="px-4 py-3">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+            <p className="text-z-nano font-semibold text-z-text-3 uppercase tracking-wide mb-2">
               Resend invite
             </p>
             <div className="flex gap-2">
@@ -174,7 +174,7 @@ function TenantDetail({ tenant, onSuspend, onActivate, onDeprovision, onEdit }) 
                 value={reinviteEmail}
                 onChange={e => { setReinviteEmail(e.target.value); setReinviteMsg(''); }}
                 placeholder="admin@tenant.com"
-                className="flex-1 h-7 border border-gray-200 rounded-lg px-2 text-xs focus:outline-none focus:border-indigo-400"
+                className="flex-1 h-7 border border-z-border rounded-lg px-2 text-xs focus:outline-none focus:border-indigo-400"
               />
               <Btn variant="secondary" size="sm" onClick={sendReinvite} disabled={reinviting || !reinviteEmail.trim()}>
                 {reinviting ? <Spinner size={3} /> : <Mail size={11} />}
@@ -188,25 +188,25 @@ function TenantDetail({ tenant, onSuspend, onActivate, onDeprovision, onEdit }) 
             )}
             {recoveryLink && (
               <div className="mt-1.5 p-2 bg-amber-50 border border-amber-200 rounded-lg">
-                <p className="text-[10px] font-semibold text-amber-800 mb-1">
+                <p className="text-z-nano font-semibold text-amber-800 mb-1">
                   User exists — share this one-time link:
                 </p>
                 <div className="flex items-center gap-1.5">
                   <input
                     readOnly
                     value={recoveryLink}
-                    className="flex-1 h-6 border border-amber-300 rounded px-1.5 text-[10px] font-mono bg-white text-gray-700 select-all"
+                    className="flex-1 h-6 border border-amber-300 rounded px-1.5 text-z-nano font-mono bg-z-card text-z-text-2 select-all"
                     onFocus={e => e.target.select()}
                   />
                   <button
                     type="button"
                     onClick={() => navigator.clipboard.writeText(recoveryLink)}
-                    className="shrink-0 px-1.5 py-0.5 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-medium rounded transition-colors"
+                    className="shrink-0 px-1.5 py-0.5 bg-amber-600 hover:bg-amber-700 text-white text-z-nano font-medium rounded transition-colors"
                   >
                     Copy
                   </button>
                 </div>
-                <p className="text-[10px] text-amber-600 mt-0.5">Expires in 1 hour · single-use</p>
+                <p className="text-z-nano text-amber-600 mt-0.5">Expires in 1 hour · single-use</p>
               </div>
             )}
             {reinviteMsg && reinviteMsg !== 'ok' && !recoveryLink && (
@@ -256,12 +256,12 @@ function DomainManager({ tenant, compact }) {
 
   return (
     <div>
-      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+      <p className="text-z-nano font-semibold text-z-text-3 uppercase tracking-wide mb-2">
         SSO Domains
       </p>
       <div className="flex flex-wrap gap-1.5 mb-2">
         {domains.length === 0
-          ? <span className="text-xs text-gray-400">No domains registered</span>
+          ? <span className="text-xs text-z-text-3">No domains registered</span>
           : domains.map(d => (
             <span key={d.domain}
               className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 border border-indigo-200 rounded-full text-xs font-medium text-indigo-700">
@@ -280,10 +280,10 @@ function DomainManager({ tenant, compact }) {
         <input
           type="text" placeholder="acme.com"
           value={newDomain} onChange={e => setNewDomain(e.target.value)}
-          className="border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 w-28"
+          className="border border-z-border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 w-28"
         />
         <select value={defaultRole} onChange={e => setDefaultRole(e.target.value)}
-          className="border border-gray-200 rounded-lg px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
+          className="border border-z-border rounded-lg px-1.5 py-1 text-xs bg-z-card focus:outline-none focus:ring-1 focus:ring-indigo-400">
           <option value="ANALYST">Analyst</option>
           <option value="DOMAIN_OWNER">Domain Owner</option>
           <option value="ADMIN">Admin</option>
@@ -358,7 +358,7 @@ function ProvisionModal({ open, onClose, onProvisioned }) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-medium text-z-text-2 mb-1">
               Workspace ID (slug)
             </label>
             <input
@@ -367,9 +367,9 @@ function ProvisionModal({ open, onClose, onProvisioned }) {
               placeholder="acme-corp"
               required
               pattern="[a-z0-9][a-z0-9\-]{1,62}"
-              className="w-full h-9 border border-gray-300 rounded-lg px-3 text-sm font-mono focus:outline-none focus:border-indigo-400"
+              className="w-full h-9 border border-z-border-strong rounded-lg px-3 text-sm font-mono focus:outline-none focus:border-indigo-400"
             />
-            <p className="text-xs text-gray-400 mt-0.5">Lowercase, hyphens only · cannot be changed later</p>
+            <p className="text-xs text-z-text-3 mt-0.5">Lowercase, hyphens only · cannot be changed later</p>
           </div>
           <Select label="Plan" value={form.plan} onChange={e => set('plan', e.target.value)}>
             {['TRIAL', 'STANDARD', 'PROFESSIONAL', 'ENTERPRISE'].map(p =>
@@ -385,20 +385,20 @@ function ProvisionModal({ open, onClose, onProvisioned }) {
             onChange={e => set('contactEmail', e.target.value)}
           />
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Max users</label>
+            <label className="block text-xs font-medium text-z-text-2 mb-1">Max users</label>
             <input
               type="number"
               min={1}
               max={9999}
               value={form.maxUsers}
               onChange={e => set('maxUsers', e.target.value)}
-              className="w-full h-9 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:border-indigo-400"
+              className="w-full h-9 border border-z-border-strong rounded-lg px-3 text-sm focus:outline-none focus:border-indigo-400"
             />
           </div>
         </div>
 
-        <div className="pt-2 border-t border-gray-100">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+        <div className="pt-2 border-t border-z-border">
+          <p className="text-xs font-semibold text-z-text-3 uppercase tracking-wide mb-3">
             First admin account
           </p>
           <div className="grid grid-cols-2 gap-3">
@@ -473,12 +473,12 @@ function EditModal({ open, tenant, onClose, onSaved }) {
             <option key={p}>{p}</option>)}
         </Select>
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Max users</label>
+          <label className="block text-xs font-medium text-z-text-2 mb-1">Max users</label>
           <input
             type="number" min={1} max={9999}
             value={maxUsers}
             onChange={e => setMaxUsers(e.target.value)}
-            className="w-full h-9 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:border-indigo-400"
+            className="w-full h-9 border border-z-border-strong rounded-lg px-3 text-sm focus:outline-none focus:border-indigo-400"
           />
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
@@ -571,8 +571,8 @@ export default function TenantAdmin() {
           { label: 'Deprovisioned',  value: deprovisioned.length, color: 'text-red-500',    bg: 'bg-red-50',    border: 'border-red-100' },
         ].map(s => (
           <div key={s.label} className={`rounded-xl border ${s.border} ${s.bg} px-4 py-3`}>
-            <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-xs font-medium text-gray-500">{s.label}</p>
+            <p className={`text-xl font-semibold ${s.color}`}>{s.value}</p>
+            <p className="text-xs font-medium text-z-text-3">{s.label}</p>
           </div>
         ))}
       </div>
@@ -593,7 +593,7 @@ export default function TenantAdmin() {
               <select
                 value={selectedSlug}
                 onChange={e => setSelectedSlug(e.target.value)}
-                className="w-full h-9 pl-9 pr-8 border border-gray-200 rounded-xl text-sm bg-white shadow-sm appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                className="w-full h-9 pl-9 pr-8 border border-z-border rounded-xl text-sm bg-z-card shadow-sm appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
               >
                 {tenants.map(t => (
                   <option key={t.slug} value={t.slug}>
@@ -601,8 +601,8 @@ export default function TenantAdmin() {
                   </option>
                 ))}
               </select>
-              <Building2 size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <Building2 size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-z-text-3 pointer-events-none" />
+              <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-z-text-3 pointer-events-none" />
             </div>
           </div>
 

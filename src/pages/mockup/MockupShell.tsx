@@ -42,8 +42,8 @@ export function MockupShell({ children }: Props) {
             <Sparkles size={15} className="text-white" />
           </div>
           <div>
-            <div className="text-white font-bold text-sm leading-none">Zevra</div>
-            <div className="text-[10px] leading-none mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <div className="text-white font-semibold text-sm leading-none">Zevra</div>
+            <div className="text-z-nano leading-none mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
               Enterprise AI
             </div>
           </div>
@@ -76,7 +76,7 @@ export function MockupShell({ children }: Props) {
             Ask Zevra anything…
           </span>
           <kbd
-            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] font-mono flex-shrink-0"
+            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-z-micro font-mono flex-shrink-0"
             style={{
               background: 'rgba(255,255,255,0.08)',
               border: '1px solid rgba(255,255,255,0.12)',
@@ -93,7 +93,7 @@ export function MockupShell({ children }: Props) {
           <button className="relative w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
             <Bell size={16} style={{ color: 'rgba(255,255,255,0.65)' }} />
             <span
-              className="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+              className="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center text-z-nano font-semibold text-white"
               style={{ background: '#E53E3E' }}
             >
               3
@@ -121,7 +121,7 @@ export function MockupShell({ children }: Props) {
             className="flex items-center gap-2 pl-2 pr-1 py-1 rounded-lg hover:bg-white/10 transition-colors ml-1"
           >
             <div
-              className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
+              className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold text-white"
               style={{ background: 'linear-gradient(135deg, #34d3a0 0%, #149a72 100%)' }}
             >
               M

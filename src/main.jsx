@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
+import '@fontsource-variable/inter';
+import '@fontsource-variable/newsreader';
 import './styles.css';
 import './ds/tokens.css'; // Zevra Design Language token layer (base --z-*)
 import './ds/intelligence/tokens.css'; // Intelligence Experience material layer (--z-ai-*)

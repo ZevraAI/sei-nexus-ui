@@ -4,7 +4,7 @@ import { Plus, Trash2, Pencil } from 'lucide-react';
 
 const EMPTY = { name: '', whenToUse: '', steps: '', evidenceOrder: '', escalation: '' };
 
-const field = 'w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#111827]';
+const field = 'w-full px-3 py-2 text-z-caption border border-z-border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#111827]';
 
 /**
  * Playbooks of one agent: named, reusable ways of investigating a kind of question. The model reads
@@ -54,42 +54,42 @@ export default function PlaybookEditor({ agentId }) {
   return (
     <div data-testid="playbook-editor">
       <div className="flex items-center justify-between mb-1">
-        <label className="block text-[12px] font-medium text-[#374151]">
+        <label className="block text-z-small font-medium text-[#374151]">
           Playbooks
           <span className="text-[#9CA3AF] font-normal ml-1">— approved ways to investigate a kind of question</span>
         </label>
         {!draft && (
           <button type="button" onClick={() => { setError(''); setDraft({ ...EMPTY }); }}
-            className="flex items-center gap-1 text-[12px] font-medium text-[#111827] hover:underline">
+            className="flex items-center gap-1 text-z-small font-medium text-[#111827] hover:underline">
             <Plus size={12} /> Add
           </button>
         )}
       </div>
-      <p className="text-[11px] text-[#9CA3AF] mb-2">
+      <p className="text-z-micro text-[#9CA3AF] mb-2">
         The agent reads these on every run and decides for itself whether one applies. It follows the steps in order and names the playbook in its answer.
       </p>
 
-      {items.length === 0 && !draft && <p className="text-[12px] text-[#9CA3AF]">No playbooks yet.</p>}
+      {items.length === 0 && !draft && <p className="text-z-small text-[#9CA3AF]">No playbooks yet.</p>}
 
       <div className="space-y-1.5">
         {items.map(p => (
-          <div key={p.id} className="flex items-start justify-between gap-2 px-3 py-2 rounded-lg border border-gray-200">
+          <div key={p.id} className="flex items-start justify-between gap-2 px-3 py-2 rounded-lg border border-z-border">
             <div className="min-w-0">
-              <div className="text-[13px] font-medium text-[#111827]">{p.name}</div>
-              <div className="text-[11px] text-[#6B7280]">Use when: {p.whenToUse ?? p.when_to_use}</div>
+              <div className="text-z-caption font-medium text-[#111827]">{p.name}</div>
+              <div className="text-z-micro text-[#6B7280]">Use when: {p.whenToUse ?? p.when_to_use}</div>
             </div>
             <div className="flex gap-1 shrink-0">
               <button type="button" aria-label={`Edit ${p.name}`} onClick={() => edit(p)}
-                className="p-1 text-gray-400 hover:text-gray-700"><Pencil size={13} /></button>
+                className="p-1 text-z-text-3 hover:text-z-text-2"><Pencil size={13} /></button>
               <button type="button" aria-label={`Archive ${p.name}`} onClick={() => remove(p)}
-                className="p-1 text-gray-400 hover:text-red-500"><Trash2 size={13} /></button>
+                className="p-1 text-z-text-3 hover:text-red-500"><Trash2 size={13} /></button>
             </div>
           </div>
         ))}
       </div>
 
       {draft && (
-        <div className="mt-2 space-y-2 p-3 rounded-lg border border-gray-200 bg-[#F8F9FA]">
+        <div className="mt-2 space-y-2 p-3 rounded-lg border border-z-border bg-[#F8F9FA]">
           <input aria-label="Playbook name" className={field} placeholder="Name, e.g. Stock-out triage"
             value={draft.name} onChange={e => set('name', e.target.value)} />
           <textarea aria-label="Use when" rows={2} className={`${field} resize-none`}
@@ -105,15 +105,15 @@ export default function PlaybookEditor({ agentId }) {
             value={draft.escalation} onChange={e => set('escalation', e.target.value)} />
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => { setDraft(null); setError(''); }}
-              className="px-3 py-1.5 text-[12px] border border-gray-200 rounded-lg bg-white">Cancel</button>
+              className="px-3 py-1.5 text-z-small border border-z-border rounded-lg bg-z-card">Cancel</button>
             <button type="button" onClick={save} disabled={busy}
-              className="px-3 py-1.5 text-[12px] text-white bg-[#111827] rounded-lg disabled:opacity-50">
+              className="px-3 py-1.5 text-z-small text-white bg-[#111827] rounded-lg disabled:opacity-50">
               {draft.id ? 'Save playbook' : 'Add playbook'}
             </button>
           </div>
         </div>
       )}
-      {error && <p className="text-[12px] text-red-500 mt-1">{error}</p>}
+      {error && <p className="text-z-small text-red-500 mt-1">{error}</p>}
     </div>
   );
 }

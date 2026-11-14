@@ -8,10 +8,10 @@ export function InvestigationsPage() {
   return (
     <div className="px-10 lg:px-[68px] pt-[46px] pb-10 max-w-[1100px]">
       <div className="mb-6">
-        <h1 className="text-[42px] leading-[1.1] font-bold text-foreground">
+        <h1 className="text-z-display-lg leading-[1.1] font-semibold text-z-text">
           Investigations
         </h1>
-        <p className="mt-2 text-[17px] text-muted-fg">
+        <p className="mt-2 text-z-lead text-z-text-2">
           Uncover insights, follow leads, and drive actions across systems and data.
         </p>
       </div>

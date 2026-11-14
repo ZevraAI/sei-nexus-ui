@@ -30,7 +30,7 @@ function SessionCard({ session }) {
   return (
     <Card className="p-4">
       <div className="flex items-start gap-3">
-        <button onClick={toggle} className="mt-0.5 text-gray-400 hover:text-gray-600 shrink-0">
+        <button onClick={toggle} className="mt-0.5 text-z-text-3 hover:text-z-text-2 shrink-0">
           {loading ? <Spinner size={3} /> : expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
         </button>
         <div className="flex-1 min-w-0">
@@ -38,22 +38,22 @@ function SessionCard({ session }) {
             <Badge label={session.status ?? 'ACTIVE'} color={STATUS_COLOR[session.status] ?? 'gray'} />
             {session.agentKey && <Badge label={session.agentKey} color="navy" />}
           </div>
-          <p className="text-sm text-gray-700 mt-1 font-medium">{session.question}</p>
-          <p className="text-xs text-gray-400 mt-0.5">{session.startedAt?.split('T')[0]}</p>
+          <p className="text-sm text-z-text-2 mt-1 font-medium">{session.question}</p>
+          <p className="text-xs text-z-text-3 mt-0.5">{session.startedAt?.split('T')[0]}</p>
 
           {expanded && detail && (
             <div className="mt-3 space-y-2">
               {/* Steps */}
               {detail.steps?.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-600 mb-1">Investigation Steps</p>
+                  <p className="text-xs font-semibold text-z-text-2 mb-1">Investigation Steps</p>
                   <div className="space-y-1">
                     {detail.steps.map(s => (
-                      <div key={s.stepKey} className="flex items-start gap-2 bg-gray-50 rounded-lg p-2">
-                        <span className="text-xs font-mono text-gray-400 w-5 shrink-0">{s.stepNo}.</span>
+                      <div key={s.stepKey} className="flex items-start gap-2 bg-z-card-2 rounded-lg p-2">
+                        <span className="text-xs font-mono text-z-text-3 w-5 shrink-0">{s.stepNo}.</span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-gray-700">{s.description}</p>
-                          <p className="text-xs text-gray-400">{s.stepType}</p>
+                          <p className="text-xs text-z-text-2">{s.description}</p>
+                          <p className="text-xs text-z-text-3">{s.stepType}</p>
                         </div>
                       </div>
                     ))}
@@ -64,7 +64,7 @@ function SessionCard({ session }) {
               {/* Hypotheses */}
               {detail.hypotheses?.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-600 mb-1">Hypotheses</p>
+                  <p className="text-xs font-semibold text-z-text-2 mb-1">Hypotheses</p>
                   {detail.hypotheses.map(h => (
                     <div key={h.hypothesisKey} className="bg-blue-50 rounded-lg p-2">
                       <p className="text-xs text-blue-800">{h.hypothesisText}</p>
@@ -147,11 +147,11 @@ export default function Reasoning() {
         subtitle="Investigation sessions, hypotheses, and operational findings"
       />
 
-      <div className="flex gap-1 mb-4 border-b border-gray-200">
+      <div className="flex gap-1 mb-4 border-b border-z-border">
         {[['sessions', 'Sessions'], ['findings', "Zevra's judgment"]].map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors
-              ${tab === k ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+              ${tab === k ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-z-text-3 hover:text-z-text-2'}`}>
             {l}
           </button>
         ))}
@@ -173,14 +173,14 @@ export default function Reasoning() {
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-gray-800">{f.title}</span>
+                      <span className="text-sm font-semibold text-z-text">{f.title}</span>
                       <Badge label={f.status ?? 'OPEN'} color={STATUS_COLOR[f.status] ?? 'gray'} />
                     </div>
-                    <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{f.description}</p>
+                    <p className="text-sm text-z-text-2 mt-1 whitespace-pre-wrap">{f.description}</p>
                     {f.recommendation && (
                       <p className="text-xs text-blue-600 mt-1">💡 {f.recommendation}</p>
                     )}
-                    <p className="text-xs text-gray-400 mt-1">{(f.lastConfirmedAt ?? f.firstObservedAt)?.split('T')[0]}</p>
+                    <p className="text-xs text-z-text-3 mt-1">{(f.lastConfirmedAt ?? f.firstObservedAt)?.split('T')[0]}</p>
                   </div>
                   {f.status === 'OPEN' && (
                     <Btn variant="teal" size="sm" onClick={() => setResolveModal(f)}>
@@ -196,9 +196,9 @@ export default function Reasoning() {
 
       <Modal open={!!resolveModal} onClose={() => setResolveModal(null)} title="Resolve">
         <div className="space-y-3">
-          <p className="text-sm text-gray-700">{resolveModal?.title}</p>
+          <p className="text-sm text-z-text-2">{resolveModal?.title}</p>
           <textarea
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            className="w-full border border-z-border-strong rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             rows={3}
             placeholder="Resolution note…"
             value={resolveNote}

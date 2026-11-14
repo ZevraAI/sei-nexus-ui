@@ -46,7 +46,7 @@ export default function InvestigationPopup({ open, onClose, value, onChange, onS
         className="w-full max-w-[720px] animate-z-rise-scale overflow-hidden rounded-z-xl border border-z-border bg-z-surface shadow-z-4"
       >
         <div className="px-4 pb-3 pt-4">
-          <p className="mb-2 font-z-mono text-[10px] uppercase tracking-[0.14em] text-z-text-3">New investigation</p>
+          <p className="mb-2 font-z-mono text-z-nano uppercase tracking-[0.14em] text-z-text-3">New investigation</p>
           <InvestigationComposer
             value={value}
             onChange={onChange}
@@ -62,13 +62,13 @@ export default function InvestigationPopup({ open, onClose, value, onChange, onS
         </div>
         {suggestions.length > 0 && (
           <div className="border-t border-z-border px-2 pb-2 pt-1">
-            <p className="px-2 pb-1 pt-2 font-z-mono text-[10px] uppercase tracking-[0.14em] text-z-text-3">Suggested</p>
+            <p className="px-2 pb-1 pt-2 font-z-mono text-z-nano uppercase tracking-[0.14em] text-z-text-3">Suggested</p>
             {suggestions.map((q) => (
               <button
                 key={q}
                 type="button"
                 onClick={() => onChange(q)}
-                className="block w-full rounded-z-md px-2 py-2 text-left text-[13px] text-z-text-2 transition-colors hover:bg-z-selected hover:text-z-text"
+                className="block w-full rounded-z-md px-2 py-2 text-left text-z-caption text-z-text-2 transition-colors hover:bg-z-selected hover:text-z-text"
               >
                 {q}
               </button>

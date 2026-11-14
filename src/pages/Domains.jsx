@@ -57,9 +57,9 @@ export default function Domains() {
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-indigo-700">{d.name}</p>
-                  <p className="text-xs font-mono text-gray-400 mt-0.5">{d.domainKey}</p>
-                  {d.description && <p className="text-xs text-gray-500 mt-1">{d.description}</p>}
-                  {d.ownerEmail && <p className="text-xs text-gray-400 mt-1">Owner: {d.ownerEmail}</p>}
+                  <p className="text-xs font-mono text-z-text-3 mt-0.5">{d.domainKey}</p>
+                  {d.description && <p className="text-xs text-z-text-3 mt-1">{d.description}</p>}
+                  {d.ownerEmail && <p className="text-xs text-z-text-3 mt-1">Owner: {d.ownerEmail}</p>}
                 </div>
                 <Btn variant="ghost" size="sm" onClick={() => remove(d.domainKey)}>
                   <Trash2 size={13} />

@@ -39,7 +39,7 @@ export function AppShell({ children, rightPanel }: AppShellProps) {
 
           {rightPanel && (
             <aside
-              className="hidden xl:block flex-none w-[374px] border-l border-line bg-surface overflow-y-auto scrollbar-thin"
+              className="hidden xl:block flex-none w-[374px] border-l border-z-border bg-z-card overflow-y-auto scrollbar-thin"
               aria-label="Investigation context"
             >
               {rightPanel}

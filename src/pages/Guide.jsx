@@ -35,16 +35,16 @@ export default function Guide({ user }) {
     window.open(url, '_blank', 'noopener');
   };
 
-  const muted = isDark ? 'text-[#94A3B8]' : 'text-gray-500';
+  const muted = isDark ? 'text-[#94A3B8]' : 'text-z-text-3';
 
   if (!allowed) {
     return (
       <div className="max-w-[640px] mx-auto px-6 py-16 text-center" data-testid="guide-denied">
         <ShieldAlert size={28} className={`mx-auto mb-3 ${muted}`} />
-        <h1 className={`text-[18px] font-semibold mb-1 ${isDark ? 'text-[#E2E8F0]' : 'text-gray-900'}`}>
+        <h1 className={`text-z-body-lg font-semibold mb-1 ${isDark ? 'text-[#E2E8F0]' : 'text-z-text'}`}>
           Only Zevra administrators can open this guide
         </h1>
-        <p className={`text-[13px] ${muted}`}>It is an internal walkthrough of how Zevra is built, including its known limits.</p>
+        <p className={`text-z-caption ${muted}`}>It is an internal walkthrough of how Zevra is built, including its known limits.</p>
       </div>
     );
   }
@@ -53,23 +53,23 @@ export default function Guide({ user }) {
     <div className="max-w-[1500px] mx-auto px-4 sm:px-6 py-4">
       <div className="flex items-center justify-between gap-3 mb-3">
         <div>
-          <h1 className={`text-[17px] font-semibold ${isDark ? 'text-[#E2E8F0]' : 'text-gray-900'}`}>How Zevra works</h1>
-          <p className={`text-[12px] ${muted}`}>Interactive architecture guide, for Zevra administrators.</p>
+          <h1 className={`text-z-lead font-semibold ${isDark ? 'text-[#E2E8F0]' : 'text-z-text'}`}>How Zevra works</h1>
+          <p className={`text-z-small ${muted}`}>Interactive architecture guide, for Zevra administrators.</p>
         </div>
         <button type="button" onClick={openInTab} disabled={!doc}
-          className={`inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg border disabled:opacity-50
-                      ${isDark ? 'border-[#252E3F] text-[#E2E8F0] hover:bg-[#1A1F2B]' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
+          className={`inline-flex items-center gap-1.5 text-z-small font-medium px-3 py-1.5 rounded-lg border disabled:opacity-50
+                      ${isDark ? 'border-[#252E3F] text-[#E2E8F0] hover:bg-[#1A1F2B]' : 'border-z-border text-z-text-2 hover:bg-z-card-2'}`}>
           <ExternalLink size={13} /> Open full screen
         </button>
       </div>
-      {error && <p className="text-[13px] text-red-600">{error}</p>}
-      {!doc && !error && <p className={`text-[13px] ${muted}`}>Loading the guide…</p>}
+      {error && <p className="text-z-caption text-red-600">{error}</p>}
+      {!doc && !error && <p className={`text-z-caption ${muted}`}>Loading the guide…</p>}
       {doc && (
         <iframe
           title="How Zevra works"
           srcDoc={doc}
           sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
-          className={`w-full rounded-xl border ${isDark ? 'border-[#252E3F]' : 'border-gray-200'}`}
+          className={`w-full rounded-xl border ${isDark ? 'border-[#252E3F]' : 'border-z-border'}`}
           style={{ height: 'calc(100vh - 170px)', minHeight: 520 }}
         />
       )}

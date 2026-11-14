@@ -23,14 +23,14 @@ function DataPoliciesPanel({ objectKey }) {
     }).finally(() => setLoading(false));
   }, [objectKey]);
 
-  const maskColor = t => t === 'EXCLUDE' ? 'bg-red-50 text-red-700' : t === 'HASH' ? 'bg-blue-50 text-blue-700' : t === 'PARTIAL' ? 'bg-amber-50 text-amber-700' : 'bg-gray-100 text-gray-600';
+  const maskColor = t => t === 'EXCLUDE' ? 'bg-red-50 text-red-700' : t === 'HASH' ? 'bg-blue-50 text-blue-700' : t === 'PARTIAL' ? 'bg-amber-50 text-amber-700' : 'bg-z-card-2 text-z-text-2';
 
-  if (loading) return <div className="py-4 text-center text-xs text-gray-400">Loading policies…</div>;
+  if (loading) return <div className="py-4 text-center text-xs text-z-text-3">Loading policies…</div>;
 
   const noPolicies = colPolicies.length === 0 && rlsPolicies.length === 0;
   if (noPolicies) {
     return (
-      <div className="py-4 text-center text-xs text-gray-400">
+      <div className="py-4 text-center text-xs text-z-text-3">
         No governance policies on this object.{' '}
         <a href="#/governance" className="text-indigo-600 hover:underline">Add one in the Governance Hub →</a>
       </div>
@@ -42,12 +42,12 @@ function DataPoliciesPanel({ objectKey }) {
       {/* Column masking policies */}
       {colPolicies.length > 0 && (
         <div>
-          <div className="flex items-center gap-1.5 mb-2 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="flex items-center gap-1.5 mb-2 text-z-micro font-semibold text-z-text-3 uppercase tracking-wider">
             <EyeOff size={11} /> Column Masking ({colPolicies.length})
           </div>
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-gray-400 border-b border-gray-100">
+              <tr className="text-z-text-3 border-b border-z-border">
                 <th className="text-left pb-1 font-medium">Column</th>
                 <th className="text-left pb-1 font-medium">Mask type</th>
                 <th className="text-left pb-1 font-medium">Exempt roles</th>
@@ -55,15 +55,15 @@ function DataPoliciesPanel({ objectKey }) {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {colPolicies.map(p => (
-                <tr key={p.policyKey} className="hover:bg-gray-50">
-                  <td className="py-1 font-mono font-semibold text-gray-800">{p.columnName}</td>
+                <tr key={p.policyKey} className="hover:bg-z-card-2">
+                  <td className="py-1 font-mono font-semibold text-z-text">{p.columnName}</td>
                   <td className="py-1">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${maskColor(p.maskType)}`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-z-nano font-semibold ${maskColor(p.maskType)}`}>
                       {p.maskType === 'EXCLUDE' && <EyeOff size={9} />}
                       {p.maskType}
                     </span>
                   </td>
-                  <td className="py-1 text-gray-500">{p.exemptRoles?.length > 0 ? p.exemptRoles.join(', ') : 'None'}</td>
+                  <td className="py-1 text-z-text-3">{p.exemptRoles?.length > 0 ? p.exemptRoles.join(', ') : 'None'}</td>
                 </tr>
               ))}
             </tbody>
@@ -74,12 +74,12 @@ function DataPoliciesPanel({ objectKey }) {
       {/* RLS policies */}
       {rlsPolicies.length > 0 && (
         <div>
-          <div className="flex items-center gap-1.5 mb-2 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="flex items-center gap-1.5 mb-2 text-z-micro font-semibold text-z-text-3 uppercase tracking-wider">
             <Filter size={11} /> Row Filters ({rlsPolicies.length})
           </div>
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-gray-400 border-b border-gray-100">
+              <tr className="text-z-text-3 border-b border-z-border">
                 <th className="text-left pb-1 font-medium">Policy</th>
                 <th className="text-left pb-1 font-medium">Filter</th>
                 <th className="text-left pb-1 font-medium">Applies to</th>
@@ -88,12 +88,12 @@ function DataPoliciesPanel({ objectKey }) {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {rlsPolicies.map(p => (
-                <tr key={p.policyKey} className="hover:bg-gray-50">
-                  <td className="py-1 font-semibold text-gray-800">{p.policyName}</td>
+                <tr key={p.policyKey} className="hover:bg-z-card-2">
+                  <td className="py-1 font-semibold text-z-text">{p.policyName}</td>
                   <td className="py-1 font-mono text-violet-700 max-w-[200px] truncate">{p.filterTemplate}</td>
-                  <td className="py-1 text-gray-500">{p.appliesToRoles?.length > 0 ? p.appliesToRoles.join(', ') : 'All roles'}</td>
+                  <td className="py-1 text-z-text-3">{p.appliesToRoles?.length > 0 ? p.appliesToRoles.join(', ') : 'All roles'}</td>
                   <td className="py-1">
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${p.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                    <span className={`px-1.5 py-0.5 rounded text-z-nano font-semibold ${p.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-z-card-2 text-z-text-3'}`}>
                       {p.isActive ? 'Active' : 'Off'}
                     </span>
                   </td>
@@ -129,20 +129,20 @@ function ObjectRow({ obj, onScan, onDelete }) {
   return (
     <Card className="p-3">
       <div className="flex items-center gap-3">
-        <button onClick={loadCols} className="text-gray-400 hover:text-gray-600">
+        <button onClick={loadCols} className="text-z-text-3 hover:text-z-text-2">
           {loadingCols ? <Spinner size={3} /> : expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-gray-800 font-mono">{qualifiedName}</span>
+            <span className="text-sm font-medium text-z-text font-mono">{qualifiedName}</span>
             {obj.business_name && obj.business_name !== obj.table_name && (
-              <span className="text-xs text-gray-500">({obj.business_name})</span>
+              <span className="text-xs text-z-text-3">({obj.business_name})</span>
             )}
             <Badge label={obj.scan_status ?? 'PENDING'} color={scanStatusColor(obj.scan_status)} />
             <Badge label={obj.connection_key ?? '—'} color="navy" />
           </div>
           {obj.purpose && (
-            <p className="text-xs text-gray-500 mt-0.5 truncate">{obj.purpose}</p>
+            <p className="text-xs text-z-text-3 mt-0.5 truncate">{obj.purpose}</p>
           )}
         </div>
         <div className="flex gap-2 shrink-0">
@@ -156,7 +156,7 @@ function ObjectRow({ obj, onScan, onDelete }) {
       </div>
 
       {expanded && (
-        <div className="mt-3 ml-6 border-t border-gray-100 pt-3">
+        <div className="mt-3 ml-6 border-t border-z-border pt-3">
           {/* Inner tab bar */}
           <div className="flex gap-3 mb-3">
             {[['columns', 'Columns'], ['policies', 'Data Policies']].map(([k, label]) => (
@@ -164,7 +164,7 @@ function ObjectRow({ obj, onScan, onDelete }) {
                 className={`flex items-center gap-1.5 text-xs font-semibold pb-1.5 border-b-2 transition-colors ${
                   innerTab === k
                     ? 'border-indigo-500 text-indigo-700'
-                    : 'border-transparent text-gray-400 hover:text-gray-600'
+                    : 'border-transparent text-z-text-3 hover:text-z-text-2'
                 }`}>
                 {k === 'policies' && <Shield size={11} />}
                 {label}
@@ -175,7 +175,7 @@ function ObjectRow({ obj, onScan, onDelete }) {
           {innerTab === 'columns' && columns !== null && (
             <table className="w-full text-xs">
               <thead>
-                <tr className="text-gray-400 border-b border-gray-100">
+                <tr className="text-z-text-3 border-b border-z-border">
                   <th className="text-left pb-1 font-medium">Column</th>
                   <th className="text-left pb-1 font-medium">Type</th>
                   <th className="text-left pb-1 font-medium">Business meaning</th>
@@ -192,16 +192,16 @@ function ObjectRow({ obj, onScan, onDelete }) {
                     col.is_filterable && 'filterable',
                   ].filter(Boolean);
                   return (
-                    <tr key={col.column_name} className="hover:bg-gray-50">
+                    <tr key={col.column_name} className="hover:bg-z-card-2">
                       <td className="py-1 font-mono">{col.column_name}</td>
-                      <td className="py-1 text-gray-500">{col.data_type}</td>
-                      <td className="py-1 text-gray-600">{col.business_meaning || '—'}</td>
-                      <td className="py-1 text-gray-500">{roles.join(', ') || '—'}</td>
+                      <td className="py-1 text-z-text-3">{col.data_type}</td>
+                      <td className="py-1 text-z-text-2">{col.business_meaning || '—'}</td>
+                      <td className="py-1 text-z-text-3">{roles.join(', ') || '—'}</td>
                     </tr>
                   );
                 })}
                 {columns.length === 0 && (
-                  <tr><td colSpan={4} className="py-2 text-gray-400 text-center">No columns scanned yet</td></tr>
+                  <tr><td colSpan={4} className="py-2 text-z-text-3 text-center">No columns scanned yet</td></tr>
                 )}
               </tbody>
             </table>
@@ -328,11 +328,11 @@ export default function EnterpriseMap() {
       />
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 border-b border-gray-200">
+      <div className="flex gap-1 mb-4 border-b border-z-border">
         {[['objects', `Data Objects (${objects.length})`], ['notes', `Notes (${notes.length})`]].map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px
-              ${tab === k ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+              ${tab === k ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-z-text-3 hover:text-z-text-2'}`}>
             {l}
           </button>
         ))}
@@ -359,8 +359,8 @@ export default function EnterpriseMap() {
           <div className="space-y-2">
             {notes.map(n => (
               <Card key={n.note_key} className="p-4">
-                <p className="text-sm text-gray-700">{n.note_text}</p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-sm text-z-text-2">{n.note_text}</p>
+                <p className="text-xs text-z-text-3 mt-1">
                   {n.created_by} · {n.created_at?.split('T')[0]}
                 </p>
               </Card>

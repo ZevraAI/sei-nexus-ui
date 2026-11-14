@@ -13,19 +13,19 @@ function ReasoningToggle({ steps, status }) {
   const toolCalls = (steps ?? []).filter(s => s.type === 'TOOL_CALL');
   if (!toolCalls.length && status !== 'RUNNING') return null;
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
+    <div className="border border-z-border rounded-xl overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center gap-2.5 px-4 py-2.5 bg-[#F9FAFB]
                    hover:bg-[#F3F4F6] transition-colors text-left">
         <FlaskConical size={13} className="text-[#6B7280]" />
-        <span className="flex-1 text-[12px] font-medium text-[#6B7280]">
+        <span className="flex-1 text-z-small font-medium text-[#6B7280]">
           Reasoning — {toolCalls.length} data lookup{toolCalls.length !== 1 ? 's' : ''}
         </span>
-        {open ? <ChevronDown size={13} className="text-gray-400" /> : <ChevronRight size={13} className="text-gray-400" />}
+        {open ? <ChevronDown size={13} className="text-z-text-3" /> : <ChevronRight size={13} className="text-z-text-3" />}
       </button>
       {open && (
-        <div className="px-4 py-3 bg-white border-t border-gray-100">
+        <div className="px-4 py-3 bg-z-card border-t border-z-border">
           <AgentStepTrace steps={steps} status={status} />
         </div>
       )}
@@ -50,15 +50,15 @@ function SessionListItem({ session, selected, onClick }) {
                   ${selected ? 'bg-[#F3F4F6]' : 'hover:bg-[#F9FAFB]'}`}>
       <div className="mt-0.5">{statusIcon(session.status)}</div>
       <div className="flex-1 min-w-0">
-        <div className="text-[12.5px] font-medium text-[#111827] truncate">
+        <div className="text-z-small font-medium text-[#111827] truncate">
           {session.input_message ?? session.inputMessage}
         </div>
-        <div className="text-[11px] text-[#9CA3AF] mt-0.5">
+        <div className="text-z-micro text-[#9CA3AF] mt-0.5">
           {session.iterations_used ?? session.iterationsUsed ?? 0} steps ·{' '}
           {new Date(session.started_at ?? session.startedAt).toLocaleTimeString()}
         </div>
       </div>
-      <ChevronRight size={12} className="text-gray-300 mt-0.5 flex-shrink-0" />
+      <ChevronRight size={12} className="text-z-text-3 mt-0.5 flex-shrink-0" />
     </button>
   );
 }
@@ -120,7 +120,7 @@ export default function AgentChat({ agentId }) {
   );
 
   if (!agent) return (
-    <div className="flex-1 flex items-center justify-center text-[#9CA3AF] text-[13px]">
+    <div className="flex-1 flex items-center justify-center text-[#9CA3AF] text-z-caption">
       Agent not found.
     </div>
   );
@@ -131,12 +131,12 @@ export default function AgentChat({ agentId }) {
     <div className="flex-1 flex overflow-hidden">
 
       {/* ── Left sidebar: agent info + session history ── */}
-      <div className="w-[260px] flex-shrink-0 border-r border-gray-200 flex flex-col bg-white">
+      <div className="w-[260px] flex-shrink-0 border-r border-z-border flex flex-col bg-z-card">
 
         {/* Back + agent header */}
-        <div className="px-4 py-4 border-b border-gray-100">
+        <div className="px-4 py-4 border-b border-z-border">
           <button onClick={() => navigate('/agents')}
-            className="flex items-center gap-1.5 text-[12px] text-[#6B7280] hover:text-[#111827]
+            className="flex items-center gap-1.5 text-z-small text-[#6B7280] hover:text-[#111827]
                        mb-3 transition-colors">
             <ArrowLeft size={13} /> Back
           </button>
@@ -146,17 +146,17 @@ export default function AgentChat({ agentId }) {
               <Bot size={16} className="text-emerald-700" strokeWidth={1.6} />
             </div>
             <div>
-              <div className="text-[13.5px] font-semibold text-[#111827]">{agent.name}</div>
-              <div className="text-[11px] text-[#9CA3AF]">{agent.status}</div>
+              <div className="text-z-caption font-semibold text-[#111827]">{agent.name}</div>
+              <div className="text-z-micro text-[#9CA3AF]">{agent.status}</div>
             </div>
           </div>
-          <p className="text-[11.5px] text-[#6B7280] leading-[1.5]">{agent.goal}</p>
+          <p className="text-z-micro text-[#6B7280] leading-[1.5]">{agent.goal}</p>
 
           {connKeys.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {connKeys.map(k => (
                 <span key={k} className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#F3F4F6]
-                                         rounded-full text-[10.5px] text-[#6B7280]">
+                                         rounded-full text-z-nano text-[#6B7280]">
                   <Database size={9} /> {k}
                 </span>
               ))}
@@ -166,11 +166,11 @@ export default function AgentChat({ agentId }) {
 
         {/* Session history */}
         <div className="flex-1 overflow-y-auto p-2">
-          <div className="text-[10.5px] font-semibold text-[#9CA3AF] uppercase tracking-wide px-2 py-2">
+          <div className="text-z-nano font-semibold text-[#9CA3AF] uppercase tracking-wide px-2 py-2">
             Past sessions
           </div>
           {sessions.length === 0 ? (
-            <p className="text-[12px] text-[#9CA3AF] text-center py-6">No sessions yet</p>
+            <p className="text-z-small text-[#9CA3AF] text-center py-6">No sessions yet</p>
           ) : (
             sessions.map(s => (
               <SessionListItem
@@ -195,16 +195,16 @@ export default function AgentChat({ agentId }) {
               {/* User message */}
               <div className="flex justify-end">
                 <div className="bg-[#111827] text-white rounded-2xl rounded-tr-sm
-                                px-4 py-3 text-[13.5px] leading-[1.6] max-w-[85%]">
+                                px-4 py-3 text-z-caption leading-[1.6] max-w-[85%]">
                   {selected.input_message ?? selected.inputMessage}
                 </div>
               </div>
 
               {/* Running indicator */}
               {selected.status === 'RUNNING' && (
-                <div className="flex items-center gap-2.5 px-4 py-3 bg-white border border-gray-200 rounded-2xl rounded-tl-sm">
+                <div className="flex items-center gap-2.5 px-4 py-3 bg-z-card border border-z-border rounded-2xl rounded-tl-sm">
                   <Loader size={14} className="animate-spin text-[#6B7280]" />
-                  <span className="text-[13px] text-[#6B7280]">Thinking…</span>
+                  <span className="text-z-caption text-[#6B7280]">Thinking…</span>
                 </div>
               )}
 
@@ -215,8 +215,8 @@ export default function AgentChat({ agentId }) {
                                   flex items-center justify-center flex-shrink-0 mt-0.5">
                     <Bot size={15} className="text-emerald-700" strokeWidth={1.6} />
                   </div>
-                  <div className="flex-1 bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-3.5">
-                    <p className="text-[13.5px] text-[#111827] leading-[1.7] whitespace-pre-wrap">
+                  <div className="flex-1 bg-z-card border border-z-border rounded-2xl rounded-tl-sm px-4 py-3.5">
+                    <p className="text-z-caption text-[#111827] leading-[1.7] whitespace-pre-wrap">
                       {selected.final_output}
                     </p>
                   </div>
@@ -230,10 +230,10 @@ export default function AgentChat({ agentId }) {
                     <AlertCircle size={14} className="text-red-500" />
                   </div>
                   <div className="flex-1 bg-red-50 border border-red-200 rounded-2xl rounded-tl-sm px-4 py-3">
-                    <p className="text-[13px] font-medium text-red-700 mb-0.5">
+                    <p className="text-z-caption font-medium text-red-700 mb-0.5">
                       {selected.status === 'MAX_ITER' ? 'Max reasoning steps reached' : 'Error'}
                     </p>
-                    <p className="text-[12.5px] text-red-600">
+                    <p className="text-z-small text-red-600">
                       {selected.error_message ?? selected.errorMessage}
                     </p>
                   </div>
@@ -250,8 +250,8 @@ export default function AgentChat({ agentId }) {
                 <Bot size={22} className="text-emerald-700" strokeWidth={1.5} />
               </div>
               <div>
-                <div className="text-[14px] font-semibold text-[#111827]">{agent.name}</div>
-                <div className="text-[12.5px] text-[#9CA3AF] mt-1">
+                <div className="text-z-body-sm font-semibold text-[#111827]">{agent.name}</div>
+                <div className="text-z-small text-[#9CA3AF] mt-1">
                   Type a message below to start a conversation
                 </div>
               </div>
@@ -260,10 +260,10 @@ export default function AgentChat({ agentId }) {
         </div>
 
         {/* Input bar */}
-        <div className="border-t border-gray-200 bg-white px-5 py-4">
+        <div className="border-t border-z-border bg-z-card px-5 py-4">
           {error && (
             <div className="mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg
-                            text-[12px] text-red-600">
+                            text-z-small text-red-600">
               {error}
             </div>
           )}
@@ -276,7 +276,7 @@ export default function AgentChat({ agentId }) {
               onKeyDown={onKeyDown}
               placeholder={`Ask ${agent.name} something… (⌘+Enter to send)`}
               disabled={sending}
-              className="flex-1 px-4 py-2.5 text-[13px] border border-gray-200 rounded-xl
+              className="flex-1 px-4 py-2.5 text-z-caption border border-z-border rounded-xl
                          focus:outline-none focus:ring-1 focus:ring-[#111827] resize-none
                          disabled:opacity-50 bg-[#FAFAFA]"
             />
@@ -289,12 +289,12 @@ export default function AgentChat({ agentId }) {
             </button>
           </div>
           <div className="flex items-center gap-4 mt-2">
-            <span className="text-[11px] text-[#9CA3AF]">
+            <span className="text-z-micro text-[#9CA3AF]">
               <Clock size={10} className="inline mr-1" />
               max {agent.max_iterations ?? agent.maxIterations ?? 10} reasoning steps
             </span>
             {connKeys.length > 0 && (
-              <span className="text-[11px] text-[#9CA3AF]">
+              <span className="text-z-micro text-[#9CA3AF]">
                 <Database size={10} className="inline mr-1" />
                 {connKeys.join(', ')}
               </span>

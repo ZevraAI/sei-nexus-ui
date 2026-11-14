@@ -61,7 +61,7 @@ export function CommandBar({
       >
         <SearchIcon />
         <span className="flex-1 text-left">{placeholder}</span>
-        <kbd className="rounded-z-xs border border-z-border bg-z-card-2 px-1.5 py-0.5 text-[11px] text-z-text-3">⌘K</kbd>
+        <kbd className="rounded-z-xs border border-z-border bg-z-card-2 px-1.5 py-0.5 text-z-micro text-z-text-3">⌘K</kbd>
       </button>
 
       {open && (

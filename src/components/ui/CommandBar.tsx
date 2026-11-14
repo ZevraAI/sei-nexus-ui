@@ -26,12 +26,12 @@ export function CommandBar({
     >
       <div
         className={cn(
-          'flex-1 flex items-center h-[62px] border border-line rounded-[8px] bg-surface shadow-sm',
+          'flex-1 flex items-center h-[62px] border border-z-border rounded-[8px] bg-z-card shadow-sm',
           'focus-within:border-accent focus-within:ring-1 focus-within:ring-accent/20 transition-colors'
         )}
       >
         <Sparkles
-          className="flex-shrink-0 ml-5 w-4 h-4 text-off-fg"
+          className="flex-shrink-0 ml-5 w-4 h-4 text-z-text-disabled"
           aria-hidden="true"
         />
         <label htmlFor="cmd-query" className="sr-only">
@@ -44,7 +44,7 @@ export function CommandBar({
           onChange={(e) => setQuery(e.target.value)}
           placeholder={placeholder}
           className={cn(
-            'flex-1 h-full px-3 text-sm text-foreground placeholder:text-off-fg',
+            'flex-1 h-full px-3 text-sm text-z-text placeholder:text-z-text-disabled',
             'pr-32',
             'bg-transparent border-0 outline-none focus:outline-none'
           )}
@@ -55,7 +55,7 @@ export function CommandBar({
         type="submit"
         className={cn(
           'absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 h-10 px-4 flex-shrink-0',
-          'text-[14px] font-semibold text-surface bg-accent rounded-[6px]',
+          'text-z-body-sm font-semibold text-surface bg-accent rounded-[6px]',
           'hover:bg-accent-hover active:bg-accent-hover',
           'transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1'
         )}

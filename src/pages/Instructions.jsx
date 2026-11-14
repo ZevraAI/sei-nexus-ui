@@ -46,7 +46,7 @@ export default function Instructions() {
             {STATUSES.map(s => (
               <button key={s} onClick={() => setStatus(s)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors
-                  ${status === s ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                  ${status === s ? 'bg-indigo-600 text-white' : 'bg-z-card border border-z-border text-z-text-2 hover:bg-z-card-2'}`}>
                 {s}
               </button>
             ))}
@@ -68,19 +68,19 @@ export default function Instructions() {
               <div className="flex items-center gap-2 flex-wrap mb-2">
                 <Badge label={i.status} color={STATUS_COLOR[i.status] ?? 'gray'} />
                 {i.status === 'APPROVED' && i.alwaysApply && <Badge label="ALWAYS APPLIED" color="blue" />}
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-z-text-3">
                   {i.submittedBy ? `Proposed by ${i.submittedBy}` : 'Proposed'} {i.createdAt?.split('T')[0]}
                 </span>
               </div>
 
               {i.status === 'ARCHIVED' ? (
-                <p className="text-sm text-gray-500">{i.instructionText}</p>
+                <p className="text-sm text-z-text-3">{i.instructionText}</p>
               ) : (
                 <>
                   <Textarea label="Instruction (edit before approving if needed)" rows={2}
                     value={edits[i.instructionId] ?? i.instructionText}
                     onChange={e => setEdits(x => ({ ...x, [i.instructionId]: e.target.value }))} />
-                  <label className="flex items-center gap-2 text-xs text-gray-600 mt-2">
+                  <label className="flex items-center gap-2 text-xs text-z-text-2 mt-2">
                     <input type="checkbox" checked={always[i.instructionId] ?? i.alwaysApply}
                       onChange={e => setAlways(x => ({ ...x, [i.instructionId]: e.target.checked }))} />
                     Always apply (sent with every question; at most 5 instructions)

@@ -20,7 +20,7 @@ export interface TableProps extends TableHTMLAttributes<HTMLTableElement> {
 }
 
 export function Table({ dense, className, children, ...rest }: TableProps) {
-  return <table className={cn('w-full border-collapse', dense ? 'text-[12px]' : 'text-z-body', className)} {...rest}>{children}</table>;
+  return <table className={cn('w-full border-collapse', dense ? 'text-z-small' : 'text-z-body', className)} {...rest}>{children}</table>;
 }
 
 export function THead({ className, children, ...rest }: HTMLAttributes<HTMLTableSectionElement>) {
@@ -46,7 +46,7 @@ export function Th({ numeric, sortable, sort = null, dense, className, children,
       aria-sort={sort === 'asc' ? 'ascending' : sort === 'desc' ? 'descending' : undefined}
       className={cn(
         'sticky top-0 z-[1] whitespace-nowrap border-b border-z-border bg-z-card-2 font-semibold text-z-text-3',
-        dense ? 'px-2.5 py-1.5 text-[11px]' : 'px-4 py-3 text-z-caption',
+        dense ? 'px-2.5 py-1.5 text-z-micro' : 'px-4 py-3 text-z-caption',
         numeric ? 'text-right tabular-nums' : 'text-left',
         sortable && 'cursor-pointer select-none hover:text-z-text',
         className,

@@ -97,7 +97,7 @@ export const Search = forwardRef<HTMLInputElement, SearchProps>(function Search(
         className={cn('flex-1 border-none bg-transparent text-z-body text-z-text outline-none placeholder:text-z-text-muted', className)}
         {...rest}
       />
-      {kbd && <kbd className="rounded-z-xs border border-z-border bg-z-card-2 px-1.5 py-0.5 text-[11px] text-z-text-3">{kbd}</kbd>}
+      {kbd && <kbd className="rounded-z-xs border border-z-border bg-z-card-2 px-1.5 py-0.5 text-z-micro text-z-text-3">{kbd}</kbd>}
     </div>
   );
 });

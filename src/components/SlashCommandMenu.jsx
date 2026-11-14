@@ -28,7 +28,7 @@ export default function SlashCommandMenu({ commands, activeIndex, onSelect, onHo
             i === activeIndex ? 'bg-z-selected text-z-text' : 'text-z-text-2 hover:bg-z-hover'
           }`}
         >
-          <span className="flex-none rounded-z-xs border border-z-border bg-z-card-2 px-1.5 py-0.5 font-z-mono text-[11px] text-z-text-3">
+          <span className="flex-none rounded-z-xs border border-z-border bg-z-card-2 px-1.5 py-0.5 font-z-mono text-z-micro text-z-text-3">
             {cmd.command}
           </span>
           <span className="min-w-0 flex-1 truncate text-z-caption">{cmd.description}</span>

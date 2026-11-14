@@ -26,7 +26,7 @@ const variants: Record<ButtonVariant, string> = {
 
 const sizes: Record<ButtonSize, string> = {
   sm: 'text-z-caption px-3.5 py-[7px]',
-  md: 'text-[15px] px-5 py-[11px]',
+  md: 'text-z-body px-5 py-[11px]',
   lg: 'text-z-body-lg px-[26px] py-3.5',
 };
 

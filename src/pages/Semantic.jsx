@@ -38,7 +38,7 @@ function EntityCard({ entity, onEdit, onDelete }) {
     <Card className="p-4">
       <div className="flex items-start gap-3">
         {/* Expand toggle */}
-        <button onClick={toggle} className="mt-0.5 text-gray-400 hover:text-gray-600 shrink-0">
+        <button onClick={toggle} className="mt-0.5 text-z-text-3 hover:text-z-text-2 shrink-0">
           {loading ? <Spinner size={3} /> : expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
         </button>
 
@@ -55,7 +55,7 @@ function EntityCard({ entity, onEdit, onDelete }) {
                 <Badge label={entity.node_type} color="navy" />
               )}
               {entity.group_label && (
-                <span className="text-xs text-gray-400">{entity.group_label}</span>
+                <span className="text-xs text-z-text-3">{entity.group_label}</span>
               )}
             </div>
 
@@ -81,35 +81,35 @@ function EntityCard({ entity, onEdit, onDelete }) {
           </div>
 
           {entity.description && (
-            <p className="text-xs text-gray-500 mt-1 leading-relaxed">{entity.description}</p>
+            <p className="text-xs text-z-text-3 mt-1 leading-relaxed">{entity.description}</p>
           )}
           {entity.operational_meaning && (
-            <p className="text-xs text-gray-400 mt-0.5 italic">{entity.operational_meaning}</p>
+            <p className="text-xs text-z-text-3 mt-0.5 italic">{entity.operational_meaning}</p>
           )}
           {entity.investigation_hints && (
             <p className="text-xs text-indigo-400 mt-0.5">💡 {entity.investigation_hints}</p>
           )}
           {entity.primary_object_key && (
-            <p className="text-xs text-gray-300 font-mono mt-1">{entity.primary_object_key}</p>
+            <p className="text-xs text-z-text-3 font-mono mt-1">{entity.primary_object_key}</p>
           )}
 
           {/* Expanded details */}
           {expanded && (
-            <div className="mt-3 space-y-3 border-t border-gray-100 pt-3">
+            <div className="mt-3 space-y-3 border-t border-z-border pt-3">
               {rels !== null && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1">
+                  <p className="text-xs font-semibold text-z-text-2 mb-1 flex items-center gap-1">
                     <ArrowLeftRight size={11} /> Relationships
                   </p>
                   {rels.length === 0 ? (
-                    <p className="text-xs text-gray-400">None defined</p>
+                    <p className="text-xs text-z-text-3">None defined</p>
                   ) : rels.map((r, i) => (
-                    <p key={i} className="text-xs text-gray-600">
+                    <p key={i} className="text-xs text-z-text-2">
                       <span className="font-mono">{r.source_entity_key}</span>
                       {' '}<span className="text-indigo-500 font-medium">{r.relationship_type}</span>{' '}
                       <span className="font-mono">{r.target_entity_key}</span>
                       {r.source_column && r.target_column && (
-                        <span className="text-gray-400"> ({r.source_column} = {r.target_column})</span>
+                        <span className="text-z-text-3"> ({r.source_column} = {r.target_column})</span>
                       )}
                     </p>
                   ))}
@@ -118,9 +118,9 @@ function EntityCard({ entity, onEdit, onDelete }) {
 
               {maps !== null && maps.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-600 mb-1">Data Mappings</p>
+                  <p className="text-xs font-semibold text-z-text-2 mb-1">Data Mappings</p>
                   {maps.map((m, i) => (
-                    <p key={i} className="text-xs text-gray-600 font-mono">
+                    <p key={i} className="text-xs text-z-text-2 font-mono">
                       {m.object_key}
                       {m.is_primary && <span className="ml-1 text-green-500">(primary)</span>}
                     </p>
@@ -143,14 +143,14 @@ function VocabCard({ term, onEdit, onDelete }) {
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-indigo-700">{term.term}</p>
-          <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{term.definition}</p>
+          <p className="text-xs text-z-text-3 mt-0.5 leading-relaxed">{term.definition}</p>
           {term.sql_equivalent && (
-            <code className="block text-xs text-gray-400 font-mono mt-1 bg-gray-50 rounded px-2 py-1">
+            <code className="block text-xs text-z-text-3 font-mono mt-1 bg-z-card-2 rounded px-2 py-1">
               {term.sql_equivalent}
             </code>
           )}
           {term.examples && (
-            <p className="text-xs text-gray-400 italic mt-0.5">e.g. {term.examples}</p>
+            <p className="text-xs text-z-text-3 italic mt-0.5">e.g. {term.examples}</p>
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
@@ -385,12 +385,12 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-z-card rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-z-border">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">
+            <h2 className="text-base font-semibold text-z-text">
               {step === 1 && 'Discover from Database'}
               {step === 2 && 'Analysing Schema…'}
               {step === 3 && 'Review AI Suggestions'}
@@ -399,13 +399,13 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
             <div className="flex items-center gap-2 mt-1">
               {[1, 2, 3, 4].map(s => (
                 <div key={s} className={`h-1 w-8 rounded-full transition-colors ${
-                  s <= step ? 'bg-indigo-600' : 'bg-gray-200'
+                  s <= step ? 'bg-indigo-600' : 'bg-z-border'
                 }`} />
               ))}
-              <span className="text-xs text-gray-400 ml-1">Step {step} of 4</span>
+              <span className="text-xs text-z-text-3 ml-1">Step {step} of 4</span>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-z-text-3 hover:text-z-text-2">
             <X size={18} />
           </button>
         </div>
@@ -418,9 +418,9 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Target domain</label>
+                  <label className="block text-xs font-medium text-z-text-2 mb-1">Target domain</label>
                   <select value={domainKey} onChange={e => setDomainKey(e.target.value)}
-                    className="w-full h-9 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:border-indigo-400">
+                    className="w-full h-9 border border-z-border-strong rounded-lg px-3 text-sm focus:outline-none focus:border-indigo-400">
                     {domains.map(d => {
                       const k = d.domain_key ?? d.domainKey;
                       return <option key={k} value={k}>{d.name}</option>;
@@ -428,15 +428,15 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Database schema</label>
+                  <label className="block text-xs font-medium text-z-text-2 mb-1">Database schema</label>
                   <Input value={schema} onChange={e => setSchema(e.target.value)} placeholder="public" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Connection</label>
+                <label className="block text-xs font-medium text-z-text-2 mb-1">Connection</label>
                 <select value={connKey} onChange={e => setConnKey(e.target.value)}
-                  className="w-full h-9 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:border-indigo-400">
+                  className="w-full h-9 border border-z-border-strong rounded-lg px-3 text-sm focus:outline-none focus:border-indigo-400">
                   <option value="">— select a connection —</option>
                   {connections.map(c => (
                     <option key={c.connection_key} value={c.connection_key}>
@@ -449,10 +449,10 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
               {connKey && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-medium text-gray-700">
+                    <label className="text-xs font-medium text-z-text-2">
                       Tables in <span className="font-mono">{schema}</span>
                       {!tablesLoading && tables.length > 0 && (
-                        <span className="ml-1 text-gray-400">({tables.length} found)</span>
+                        <span className="ml-1 text-z-text-3">({tables.length} found)</span>
                       )}
                     </label>
                     {tables.length > 0 && (
@@ -463,7 +463,7 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
                   </div>
 
                   {tablesLoading && (
-                    <div className="flex items-center gap-2 text-sm text-gray-500 py-4">
+                    <div className="flex items-center gap-2 text-sm text-z-text-3 py-4">
                       <Spinner size={4} /> Loading tables…
                     </div>
                   )}
@@ -477,22 +477,22 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
                   {!tablesLoading && tables.length > 0 && (
                     <>
                       <div className="relative mb-2">
-                        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-z-text-3" />
                         <input
                           value={tableSearch}
                           onChange={e => setTableSearch(e.target.value)}
                           placeholder="Filter tables…"
-                          className="w-full h-8 border border-gray-200 rounded-lg pl-8 pr-3 text-sm focus:outline-none focus:border-indigo-400"
+                          className="w-full h-8 border border-z-border rounded-lg pl-8 pr-3 text-sm focus:outline-none focus:border-indigo-400"
                         />
                       </div>
-                      <div className="border border-gray-200 rounded-lg overflow-hidden max-h-56 overflow-y-auto">
+                      <div className="border border-z-border rounded-lg overflow-hidden max-h-56 overflow-y-auto">
                         {filteredTables.map(t => {
                           const isChecked = selected.has(t);
                           const atCap = !isChecked && selected.size >= MAX_SELECTED_TABLES;
                           return (
                             <label key={t}
-                              className={`flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 last:border-0 ${
-                                atCap ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50 cursor-pointer'
+                              className={`flex items-center gap-3 px-4 py-2.5 border-b border-z-border last:border-0 ${
+                                atCap ? 'opacity-40 cursor-not-allowed' : 'hover:bg-z-card-2 cursor-pointer'
                               }`}>
                               <input
                                 type="checkbox"
@@ -501,7 +501,7 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
                                 onChange={() => toggleTable(t)}
                                 className="accent-indigo-600"
                               />
-                              <span className="text-sm font-mono text-gray-700">{t}</span>
+                              <span className="text-sm font-mono text-z-text-2">{t}</span>
                             </label>
                           );
                         })}
@@ -510,7 +510,7 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
                   )}
 
                   {!tablesLoading && !tablesError && tables.length === 0 && (
-                    <p className="text-sm text-gray-400 py-3">No tables found in schema "{schema}".</p>
+                    <p className="text-sm text-z-text-3 py-3">No tables found in schema "{schema}".</p>
                   )}
 
                   {selected.size >= MAX_SELECTED_TABLES && (
@@ -533,14 +533,14 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
                 <Sparkles size={20} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-600" />
               </div>
               <div className="text-center">
-                <p className="text-base font-medium text-gray-800">
+                <p className="text-base font-medium text-z-text">
                   AI is reading your table schemas
                 </p>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-z-text-3 mt-1">
                   Analysing {selected.size} table{selected.size !== 1 ? 's' : ''} — generating entity definitions, vocabulary, and relationship hints…
                 </p>
               </div>
-              <div className="w-full max-w-xs bg-gray-100 rounded-full h-1.5 overflow-hidden">
+              <div className="w-full max-w-xs bg-z-card-2 rounded-full h-1.5 overflow-hidden">
                 <div className="h-full bg-indigo-500 rounded-full animate-pulse" style={{ width: '60%' }} />
               </div>
             </div>
@@ -550,10 +550,10 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
           {step === 3 && (
             <div className="space-y-5">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-z-text-2">
                   Review each suggestion. Edit or uncheck items you don't want to import.
                 </p>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-z-text-3">
                   {Object.values(approved).filter(a => a.approved).length} of {suggestions.length} selected
                 </span>
               </div>
@@ -562,10 +562,10 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
                 const a = approved[i] || {};
                 return (
                   <div key={i} className={`border rounded-xl overflow-hidden transition-all ${
-                    a.approved ? 'border-indigo-200 bg-indigo-50/30' : 'border-gray-200 opacity-50'
+                    a.approved ? 'border-indigo-200 bg-indigo-50/30' : 'border-z-border opacity-50'
                   }`}>
                     {/* Table header */}
-                    <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
+                    <div className="flex items-center justify-between px-4 py-3 bg-z-card border-b border-z-border">
                       <div className="flex items-center gap-3">
                         <input
                           type="checkbox"
@@ -574,8 +574,8 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
                           className="accent-indigo-600 w-4 h-4"
                         />
                         <div>
-                          <span className="text-sm font-semibold text-gray-800">{s.entityName || s.tableName}</span>
-                          <span className="ml-2 text-xs text-gray-400 font-mono">{s.tableName}</span>
+                          <span className="text-sm font-semibold text-z-text">{s.entityName || s.tableName}</span>
+                          <span className="ml-2 text-xs text-z-text-3 font-mono">{s.tableName}</span>
                         </div>
                       </div>
                       {s.readinessScore != null && (
@@ -599,53 +599,53 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
                           <>
                             <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <label className="text-xs font-medium text-gray-600">Entity key (ID)</label>
+                                <label className="text-xs font-medium text-z-text-2">Entity key (ID)</label>
                                 <input
                                   value={a.entityKey || ''}
                                   onChange={e => updateApproved(i, { entityKey: e.target.value })}
-                                  className="mt-1 w-full h-8 border border-gray-200 rounded-lg px-3 text-xs font-mono focus:outline-none focus:border-indigo-400"
+                                  className="mt-1 w-full h-8 border border-z-border rounded-lg px-3 text-xs font-mono focus:outline-none focus:border-indigo-400"
                                 />
                               </div>
                               <div>
-                                <label className="text-xs font-medium text-gray-600">Entity name</label>
+                                <label className="text-xs font-medium text-z-text-2">Entity name</label>
                                 <input
                                   value={a.entityName || ''}
                                   onChange={e => updateApproved(i, { entityName: e.target.value })}
-                                  className="mt-1 w-full h-8 border border-gray-200 rounded-lg px-3 text-xs focus:outline-none focus:border-indigo-400"
+                                  className="mt-1 w-full h-8 border border-z-border rounded-lg px-3 text-xs focus:outline-none focus:border-indigo-400"
                                 />
                               </div>
                             </div>
 
                             <div>
-                              <label className="text-xs font-medium text-gray-600">Description / Purpose</label>
+                              <label className="text-xs font-medium text-z-text-2">Description / Purpose</label>
                               <textarea
                                 value={a.description || ''}
                                 onChange={e => updateApproved(i, { description: e.target.value })}
                                 rows={2}
-                                className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-indigo-400 resize-none"
+                                className="mt-1 w-full border border-z-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-indigo-400 resize-none"
                               />
                             </div>
 
                             <div>
-                              <label className="text-xs font-medium text-gray-600">Investigation hints (used by AI for SQL)</label>
+                              <label className="text-xs font-medium text-z-text-2">Investigation hints (used by AI for SQL)</label>
                               <textarea
                                 value={a.investigationHints || ''}
                                 onChange={e => updateApproved(i, { investigationHints: e.target.value })}
                                 rows={2}
-                                className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:border-indigo-400 resize-none"
+                                className="mt-1 w-full border border-z-border rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:border-indigo-400 resize-none"
                               />
                             </div>
 
                             {/* Vocabulary suggestions */}
                             {a.vocab && a.vocab.length > 0 && (
                               <div>
-                                <p className="text-xs font-medium text-gray-600 mb-2">
+                                <p className="text-xs font-medium text-z-text-2 mb-2">
                                   Vocabulary suggestions ({a.vocab.filter(v => v.approved).length} of {a.vocab.length} selected)
                                 </p>
                                 <div className="space-y-2">
                                   {a.vocab.map((v, vi) => (
                                     <div key={vi} className={`flex items-start gap-3 p-3 rounded-lg border ${
-                                      v.approved ? 'border-emerald-200 bg-emerald-50/40' : 'border-gray-200 opacity-50'
+                                      v.approved ? 'border-emerald-200 bg-emerald-50/40' : 'border-z-border opacity-50'
                                     }`}>
                                       <input
                                         type="checkbox"
@@ -654,8 +654,8 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
                                         className="mt-0.5 accent-emerald-600"
                                       />
                                       <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-semibold text-gray-800">{v.term}</p>
-                                        <p className="text-xs text-gray-500 mt-0.5">{v.definition}</p>
+                                        <p className="text-xs font-semibold text-z-text">{v.term}</p>
+                                        <p className="text-xs text-z-text-3 mt-0.5">{v.definition}</p>
                                         {v.sqlEquivalent && (
                                           <code className="text-xs text-emerald-700 font-mono mt-1 block">
                                             {v.sqlEquivalent}
@@ -700,8 +700,8 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
                 <Check size={28} className="text-green-600" />
               </div>
               <div>
-                <p className="text-base font-semibold text-gray-900">Import complete</p>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-base font-semibold text-z-text">Import complete</p>
+                <p className="text-sm text-z-text-3 mt-1">
                   {Object.values(approved).filter(a => a.approved).length} entities and their vocabulary have been added to your semantic layer and knowledge graph.
                 </p>
               </div>
@@ -710,10 +710,10 @@ function DiscoveryWizard({ open, onClose, onComplete, defaultDomainKey }) {
         </div>
 
         {/* Footer */}
-        <div className="shrink-0 flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
+        <div className="shrink-0 flex items-center justify-between px-6 py-4 border-t border-z-border bg-z-card-2">
           <div>
             {step === 3 && (
-              <button onClick={() => setStep(1)} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700">
+              <button onClick={() => setStep(1)} className="flex items-center gap-1.5 text-sm text-z-text-3 hover:text-z-text-2">
                 <ChevronLeft size={14} /> Back
               </button>
             )}
@@ -782,10 +782,10 @@ function EntityDetailPanel({ entity, vocab, onEdit, onDelete }) {
     <div className="flex-1 flex items-center justify-center">
       <div className="text-center">
         <div className="w-14 h-14 rounded-2xl bg-gray-100/80 flex items-center justify-center mx-auto mb-3">
-          <Layers size={26} className="text-gray-300" />
+          <Layers size={26} className="text-z-text-3" />
         </div>
-        <p className="text-[14px] font-semibold text-[#374151]">Select an entity</p>
-        <p className="text-[13px] text-[#9CA3AF] mt-1">Click an entity in the list to view its details</p>
+        <p className="text-z-body-sm font-semibold text-[#374151]">Select an entity</p>
+        <p className="text-z-caption text-[#9CA3AF] mt-1">Click an entity in the list to view its details</p>
       </div>
     </div>
   );
@@ -807,13 +807,13 @@ function EntityDetailPanel({ entity, vocab, onEdit, onDelete }) {
       <div className="flex items-start justify-between mb-5">
         <div>
           <div className="flex items-center gap-2.5 mb-2">
-            <h2 className="text-[20px] font-bold text-[#111827]">{entity.entity_name}</h2>
-            <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${statusCls}`}>{status}</span>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#F3F4F6] text-[#374151]">{nodeType}</span>
+            <h2 className="text-z-h3 font-semibold text-[#111827]">{entity.entity_name}</h2>
+            <span className={`px-2 py-0.5 rounded-full text-z-micro font-semibold ${statusCls}`}>{status}</span>
+            <span className="px-2 py-0.5 rounded-full text-z-micro font-semibold bg-[#F3F4F6] text-[#374151]">{nodeType}</span>
           </div>
-          <p className="text-[13px] text-[#6B7280]">
+          <p className="text-z-caption text-[#6B7280]">
             Source:{' '}
-            <code className="bg-gray-100 text-emerald-700 px-1.5 py-0.5 rounded text-[12px] font-mono">
+            <code className="bg-z-card-2 text-emerald-700 px-1.5 py-0.5 rounded text-z-small font-mono">
               {entity.primary_object_key || entity.entity_key}
             </code>
             {' '}· {entity.domain_key}
@@ -821,12 +821,12 @@ function EntityDetailPanel({ entity, vocab, onEdit, onDelete }) {
         </div>
         <div className="flex gap-2">
           <button onClick={() => onEdit(entity)}
-            className="px-3.5 py-1.5 text-[13px] font-medium text-[#374151] bg-white/80 border
-                       border-gray-200 rounded-[8px] hover:bg-gray-50 transition-colors">
+            className="px-3.5 py-1.5 text-z-caption font-medium text-[#374151] bg-white/80 border
+                       border-z-border rounded-[8px] hover:bg-z-card-2 transition-colors">
             Edit
           </button>
           <button onClick={() => onDelete(entity)}
-            className="px-3.5 py-1.5 text-[13px] font-medium text-red-500 bg-red-50/80 border
+            className="px-3.5 py-1.5 text-z-caption font-medium text-red-500 bg-red-50/80 border
                        border-red-100 rounded-[8px] hover:bg-red-100 transition-colors">
             Archive
           </button>
@@ -837,9 +837,9 @@ function EntityDetailPanel({ entity, vocab, onEdit, onDelete }) {
       <div className="flex gap-1 bg-gray-100/80 p-1 rounded-[10px] w-fit mb-6">
         {['Overview', 'Vocabulary', 'Relationships'].map(t => (
           <button key={t} onClick={() => setActiveTab(t.toLowerCase())}
-            className={`px-3.5 py-1.5 rounded-[7px] text-[12.5px] font-medium capitalize transition-all
+            className={`px-3.5 py-1.5 rounded-[7px] text-z-small font-medium capitalize transition-all
               ${activeTab === t.toLowerCase()
-                ? 'bg-white text-[#111827] shadow-sm'
+                ? 'bg-z-card text-[#111827] shadow-sm'
                 : 'text-[#9CA3AF] hover:text-[#374151]'}`}>
             {t}
           </button>
@@ -855,49 +855,49 @@ function EntityDetailPanel({ entity, vocab, onEdit, onDelete }) {
         <>
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="bg-white/80 backdrop-blur-sm border border-gray-200/70 rounded-xl p-4">
-              <div className="text-[10.5px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-2">Purpose</div>
-              <p className="text-[13px] text-[#374151] leading-relaxed">
+              <div className="text-z-nano font-semibold text-[#9CA3AF] uppercase tracking-widest mb-2">Purpose</div>
+              <p className="text-z-caption text-[#374151] leading-relaxed">
                 {entity.description || entity.operational_meaning || '—'}
               </p>
             </div>
             <div className="bg-white/80 backdrop-blur-sm border border-gray-200/70 rounded-xl p-4">
-              <div className="text-[10.5px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-2">Investigation Hint</div>
+              <div className="text-z-nano font-semibold text-[#9CA3AF] uppercase tracking-widest mb-2">Investigation Hint</div>
               {entity.investigation_hints ? (
-                <code className="text-[12px] text-emerald-700 leading-relaxed font-mono block">
+                <code className="text-z-small text-emerald-700 leading-relaxed font-mono block">
                   {entity.investigation_hints}
                 </code>
-              ) : <p className="text-[13px] text-[#9CA3AF]">No hint defined</p>}
+              ) : <p className="text-z-caption text-[#9CA3AF]">No hint defined</p>}
             </div>
           </div>
 
           {columns.length > 0 && (
             <>
-              <div className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3">Columns</div>
+              <div className="text-z-micro font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3">Columns</div>
               <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/70 overflow-hidden">
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="bg-gray-50/80 border-b border-gray-200/70">
                       {['Column', 'Type', 'Flags'].map(h => (
-                        <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-[#374151] uppercase tracking-wide">{h}</th>
+                        <th key={h} className="px-4 py-2.5 text-left text-z-micro font-semibold text-[#374151] uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {columns.map(col => (
                       <tr key={col.column_key ?? col.column_name} className="border-b border-gray-100/80 hover:bg-gray-50/50">
-                        <td className="px-4 py-2.5 font-mono text-[12.5px] text-[#374151]">{col.column_name}</td>
+                        <td className="px-4 py-2.5 font-mono text-z-small text-[#374151]">{col.column_name}</td>
                         <td className="px-4 py-2.5">
-                          <span className="bg-[#F3F4F6] text-[#374151] px-2 py-0.5 rounded-full text-[11px] font-semibold">
+                          <span className="bg-[#F3F4F6] text-[#374151] px-2 py-0.5 rounded-full text-z-micro font-semibold">
                             {col.data_type}
                           </span>
                         </td>
                         <td className="px-4 py-2.5">
                           <div className="flex gap-1 flex-wrap">
-                            {col.is_identifier && <span className="bg-[#DBEAFE] text-[#1D4ED8] px-2 py-0.5 rounded-full text-[11px] font-semibold">identifier</span>}
-                            {col.is_filterable && <span className="bg-[#DCFCE7] text-[#15803D] px-2 py-0.5 rounded-full text-[11px] font-semibold">filterable</span>}
-                            {col.is_status    && <span className="bg-[#FEF9C3] text-[#A16207] px-2 py-0.5 rounded-full text-[11px] font-semibold">status</span>}
-                            {col.is_sensitive && <span className="bg-[#FEE2E2] text-[#DC2626] px-2 py-0.5 rounded-full text-[11px] font-semibold">sensitive</span>}
-                            {col.is_error     && <span className="bg-[#FEE2E2] text-[#DC2626] px-2 py-0.5 rounded-full text-[11px] font-semibold">error</span>}
+                            {col.is_identifier && <span className="bg-[#DBEAFE] text-[#1D4ED8] px-2 py-0.5 rounded-full text-z-micro font-semibold">identifier</span>}
+                            {col.is_filterable && <span className="bg-[#DCFCE7] text-[#15803D] px-2 py-0.5 rounded-full text-z-micro font-semibold">filterable</span>}
+                            {col.is_status    && <span className="bg-[#FEF9C3] text-[#A16207] px-2 py-0.5 rounded-full text-z-micro font-semibold">status</span>}
+                            {col.is_sensitive && <span className="bg-[#FEE2E2] text-[#DC2626] px-2 py-0.5 rounded-full text-z-micro font-semibold">sensitive</span>}
+                            {col.is_error     && <span className="bg-[#FEE2E2] text-[#DC2626] px-2 py-0.5 rounded-full text-z-micro font-semibold">error</span>}
                           </div>
                         </td>
                       </tr>
@@ -917,18 +917,18 @@ function EntityDetailPanel({ entity, vocab, onEdit, onDelete }) {
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-200/70">
                 {['Term', 'Definition', 'SQL Equivalent'].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-[#374151] uppercase tracking-wide">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-left text-z-micro font-semibold text-[#374151] uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {entityVocab.length === 0 ? (
-                <tr><td colSpan={3} className="px-4 py-8 text-center text-[13px] text-[#9CA3AF]">No vocabulary terms for this entity</td></tr>
+                <tr><td colSpan={3} className="px-4 py-8 text-center text-z-caption text-[#9CA3AF]">No vocabulary terms for this entity</td></tr>
               ) : entityVocab.map(v => (
                 <tr key={v.term_key} className="border-b border-gray-100/80 hover:bg-gray-50/50">
-                  <td className="px-4 py-2.5 font-semibold text-[#111827] text-[13px]">{v.term}</td>
-                  <td className="px-4 py-2.5 text-[#6B7280] text-[13px]">{v.definition}</td>
-                  <td className="px-4 py-2.5 font-mono text-[12px] text-emerald-600">{v.sql_equivalent || '—'}</td>
+                  <td className="px-4 py-2.5 font-semibold text-[#111827] text-z-caption">{v.term}</td>
+                  <td className="px-4 py-2.5 text-[#6B7280] text-z-caption">{v.definition}</td>
+                  <td className="px-4 py-2.5 font-mono text-z-small text-emerald-600">{v.sql_equivalent || '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -943,22 +943,22 @@ function EntityDetailPanel({ entity, vocab, onEdit, onDelete }) {
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-200/70">
                 {['Type', 'Target', 'Join Guidance'].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-[#374151] uppercase tracking-wide">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-left text-z-micro font-semibold text-[#374151] uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {rels.length === 0 ? (
-                <tr><td colSpan={3} className="px-4 py-8 text-center text-[13px] text-[#9CA3AF]">No relationships defined</td></tr>
+                <tr><td colSpan={3} className="px-4 py-8 text-center text-z-caption text-[#9CA3AF]">No relationships defined</td></tr>
               ) : rels.map((r, i) => (
                 <tr key={i} className="border-b border-gray-100/80 hover:bg-gray-50/50">
                   <td className="px-4 py-2.5">
-                    <span className="bg-[#EDE9FE] text-[#7C3AED] px-2 py-0.5 rounded-full text-[11px] font-semibold">
+                    <span className="bg-[#EDE9FE] text-[#7C3AED] px-2 py-0.5 rounded-full text-z-micro font-semibold">
                       {r.relationship_type}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 font-medium text-[#111827] text-[13px]">{r.target_entity_key}</td>
-                  <td className="px-4 py-2.5 font-mono text-[12px] text-[#6B7280]">{r.join_guidance || '—'}</td>
+                  <td className="px-4 py-2.5 font-medium text-[#111827] text-z-caption">{r.target_entity_key}</td>
+                  <td className="px-4 py-2.5 font-mono text-z-small text-[#6B7280]">{r.join_guidance || '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -1220,7 +1220,7 @@ export default function Semantic() {
 
         {/* Sidebar header */}
         <div className="px-4 py-3.5 border-b border-gray-200/70 flex items-center justify-between flex-shrink-0">
-          <span className="text-[13px] font-semibold text-[#111827]">
+          <span className="text-z-caption font-semibold text-[#111827]">
             {tab === 'entities' ? `Entities (${entities.length})`
              : tab === 'vocab'  ? `Vocabulary (${vocab.length})`
              : tab === 'packs'  ? `Packs (${allPacks.length})`
@@ -1229,7 +1229,7 @@ export default function Semantic() {
           <button
             onClick={tab === 'entities' ? openAddEntity : tab === 'vocab' ? openAddVocab : undefined}
             className="flex items-center gap-1 px-[8px] py-[4px] bg-[#111827] text-white
-                       text-[11.5px] font-medium rounded-[6px] hover:bg-[#1F2937] transition-colors">
+                       text-z-micro font-medium rounded-[6px] hover:bg-[#1F2937] transition-colors">
             <Plus size={10} /> Add
           </button>
         </div>
@@ -1238,7 +1238,7 @@ export default function Semantic() {
         <div className="flex border-b border-gray-200/70 flex-shrink-0">
           {[['entities', 'Entities'], ['vocab', 'Vocabulary'], ['learned', 'Learned'], ['packs', 'Packs']].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)}
-              className={`flex-1 py-2 text-[11px] font-medium transition-colors flex items-center justify-center gap-0.5
+              className={`flex-1 py-2 text-z-micro font-medium transition-colors flex items-center justify-center gap-0.5
                 ${tab === k ? 'text-emerald-600 border-b-2 border-emerald-500' : 'text-[#9CA3AF] hover:text-[#374151]'}`}>
               {k === 'learned' && <Brain size={9} />}
               {k === 'packs'   && <Package size={9} />}
@@ -1248,10 +1248,10 @@ export default function Semantic() {
         </div>
 
         {/* Domain filter */}
-        <div className="px-3 py-2.5 border-b border-gray-100 flex-shrink-0">
+        <div className="px-3 py-2.5 border-b border-z-border flex-shrink-0">
           <select value={selectedDomain} onChange={e => setSelectedDomain(e.target.value)}
-            className="w-full border border-gray-200 rounded-[7px] px-2.5 py-1.5 text-[12px]
-                       text-[#374151] bg-white focus:outline-none focus:border-emerald-400">
+            className="w-full border border-z-border rounded-[7px] px-2.5 py-1.5 text-z-small
+                       text-[#374151] bg-z-card focus:outline-none focus:border-emerald-400">
             {domains.map(d => {
               const key = d.domain_key ?? d.domainKey;
               return <option key={key} value={key}>{d.name}</option>;
@@ -1265,7 +1265,7 @@ export default function Semantic() {
             <div className="flex justify-center py-10"><Spinner /></div>
           ) : tab === 'entities' ? (
             entities.length === 0 ? (
-              <div className="px-4 py-8 text-center text-[12px] text-[#9CA3AF]">No entities yet</div>
+              <div className="px-4 py-8 text-center text-z-small text-[#9CA3AF]">No entities yet</div>
             ) : entities.map(e => {
               const isSelected = selectedEntityKey === e.entity_key;
               return (
@@ -1275,72 +1275,72 @@ export default function Semantic() {
                     ${isSelected
                       ? 'bg-emerald-50/80 border-l-2 border-l-emerald-500'
                       : 'hover:bg-gray-50/60'}`}>
-                  <div className={`text-[13px] font-medium ${isSelected ? 'text-emerald-700' : 'text-[#111827]'}`}>
+                  <div className={`text-z-caption font-medium ${isSelected ? 'text-emerald-700' : 'text-[#111827]'}`}>
                     {e.entity_name}
                   </div>
-                  <div className="text-[11px] text-[#9CA3AF] mt-0.5 font-mono">{e.entity_key}</div>
+                  <div className="text-z-micro text-[#9CA3AF] mt-0.5 font-mono">{e.entity_key}</div>
                 </div>
               );
             })
           ) : tab === 'vocab' ? (
             vocab.length === 0 ? (
-              <div className="px-4 py-8 text-center text-[12px] text-[#9CA3AF]">No vocabulary yet</div>
+              <div className="px-4 py-8 text-center text-z-small text-[#9CA3AF]">No vocabulary yet</div>
             ) : vocab.map(v => (
               <div key={v.term_key}
                 className="px-4 py-3 cursor-pointer border-b border-gray-100/80 hover:bg-gray-50/60 transition-colors">
-                <div className="text-[13px] font-medium text-[#111827]">{v.term}</div>
-                <div className="text-[11px] text-[#9CA3AF] mt-0.5 truncate">{v.definition}</div>
+                <div className="text-z-caption font-medium text-[#111827]">{v.term}</div>
+                <div className="text-z-micro text-[#9CA3AF] mt-0.5 truncate">{v.definition}</div>
               </div>
             ))
           ) : tab === 'learned' ? (
             /* Learned tab — inline list with actions */
             learnings.length === 0 ? (
               <div className="px-4 py-8 text-center">
-                <Brain size={24} className="mx-auto mb-2 text-gray-300" />
-                <p className="text-[12px] text-[#9CA3AF]">No learnings yet</p>
-                <p className="text-[11px] text-[#9CA3AF] mt-1">Ask questions — Zevra learns your vocabulary automatically</p>
+                <Brain size={24} className="mx-auto mb-2 text-z-text-3" />
+                <p className="text-z-small text-[#9CA3AF]">No learnings yet</p>
+                <p className="text-z-micro text-[#9CA3AF] mt-1">Ask questions — Zevra learns your vocabulary automatically</p>
               </div>
             ) : learnings.map(m => (
               <div key={m.mapping_key}
                 className="px-4 py-3 border-b border-gray-100/80 hover:bg-gray-50/50 transition-colors group">
                 <div className="flex items-start justify-between gap-2">
-                  <span className="text-[13px] font-semibold text-[#111827]">"{m.business_term}"</span>
-                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0
+                  <span className="text-z-caption font-semibold text-[#111827]">"{m.business_term}"</span>
+                  <span className={`text-z-nano font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0
                     ${m.promoted ? 'bg-emerald-50 text-emerald-700'
                      : m.source === 'USER_CORRECTION' ? 'bg-amber-50 text-amber-700'
                      : m.source === 'POSITIVE_FEEDBACK' ? 'bg-blue-50 text-blue-700'
-                     : 'bg-gray-100 text-gray-500'}`}>
+                     : 'bg-z-card-2 text-z-text-3'}`}>
                     {m.promoted ? 'Promoted' : m.source === 'USER_CORRECTION' ? 'Corrected'
                      : m.source === 'POSITIVE_FEEDBACK' ? 'Reinforced' : 'Learned'}
                   </span>
                 </div>
-                <p className="text-[11px] font-mono text-gray-500 mt-0.5 truncate">{m.sql_pattern}</p>
+                <p className="text-z-micro font-mono text-z-text-3 mt-0.5 truncate">{m.sql_pattern}</p>
                 {/* concept_key: null = promoted but not yet classified, so a promoted learning
                     stays excluded from the concept index until an admin picks a concept. */}
                 <div className="mt-1">
                   {m.concept_key ? (
-                    <span className="text-[10px] font-medium text-gray-500">Concept: {m.concept_key}</span>
+                    <span className="text-z-nano font-medium text-z-text-3">Concept: {m.concept_key}</span>
                   ) : (
-                    <span className="text-[10px] font-medium text-amber-600">Unclassified</span>
+                    <span className="text-z-nano font-medium text-amber-600">Unclassified</span>
                   )}
                 </div>
                 {/* Confidence bar */}
                 <div className="mt-1.5 flex items-center gap-2">
-                  <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="flex-1 h-1 bg-z-card-2 rounded-full overflow-hidden">
                     <div className="h-full bg-emerald-400 rounded-full transition-all"
                       style={{ width: `${Math.round(m.confidence * 100)}%` }} />
                   </div>
-                  <span className="text-[10px] text-gray-400 w-8 text-right">
+                  <span className="text-z-nano text-z-text-3 w-8 text-right">
                     {Math.round(m.confidence * 100)}%
                   </span>
-                  <span className="text-[10px] text-gray-400">{m.use_count}×</span>
+                  <span className="text-z-nano text-z-text-3">{m.use_count}×</span>
                 </div>
                 {/* Concept picker — offered whenever unclassified, whether or not promoted yet, so
                     promoting and classifying can happen together or separately. */}
                 {!m.concept_key && concepts.length > 0 && (
                   <div className="mt-1.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <select defaultValue="" id={`concept-select-${m.mapping_key}`}
-                      className="text-[10.5px] border border-gray-200 rounded px-1 py-0.5 text-gray-600">
+                      className="text-z-nano border border-z-border rounded px-1 py-0.5 text-z-text-2">
                       <option value="" disabled>Assign concept…</option>
                       {concepts.map(c => (
                         <option key={c.conceptKey} value={c.conceptKey}>{c.name}</option>
@@ -1352,7 +1352,7 @@ export default function Semantic() {
                       if (!conceptKey) return;
                       await api.semantic.learnings.assignConcept(m.mapping_key, conceptKey);
                       loadLearnings(selectedDomain);
-                    }} className="text-[10.5px] text-emerald-600 hover:underline">Assign</button>
+                    }} className="text-z-nano text-emerald-600 hover:underline">Assign</button>
                   </div>
                 )}
                 {/* Inline actions (visible on hover) */}
@@ -1362,28 +1362,28 @@ export default function Semantic() {
                       const select = document.getElementById(`concept-select-${m.mapping_key}`);
                       await api.semantic.learnings.promote(m.mapping_key, select?.value || undefined);
                       loadLearnings(selectedDomain);
-                    }} className="text-[10.5px] text-emerald-600 hover:underline">Promote</button>
+                    }} className="text-z-nano text-emerald-600 hover:underline">Promote</button>
                   )}
                   {m.promoted && (
                     <button onClick={async () => {
                       await api.semantic.learnings.demote(m.mapping_key);
                       loadLearnings(selectedDomain);
-                    }} className="text-[10.5px] text-amber-600 hover:underline">Demote</button>
+                    }} className="text-z-nano text-amber-600 hover:underline">Demote</button>
                   )}
                   <button onClick={() => { setEditLearning(m); setEditSqlPattern(m.sql_pattern); }}
-                    className="text-[10.5px] text-blue-600 hover:underline">Edit SQL</button>
+                    className="text-z-nano text-blue-600 hover:underline">Edit SQL</button>
                   <button onClick={async () => {
                     if (!window.confirm(`Delete learned term "${m.business_term}"?`)) return;
                     await api.semantic.learnings.delete(m.mapping_key);
                     loadLearnings(selectedDomain);
-                  }} className="text-[10.5px] text-red-500 hover:underline">Delete</button>
+                  }} className="text-z-nano text-red-500 hover:underline">Delete</button>
                 </div>
               </div>
             ))
           ) : (
             /* Packs tab — browse available packs */
             allPacks.length === 0 ? (
-              <div className="px-4 py-8 text-center text-[12px] text-[#9CA3AF]">Loading packs…</div>
+              <div className="px-4 py-8 text-center text-z-small text-[#9CA3AF]">Loading packs…</div>
             ) : allPacks.map(p => {
               const isApplied = appliedPacks.some(a => a.pack_key === p.pack_id && a.status === 'ACTIVE');
               return (
@@ -1394,12 +1394,12 @@ export default function Semantic() {
                       ? 'bg-emerald-50/80 border-l-2 border-l-emerald-500'
                       : 'hover:bg-gray-50/60'}`}>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13px] font-semibold text-[#111827]">{p.display_name}</span>
+                    <span className="text-z-caption font-semibold text-[#111827]">{p.display_name}</span>
                     {isApplied && (
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full shrink-0">Applied</span>
+                      <span className="text-z-nano font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full shrink-0">Applied</span>
                     )}
                   </div>
-                  <div className="text-[11px] text-[#9CA3AF] mt-0.5">
+                  <div className="text-z-micro text-[#9CA3AF] mt-0.5">
                     {p.entity_count} entities · {p.vocab_count} terms
                   </div>
                 </div>
@@ -1411,7 +1411,7 @@ export default function Semantic() {
         {/* Discover from DB */}
         <div className="px-3 py-3 border-t border-gray-200/70 flex-shrink-0">
           <button onClick={() => setShowWizard(true)}
-            className="w-full flex items-center justify-center gap-1.5 py-2 text-[12px] font-medium
+            className="w-full flex items-center justify-center gap-1.5 py-2 text-z-small font-medium
                        text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-[8px] transition-colors">
             <Sparkles size={12} /> Discover from DB
           </button>
@@ -1434,8 +1434,8 @@ export default function Semantic() {
                 <Brain size={20} className="text-emerald-600" />
               </div>
               <div>
-                <h2 className="text-[18px] font-bold text-[#111827] tracking-tight">Semantic Learning</h2>
-                <p className="text-[13px] text-[#9CA3AF]">
+                <h2 className="text-z-body-lg font-semibold text-[#111827] tracking-tight">Semantic Learning</h2>
+                <p className="text-z-caption text-[#9CA3AF]">
                   Terms Zevra has learned from your team's queries — auto-applied to future SQL planning.
                 </p>
               </div>
@@ -1450,48 +1450,48 @@ export default function Semantic() {
                     ? Math.round(learnings.reduce((s, m) => s + m.confidence, 0) / learnings.length * 100) + '%'
                     : '—' },
               ].map(({ label, value }) => (
-                <div key={label} className="bg-white rounded-xl border border-gray-100 p-4 text-center">
-                  <p className="text-[22px] font-black text-[#111827]">{value}</p>
-                  <p className="text-[11.5px] text-[#9CA3AF] mt-0.5">{label}</p>
+                <div key={label} className="bg-z-card rounded-xl border border-z-border p-4 text-center">
+                  <p className="text-z-h3 font-black text-[#111827]">{value}</p>
+                  <p className="text-z-micro text-[#9CA3AF] mt-0.5">{label}</p>
                 </div>
               ))}
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-100 p-5">
-              <h3 className="text-[13px] font-semibold text-[#374151] mb-3">How it works</h3>
-              <ul className="space-y-2.5 text-[12.5px] text-[#6B7280] leading-relaxed">
-                <li className="flex gap-2"><span className="text-emerald-500 font-bold">✓</span>After every successful query, Zevra extracts business terms and maps them to their SQL equivalents.</li>
-                <li className="flex gap-2"><span className="text-emerald-500 font-bold">✓</span>Terms are injected into the SQL planner automatically — your vocabulary improves without manual work.</li>
-                <li className="flex gap-2"><span className="text-emerald-500 font-bold">✓</span>When you correct a wrong answer, the related term's confidence decreases.</li>
-                <li className="flex gap-2"><span className="text-emerald-500 font-bold">✓</span>Terms reaching 80% confidence with 10+ uses are promoted to the formal vocabulary automatically.</li>
-                <li className="flex gap-2"><span className="text-emerald-500 font-bold">✓</span>Click <strong>Promote</strong> on any term to move it to the vocabulary immediately.</li>
+            <div className="bg-z-card rounded-xl border border-z-border p-5">
+              <h3 className="text-z-caption font-semibold text-[#374151] mb-3">How it works</h3>
+              <ul className="space-y-2.5 text-z-small text-[#6B7280] leading-relaxed">
+                <li className="flex gap-2"><span className="text-emerald-500 font-semibold">✓</span>After every successful query, Zevra extracts business terms and maps them to their SQL equivalents.</li>
+                <li className="flex gap-2"><span className="text-emerald-500 font-semibold">✓</span>Terms are injected into the SQL planner automatically — your vocabulary improves without manual work.</li>
+                <li className="flex gap-2"><span className="text-emerald-500 font-semibold">✓</span>When you correct a wrong answer, the related term's confidence decreases.</li>
+                <li className="flex gap-2"><span className="text-emerald-500 font-semibold">✓</span>Terms reaching 80% confidence with 10+ uses are promoted to the formal vocabulary automatically.</li>
+                <li className="flex gap-2"><span className="text-emerald-500 font-semibold">✓</span>Click <strong>Promote</strong> on any term to move it to the vocabulary immediately.</li>
               </ul>
             </div>
 
             {/* Edit SQL modal */}
             {editLearning && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={e => { if (e.target === e.currentTarget) setEditLearning(null); }}>
-                <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-lg p-6">
-                  <h2 className="text-[15px] font-bold text-[#111827] mb-1">Edit SQL pattern</h2>
-                  <p className="text-[12.5px] text-gray-500 mb-4">
+                <div className="bg-z-card rounded-2xl shadow-2xl border border-z-border w-full max-w-lg p-6">
+                  <h2 className="text-z-body font-semibold text-[#111827] mb-1">Edit SQL pattern</h2>
+                  <p className="text-z-small text-z-text-3 mb-4">
                     Term: <strong>"{editLearning.business_term}"</strong>
                   </p>
                   <textarea
                     value={editSqlPattern}
                     onChange={e => setEditSqlPattern(e.target.value)}
                     rows={3}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] font-mono text-gray-800 focus:outline-none focus:border-emerald-400 resize-none"
+                    className="w-full rounded-xl border border-z-border px-3 py-2.5 text-z-caption font-mono text-z-text focus:outline-none focus:border-emerald-400 resize-none"
                   />
                   <div className="flex gap-2.5 mt-4">
                     <button onClick={() => setEditLearning(null)}
-                      className="flex-1 h-9 rounded-xl border border-gray-200 text-[13px] font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                      className="flex-1 h-9 rounded-xl border border-z-border text-z-caption font-medium text-z-text-2 hover:bg-z-card-2 transition-colors">
                       Cancel
                     </button>
                     <button onClick={async () => {
                       await api.semantic.learnings.update(editLearning.mapping_key, { sqlPattern: editSqlPattern });
                       setEditLearning(null);
                       loadLearnings(selectedDomain);
-                    }} className="flex-1 h-9 rounded-xl bg-[#0C5847] text-white text-[13px] font-semibold hover:bg-[#084B3D] transition-colors">
+                    }} className="flex-1 h-9 rounded-xl bg-[#0C5847] text-white text-z-caption font-semibold hover:bg-[#084B3D] transition-colors">
                       Save
                     </button>
                   </div>
@@ -1510,8 +1510,8 @@ export default function Semantic() {
                 <Package size={20} className="text-indigo-600" />
               </div>
               <div>
-                <h2 className="text-[18px] font-bold text-[#111827] tracking-tight">Industry Context Packs</h2>
-                <p className="text-[13px] text-[#9CA3AF]">
+                <h2 className="text-z-body-lg font-semibold text-[#111827] tracking-tight">Industry Context Packs</h2>
+                <p className="text-z-caption text-[#9CA3AF]">
                   Pre-built entities, vocabulary, and suggested questions for your industry.
                 </p>
               </div>
@@ -1520,13 +1520,13 @@ export default function Semantic() {
             {/* Applied packs */}
             {appliedPacks.filter(a => a.status === 'ACTIVE').length > 0 && (
               <div className="mb-6">
-                <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider mb-3">Applied</p>
+                <p className="text-z-small font-semibold text-z-text-3 uppercase tracking-wider mb-3">Applied</p>
                 <div className="space-y-2">
                   {appliedPacks.filter(a => a.status === 'ACTIVE').map(tp => (
                     <div key={tp.pack_key} className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center justify-between">
                       <div>
-                        <p className="text-[13px] font-semibold text-emerald-800">{tp.display_name}</p>
-                        <p className="text-[11.5px] text-emerald-600 mt-0.5">
+                        <p className="text-z-caption font-semibold text-emerald-800">{tp.display_name}</p>
+                        <p className="text-z-micro text-emerald-600 mt-0.5">
                           Coverage: {Math.round((tp.coverage_score || 0) * 100)}% of pack entities matched
                           {tp.connection_key && (
                             <> · Connection: <span className="font-mono">
@@ -1539,7 +1539,7 @@ export default function Semantic() {
                         if (!window.confirm(`Remove pack "${tp.display_name}"? Entities and vocabulary this pack created will be reverted; anything that existed independently before the pack is kept.`)) return;
                         await api.industryPacks.remove(tp.pack_key);
                         loadPacks();
-                      }} className="text-[11px] text-emerald-600 hover:text-red-500 transition-colors ml-4">
+                      }} className="text-z-micro text-emerald-600 hover:text-red-500 transition-colors ml-4">
                         Remove
                       </button>
                     </div>
@@ -1553,14 +1553,14 @@ export default function Semantic() {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{previewPack.industry}</p>
-                    <h3 className="text-[17px] font-bold text-[#111827]">{previewPack.display_name}</h3>
+                    <p className="text-z-micro font-semibold text-z-text-3 uppercase tracking-wider">{previewPack.industry}</p>
+                    <h3 className="text-z-lead font-semibold text-[#111827]">{previewPack.display_name}</h3>
                   </div>
                   <button onClick={() => { setPreviewPack(null); setPreviewData(null); setPackConnection(''); }}
-                    className="text-[12px] text-gray-400 hover:text-gray-700">← Back</button>
+                    className="text-z-small text-z-text-3 hover:text-z-text-2">← Back</button>
                 </div>
 
-                <p className="text-[13px] text-gray-500 mb-5">{previewPack.description}</p>
+                <p className="text-z-caption text-z-text-3 mb-5">{previewPack.description}</p>
 
                 {/* Stats row */}
                 <div className="grid grid-cols-3 gap-3 mb-6">
@@ -1569,9 +1569,9 @@ export default function Semantic() {
                     { label: 'Vocab terms', value: previewPack.vocab_count },
                     { label: 'Questions',  value: previewPack.question_count },
                   ].map(({ label, value }) => (
-                    <div key={label} className="bg-white rounded-xl border border-gray-100 p-3 text-center">
-                      <p className="text-[20px] font-black text-[#111827]">{value}</p>
-                      <p className="text-[11px] text-[#9CA3AF]">{label}</p>
+                    <div key={label} className="bg-z-card rounded-xl border border-z-border p-3 text-center">
+                      <p className="text-z-h3 font-black text-[#111827]">{value}</p>
+                      <p className="text-z-micro text-[#9CA3AF]">{label}</p>
                     </div>
                   ))}
                 </div>
@@ -1592,7 +1592,7 @@ export default function Semantic() {
                     ))}
                   </Select>
                   {connections.length === 0 && (
-                    <p className="text-[11.5px] text-amber-600 mt-1.5 flex items-center gap-1">
+                    <p className="text-z-micro text-amber-600 mt-1.5 flex items-center gap-1">
                       <AlertCircle size={12} /> No connections available — add one first.
                     </p>
                   )}
@@ -1600,24 +1600,24 @@ export default function Semantic() {
 
                 {/* Preview data */}
                 {previewData && (
-                  <div className="mb-5 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                    <p className="text-[12px] font-semibold text-gray-600 mb-2">Preview result</p>
-                    <p className="text-[12.5px] text-gray-700">
+                  <div className="mb-5 p-4 bg-z-card-2 rounded-xl border border-z-border">
+                    <p className="text-z-small font-semibold text-z-text-2 mb-2">Preview result</p>
+                    <p className="text-z-small text-z-text-2">
                       Coverage: <strong>{Math.round(previewData.coverage_score * 100)}%</strong> of pack entities matched to your tables.
                     </p>
                     {previewData.entity_mapping && Object.keys(previewData.entity_mapping).length > 0 && (
                       <div className="mt-2 space-y-1">
                         {Object.entries(previewData.entity_mapping).map(([entity, table]) => (
-                          <div key={entity} className="flex items-center gap-2 text-[11.5px]">
-                            <span className="font-semibold text-gray-700">{entity}</span>
-                            <span className="text-gray-400">→</span>
+                          <div key={entity} className="flex items-center gap-2 text-z-micro">
+                            <span className="font-semibold text-z-text-2">{entity}</span>
+                            <span className="text-z-text-3">→</span>
                             <span className="font-mono text-emerald-700">{table}</span>
                           </div>
                         ))}
                       </div>
                     )}
                     {previewData.entities_unmatched?.length > 0 && (
-                      <p className="text-[11.5px] text-amber-600 mt-2">
+                      <p className="text-z-micro text-amber-600 mt-2">
                         Not matched: {previewData.entities_unmatched.join(', ')}
                       </p>
                     )}
@@ -1639,13 +1639,13 @@ export default function Semantic() {
                         finally { setPreviewingPack(false); }
                       }}
                       title={!packConnection ? 'Select a connection first' : undefined}
-                      className="px-4 py-2 text-[13px] font-semibold bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 text-z-caption font-semibold bg-z-card border border-z-border text-z-text-2 rounded-xl hover:bg-z-card-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {previewingPack ? 'Previewing…' : 'Preview match'}
                     </button>
                   )}
                   {appliedPacks.some(a => a.pack_key === previewPack.pack_id && a.status === 'ACTIVE') ? (
-                    <span className="px-4 py-2 text-[13px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl">
+                    <span className="px-4 py-2 text-z-caption font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl">
                       ✓ Already applied
                     </span>
                   ) : (
@@ -1665,35 +1665,35 @@ export default function Semantic() {
                         } catch (e) { alert(e.message || 'Apply failed'); }
                         finally { setApplyingPack(''); }
                       }}
-                      className="px-5 py-2 text-[13px] font-semibold bg-[#0C5847] hover:bg-[#084B3D] text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-5 py-2 text-z-caption font-semibold bg-[#0C5847] hover:bg-[#084B3D] text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {applyingPack === previewPack.pack_id ? 'Applying…' : 'Apply Pack'}
                     </button>
                   )}
                   {!packConnection && (
-                    <span className="text-[11.5px] text-gray-400">Select a connection to preview or apply.</span>
+                    <span className="text-z-micro text-z-text-3">Select a connection to preview or apply.</span>
                   )}
                 </div>
               </div>
             ) : (
               <div>
-                <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider mb-3">Available packs</p>
+                <p className="text-z-small font-semibold text-z-text-3 uppercase tracking-wider mb-3">Available packs</p>
                 <div className="grid sm:grid-cols-2 gap-4">
                   {allPacks.map(p => {
                     const isApplied = appliedPacks.some(a => a.pack_key === p.pack_id && a.status === 'ACTIVE');
                     return (
                       <button key={p.pack_id} onClick={() => { setPreviewPack(p); setPreviewData(null); setPackConnection(''); }}
-                        className="text-left bg-white border border-gray-100 rounded-2xl p-4 hover:border-indigo-200 hover:shadow-md transition-all group">
+                        className="text-left bg-z-card border border-z-border rounded-2xl p-4 hover:border-indigo-200 hover:shadow-md transition-all group">
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <div>
-                            <p className="text-[11px] font-bold text-indigo-500 uppercase tracking-wide">{p.industry}</p>
-                            <p className="text-[14px] font-bold text-[#111827] mt-0.5 group-hover:text-indigo-700 transition-colors">{p.display_name}</p>
+                            <p className="text-z-micro font-semibold text-indigo-500 uppercase tracking-wide">{p.industry}</p>
+                            <p className="text-z-body-sm font-semibold text-[#111827] mt-0.5 group-hover:text-indigo-700 transition-colors">{p.display_name}</p>
                           </div>
                           {isApplied && (
-                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">Applied</span>
+                            <span className="text-z-nano font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">Applied</span>
                           )}
                         </div>
-                        <div className="flex gap-3 text-[11.5px] text-gray-500">
+                        <div className="flex gap-3 text-z-micro text-z-text-3">
                           <span>{p.entity_count} entities</span>
                           <span>·</span>
                           <span>{p.vocab_count} terms</span>

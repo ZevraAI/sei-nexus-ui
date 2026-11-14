@@ -18,12 +18,12 @@ export function ThemeToggle() {
       aria-pressed={isDark}
       className={`relative w-11 h-[22px] rounded-full transition-colors duration-200
                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500
-                  ${isDark ? 'bg-emerald-700' : 'bg-gray-200'}`}
+                  ${isDark ? 'bg-emerald-700' : 'bg-z-border'}`}
     >
       <span
         className={`absolute top-[2px] w-[18px] h-[18px] rounded-full shadow-sm
                     flex items-center justify-center transition-transform duration-200
-                    ${isDark ? 'translate-x-[22px] bg-[#0F1117]' : 'translate-x-[2px] bg-white'}`}
+                    ${isDark ? 'translate-x-[22px] bg-[#0F1117]' : 'translate-x-[2px] bg-z-card'}`}
       >
         {isDark
           ? <Moon size={9} className="text-emerald-400" />

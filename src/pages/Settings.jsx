@@ -10,10 +10,10 @@ import { navigate, useAuth } from '../App.jsx';
 
 function StatCard({ label, value, sub, color = 'text-emerald-600' }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-      <p className={`text-[28px] font-black ${color} leading-none`}>{value ?? '—'}</p>
-      <p className="text-[13px] font-semibold text-gray-700 mt-1">{label}</p>
-      {sub && <p className="text-[11.5px] text-gray-400 mt-0.5">{sub}</p>}
+    <div className="bg-z-card rounded-2xl border border-z-border p-5 shadow-sm">
+      <p className={`text-z-h2 font-black ${color} leading-none`}>{value ?? '—'}</p>
+      <p className="text-z-caption font-semibold text-z-text-2 mt-1">{label}</p>
+      {sub && <p className="text-z-micro text-z-text-3 mt-0.5">{sub}</p>}
     </div>
   );
 }
@@ -25,11 +25,11 @@ function SectionHeader({ icon: Icon, title, linkLabel, linkTarget, color = 'bg-e
         <div className={`w-9 h-9 rounded-xl ${color} flex items-center justify-center`}>
           <Icon size={17} className={iconColor} />
         </div>
-        <h2 className="text-[15px] font-bold text-gray-900">{title}</h2>
+        <h2 className="text-z-body font-semibold text-z-text">{title}</h2>
       </div>
       {linkLabel && linkTarget && (
         <button onClick={() => navigate(linkTarget)}
-          className="flex items-center gap-1 text-[12.5px] font-medium text-emerald-700 hover:text-emerald-900 transition-colors">
+          className="flex items-center gap-1 text-z-small font-medium text-emerald-700 hover:text-emerald-900 transition-colors">
           {linkLabel} <ChevronRight size={13} />
         </button>
       )}
@@ -114,14 +114,14 @@ export default function Settings() {
               <Activity size={18} className="text-white" />
             </div>
             <div>
-              <h1 className="text-[22px] font-bold text-gray-900 tracking-tight">Platform Settings</h1>
-              <p className="text-[13.5px] text-gray-500 mt-0.5">
+              <h1 className="text-z-h3 font-semibold text-z-text tracking-tight">Platform Settings</h1>
+              <p className="text-z-caption text-z-text-3 mt-0.5">
                 Overview of all four advanced capabilities and system configuration.
               </p>
             </div>
           </div>
           <button onClick={load} disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-[12.5px] font-medium text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-40">
+            className="flex items-center gap-1.5 px-3 py-2 bg-z-card border border-z-border rounded-xl text-z-small font-medium text-z-text-2 hover:bg-z-card-2 transition-all disabled:opacity-40">
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
         </div>
@@ -129,19 +129,19 @@ export default function Settings() {
         {/* ── Phase 1: Governance ───────────────────────────────────────────── */}
         <section className="mb-10">
           <SectionHeader icon={Shield} title="Governance" linkLabel="Manage policies"
-            linkTarget="/governance" color="bg-slate-50" iconColor="text-slate-600" />
+            linkTarget="/governance" color="bg-slate-50" iconColor="text-z-text-2" />
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <StatCard label="Column masking policies" value={govData.columns}
-              sub="Sensitive columns protected" color="text-slate-700" />
+              sub="Sensitive columns protected" color="text-z-text-2" />
             <StatCard label="Row filter policies" value={govData.rls}
               sub="Active RLS filters" color="text-violet-600" />
             <StatCard label="Data contracts" value={govData.contracts}
               sub="Query safety rules" color="text-indigo-600" />
             <StatCard label="Audit events" value={govData.auditTotal?.toLocaleString()}
-              sub="Compliance records" color="text-gray-600" />
+              sub="Compliance records" color="text-z-text-2" />
           </div>
-          <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-            <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Quick actions</p>
+          <div className="bg-z-card rounded-2xl border border-z-border p-4 shadow-sm">
+            <p className="text-z-small font-semibold text-z-text-3 uppercase tracking-wide mb-2">Quick actions</p>
             <div className="flex flex-wrap gap-2">
               {[
                 ['Add column policy', '/governance'],
@@ -152,7 +152,7 @@ export default function Settings() {
                 ['Set user attributes', '/governance'],
               ].map(([label, path]) => (
                 <button key={label} onClick={() => navigate(path)}
-                  className="px-3 py-1.5 text-[12px] font-medium bg-gray-50 border border-gray-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all">
+                  className="px-3 py-1.5 text-z-small font-medium bg-z-card-2 border border-z-border rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all">
                   {label}
                 </button>
               ))}
@@ -173,7 +173,7 @@ export default function Settings() {
               sub="Across all learned terms" color="text-emerald-500" />
           </div>
           <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
-            <p className="text-[12.5px] text-emerald-800 leading-relaxed">
+            <p className="text-z-small text-emerald-800 leading-relaxed">
               Zevra learns from every query. Terms reach the vocabulary automatically when confidence ≥ 80% with 10+ uses.
               Corrections and positive feedback adjust confidence in real time.
               Manage learned terms in <button onClick={() => navigate('/semantic')} className="font-semibold underline">Semantic Layer → Learned</button>.
@@ -197,20 +197,20 @@ export default function Settings() {
             <div className="space-y-2">
               {activeApplied.map(tp => (
                 <div key={tp.pack_key}
-                  className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+                  className="bg-z-card border border-z-border rounded-2xl p-4 flex items-center justify-between shadow-sm">
                   <div>
-                    <p className="text-[14px] font-bold text-gray-900">{tp.display_name}</p>
+                    <p className="text-z-body-sm font-semibold text-z-text">{tp.display_name}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <div className="flex-1 max-w-[160px] h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="flex-1 max-w-[160px] h-1.5 bg-z-card-2 rounded-full overflow-hidden">
                         <div className="h-full bg-indigo-400 rounded-full"
                           style={{ width: `${Math.round((tp.coverage_score || 0) * 100)}%` }} />
                       </div>
-                      <span className="text-[11.5px] text-gray-500">
+                      <span className="text-z-micro text-z-text-3">
                         {Math.round((tp.coverage_score || 0) * 100)}% entity coverage
                       </span>
                     </div>
                   </div>
-                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  <span className="text-z-micro font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
                     Active
                   </span>
                 </div>
@@ -218,11 +218,11 @@ export default function Settings() {
             </div>
           )}
           {activeApplied.length === 0 && (
-            <div className="bg-white border border-dashed border-gray-200 rounded-2xl p-6 text-center">
-              <Package size={28} className="mx-auto mb-2 text-gray-300" />
-              <p className="text-[13px] text-gray-500 mb-3">No packs applied yet</p>
+            <div className="bg-z-card border border-dashed border-z-border rounded-2xl p-6 text-center">
+              <Package size={28} className="mx-auto mb-2 text-z-text-3" />
+              <p className="text-z-caption text-z-text-3 mb-3">No packs applied yet</p>
               <button onClick={() => navigate('/semantic')}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[12.5px] font-semibold rounded-xl transition-all">
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-z-small font-semibold rounded-xl transition-all">
                 Browse packs
               </button>
             </div>
@@ -231,31 +231,31 @@ export default function Settings() {
 
         {/* ── System ───────────────────────────────────────────────────────── */}
         <section className="mb-10">
-          <SectionHeader icon={Database} title="System" color="bg-gray-100" iconColor="text-gray-600" />
+          <SectionHeader icon={Database} title="System" color="bg-z-card-2" iconColor="text-z-text-2" />
           <div className="grid sm:grid-cols-3 gap-4 mb-4">
             <StatCard label="Database connections" value={sysData.connections}
-              sub="Active data sources" color="text-gray-700" />
+              sub="Active data sources" color="text-z-text-2" />
             <StatCard label="Active agents" value={sysData.agents}
-              sub="Configured investigation agents" color="text-gray-700" />
+              sub="Configured investigation agents" color="text-z-text-2" />
             <StatCard label="Domains" value={sysData.domains}
-              sub="Business domains in this tenant" color="text-gray-700" />
+              sub="Business domains in this tenant" color="text-z-text-2" />
           </div>
-          <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-            <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide mb-3">Navigation shortcuts</p>
+          <div className="bg-z-card rounded-2xl border border-z-border p-4 shadow-sm">
+            <p className="text-z-small font-semibold text-z-text-3 uppercase tracking-wide mb-3">Navigation shortcuts</p>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {[
                 { label: 'Investigations',   path: '/chat',        icon: Zap,         color: 'text-emerald-600' },
                 { label: 'Semantic Layer',   path: '/semantic',    icon: Brain,       color: 'text-emerald-600' },
-                { label: 'Governance Hub',   path: '/governance',  icon: Shield,      color: 'text-slate-600' },
+                { label: 'Governance Hub',   path: '/governance',  icon: Shield,      color: 'text-z-text-2' },
                 { label: 'Knowledge Graph',  path: '/graph',       icon: Globe,       color: 'text-violet-600' },
                 { label: 'Connections',      path: '/connections', icon: Database,    color: 'text-blue-600' },
                 { label: 'Agents',           path: '/agents',      icon: Activity,    color: 'text-indigo-600' },
               ].map(({ label, path, icon: Icon, color }) => (
                 <button key={path} onClick={() => navigate(path)}
-                  className="flex items-center gap-2.5 px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl hover:bg-white hover:shadow-sm transition-all text-left">
+                  className="flex items-center gap-2.5 px-3 py-2.5 bg-z-card-2 border border-z-border rounded-xl hover:bg-z-card hover:shadow-sm transition-all text-left">
                   <Icon size={14} className={color} />
-                  <span className="text-[13px] font-medium text-gray-700">{label}</span>
-                  <ChevronRight size={12} className="ml-auto text-gray-300" />
+                  <span className="text-z-caption font-medium text-z-text-2">{label}</span>
+                  <ChevronRight size={12} className="ml-auto text-z-text-3" />
                 </button>
               ))}
             </div>

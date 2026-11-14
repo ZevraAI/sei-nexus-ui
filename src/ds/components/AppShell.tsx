@@ -21,7 +21,7 @@ export function TopBar({ className, children, ...rest }: HTMLAttributes<HTMLElem
 
 export function Brand({ label = 'ZEVRA', className, ...rest }: HTMLAttributes<HTMLDivElement> & { label?: string }) {
   return (
-    <div className={cn('flex items-center gap-3 text-[14px] font-bold tracking-[0.2em] text-z-text', className)} {...rest}>
+    <div className={cn('flex items-center gap-3 text-z-body-sm font-semibold tracking-[0.2em] text-z-text', className)} {...rest}>
       <span
         className="h-[19px] w-[19px] rounded-z-xs"
         style={{ background: 'linear-gradient(135deg, var(--z-primary), color-mix(in srgb, var(--z-investigating) 70%, var(--z-primary)))' }}
@@ -62,7 +62,7 @@ export function Avatar({ initials, className, ...rest }: HTMLAttributes<HTMLDivE
   return (
     <div
       className={cn(
-        'grid h-[34px] w-[34px] place-items-center rounded-z-round bg-z-primary text-[12px] font-semibold text-z-on-accent',
+        'grid h-[34px] w-[34px] place-items-center rounded-z-round bg-z-primary text-z-small font-semibold text-z-on-accent',
         className,
       )}
       {...rest}

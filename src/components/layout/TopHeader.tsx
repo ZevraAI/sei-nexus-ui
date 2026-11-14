@@ -21,30 +21,30 @@ export function TopHeader({
 
   return (
     <header
-      className="flex items-center h-20 px-7 gap-5 bg-surface border-b border-line flex-shrink-0"
+      className="flex items-center h-20 px-7 gap-5 bg-z-card border-b border-z-border flex-shrink-0"
       aria-label="Application header"
     >
       <button
         type="button"
         className={cn(
           'flex items-center gap-3 flex-shrink-0 h-10 px-0 rounded-xs',
-          'text-[16px] font-semibold text-foreground',
+          'text-z-lead font-semibold text-z-text',
           'hover:text-accent transition-colors',
           'focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-1'
         )}
       >
         {workspaceName}
-        <ChevronDown className="w-4 h-4 text-dim-fg" aria-hidden="true" />
+        <ChevronDown className="w-4 h-4 text-z-text-3" aria-hidden="true" />
       </button>
 
       <div className="h-8 w-px bg-line" aria-hidden="true" />
 
       <span
         className={cn(
-          'flex items-center gap-2 flex-shrink-0 h-9 px-4 text-[14px] font-medium rounded-[7px] border',
+          'flex items-center gap-2 flex-shrink-0 h-9 px-4 text-z-body-sm font-medium rounded-[7px] border',
           isProd
-            ? 'bg-surface border-line text-[#31363D]'
-            : 'bg-surface-muted border-line text-dim-fg'
+            ? 'bg-z-card border-z-border text-[#31363D]'
+            : 'bg-z-card-2 border-z-border text-z-text-3'
         )}
         aria-label={`Environment: ${envLabel}`}
       >
@@ -69,8 +69,8 @@ export function TopHeader({
             type="search"
             placeholder="Search investigations, entities, cases..."
             className={cn(
-              'w-full h-10 pl-12 pr-16 text-[15px] rounded-[7px]',
-              'bg-surface border border-line text-foreground shadow-sm',
+              'w-full h-10 pl-12 pr-16 text-z-body rounded-[7px]',
+              'bg-z-card border border-z-border text-z-text shadow-sm',
               'placeholder:text-[#747B85]',
               'focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20',
               'transition-colors'
@@ -80,8 +80,8 @@ export function TopHeader({
             className={cn(
               'absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none',
               'inline-flex items-center px-2 py-0.5',
-              'text-[12px] text-off-fg font-medium',
-              'bg-surface border border-line rounded-[5px]'
+              'text-z-small text-z-text-disabled font-medium',
+              'bg-z-card border border-z-border rounded-[5px]'
             )}
             aria-hidden="true"
           >
@@ -96,7 +96,7 @@ export function TopHeader({
           aria-label={`${notificationCount} notifications`}
           className={cn(
             'relative flex items-center justify-center w-9 h-9 rounded-full',
-            'text-[#3D444F] hover:bg-item-hover hover:text-foreground',
+            'text-[#3D444F] hover:bg-z-hover hover:text-z-text',
             'transition-colors focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-1'
           )}
         >
@@ -104,7 +104,7 @@ export function TopHeader({
           {notificationCount > 0 && (
             <span
               aria-hidden="true"
-              className="absolute top-0 right-0 min-w-[18px] h-[18px] px-1 rounded-full bg-accent text-surface text-[11px] font-semibold flex items-center justify-center"
+              className="absolute top-0 right-0 min-w-[18px] h-[18px] px-1 rounded-full bg-accent text-surface text-z-micro font-semibold flex items-center justify-center"
             >
               {notificationCount}
             </span>
@@ -116,7 +116,7 @@ export function TopHeader({
           aria-label="Help"
           className={cn(
             'flex items-center justify-center w-9 h-9 rounded-full',
-            'text-[#3D444F] hover:bg-item-hover hover:text-foreground',
+            'text-[#3D444F] hover:bg-z-hover hover:text-z-text',
             'transition-colors focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-1'
           )}
         >
@@ -128,7 +128,7 @@ export function TopHeader({
           aria-label="User menu"
           className={cn(
             'flex items-center gap-2 h-10 px-1 rounded-xs',
-            'hover:bg-item-hover transition-colors',
+            'hover:bg-z-hover transition-colors',
             'focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-1'
           )}
         >
@@ -136,9 +136,9 @@ export function TopHeader({
             aria-hidden="true"
             className="w-10 h-10 rounded-full bg-[#EFEFEE] flex items-center justify-center flex-shrink-0"
           >
-            <span className="text-[14px] font-semibold text-[#343941]">{userInitials}</span>
+            <span className="text-z-body-sm font-semibold text-[#343941]">{userInitials}</span>
           </div>
-          <ChevronDown className="w-4 h-4 text-dim-fg" aria-hidden="true" />
+          <ChevronDown className="w-4 h-4 text-z-text-3" aria-hidden="true" />
         </button>
 
         <button
@@ -146,7 +146,7 @@ export function TopHeader({
           onClick={onNewInvestigation}
           className={cn(
             'flex items-center gap-2 h-11 px-5 ml-1',
-            'text-[15px] font-semibold text-surface bg-accent',
+            'text-z-body font-semibold text-surface bg-accent',
             'rounded-[6px] shadow-md',
             'hover:bg-accent-hover active:bg-accent-hover',
             'transition-colors focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2'

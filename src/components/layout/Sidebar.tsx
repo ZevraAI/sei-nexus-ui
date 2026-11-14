@@ -32,10 +32,10 @@ interface SidebarProps {
 export function Sidebar({ navItems, activeId, onNavigate }: SidebarProps) {
   return (
     <aside
-      className="flex flex-col flex-none w-[226px] h-full bg-sidebar-bg border-r border-line"
+      className="flex flex-col flex-none w-[226px] h-full bg-sidebar-bg border-r border-z-border"
       aria-label="Primary navigation"
     >
-      <div className="flex items-center justify-center h-14 px-4 border-b border-line flex-shrink-0">
+      <div className="flex items-center justify-center h-14 px-4 border-b border-z-border flex-shrink-0">
         <HexLogo className="w-7 h-7 text-accent" />
       </div>
 
@@ -61,14 +61,14 @@ export function Sidebar({ navItems, activeId, onNavigate }: SidebarProps) {
                     'flex items-center gap-2.5 w-full pl-4 pr-3 py-2 text-sm rounded-xs transition-colors',
                     'focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-1',
                     isActive
-                      ? 'bg-accent-soft text-foreground font-medium'
-                      : 'text-muted-fg hover:bg-item-hover hover:text-foreground'
+                      ? 'bg-accent-soft text-z-text font-medium'
+                      : 'text-z-text-2 hover:bg-z-hover hover:text-z-text'
                   )}
                 >
                   <Icon
                     className={cn(
                       'w-4 h-4 flex-shrink-0',
-                      isActive ? 'text-accent' : 'text-dim-fg'
+                      isActive ? 'text-accent' : 'text-z-text-3'
                     )}
                     aria-hidden="true"
                   />
@@ -80,17 +80,17 @@ export function Sidebar({ navItems, activeId, onNavigate }: SidebarProps) {
         </ul>
       </nav>
 
-      <div className="flex-shrink-0 px-4 py-3 border-t border-line">
+      <div className="flex-shrink-0 px-4 py-3 border-t border-z-border">
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-ok flex-shrink-0" aria-hidden="true" />
           <div className="min-w-0">
-            <p className="text-xs font-medium text-foreground truncate">SOC 2 Type II</p>
+            <p className="text-xs font-medium text-z-text truncate">SOC 2 Type II</p>
             <div className="flex items-center gap-1">
               <span
                 aria-hidden="true"
                 className="w-1.5 h-1.5 rounded-full bg-ok flex-shrink-0"
               />
-              <p className="text-2xs text-dim-fg truncate">Compliant</p>
+              <p className="text-2xs text-z-text-3 truncate">Compliant</p>
             </div>
           </div>
         </div>

@@ -58,13 +58,13 @@ export default function AgentFormModal({ agent, onClose, onSaved }) {
                       w-full max-w-lg max-h-[90vh] flex flex-col border border-gray-200/70">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="text-[15px] font-semibold text-[#111827]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-z-border">
+          <h2 className="text-z-body font-semibold text-[#111827]">
             {isEdit ? `Edit — ${agent.name}` : 'New Agent'}
           </h2>
           <button onClick={onClose}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400
-                       hover:text-gray-600 hover:bg-gray-100 transition-colors">
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-z-text-3
+                       hover:text-z-text-2 hover:bg-z-card-2 transition-colors">
             <X size={15} />
           </button>
         </div>
@@ -74,50 +74,50 @@ export default function AgentFormModal({ agent, onClose, onSaved }) {
 
           {/* Name */}
           <div>
-            <label className="block text-[12px] font-medium text-[#374151] mb-1">Name *</label>
+            <label className="block text-z-small font-medium text-[#374151] mb-1">Name *</label>
             <input value={form.name} onChange={e => set('name', e.target.value)}
               placeholder="Logistics Operations AI"
-              className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg
+              className="w-full px-3 py-2 text-z-caption border border-z-border rounded-lg
                          focus:outline-none focus:ring-1 focus:ring-[#111827]" />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-[12px] font-medium text-[#374151] mb-1">Description</label>
+            <label className="block text-z-small font-medium text-[#374151] mb-1">Description</label>
             <input value={form.description} onChange={e => set('description', e.target.value)}
               placeholder="Brief description of what this agent handles"
-              className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg
+              className="w-full px-3 py-2 text-z-caption border border-z-border rounded-lg
                          focus:outline-none focus:ring-1 focus:ring-[#111827]" />
           </div>
 
           {/* Persona */}
           <div>
-            <label className="block text-[12px] font-medium text-[#374151] mb-1">Persona *</label>
+            <label className="block text-z-small font-medium text-[#374151] mb-1">Persona *</label>
             <textarea rows={3} value={form.persona} onChange={e => set('persona', e.target.value)}
               placeholder="You are a logistics operations AI specialist. You are precise, data-driven, and focused on operational efficiency."
-              className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg
+              className="w-full px-3 py-2 text-z-caption border border-z-border rounded-lg
                          focus:outline-none focus:ring-1 focus:ring-[#111827] resize-none" />
-            <p className="text-[11px] text-[#9CA3AF] mt-1">Who the agent is — its character and expertise.</p>
+            <p className="text-z-micro text-[#9CA3AF] mt-1">Who the agent is — its character and expertise.</p>
           </div>
 
           {/* Goal */}
           <div>
-            <label className="block text-[12px] font-medium text-[#374151] mb-1">Goal *</label>
+            <label className="block text-z-small font-medium text-[#374151] mb-1">Goal *</label>
             <textarea rows={3} value={form.goal} onChange={e => set('goal', e.target.value)}
               placeholder="Handle customer order complaints and damage claims. Investigate orders, check inventory and shipments, and provide clear recommendations."
-              className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg
+              className="w-full px-3 py-2 text-z-caption border border-z-border rounded-lg
                          focus:outline-none focus:ring-1 focus:ring-[#111827] resize-none" />
-            <p className="text-[11px] text-[#9CA3AF] mt-1">What the agent should accomplish in each conversation.</p>
+            <p className="text-z-micro text-[#9CA3AF] mt-1">What the agent should accomplish in each conversation.</p>
           </div>
 
           {/* Connections */}
           <div>
-            <label className="block text-[12px] font-medium text-[#374151] mb-2">
+            <label className="block text-z-small font-medium text-[#374151] mb-2">
               Data Connections
               <span className="text-[#9CA3AF] font-normal ml-1">— which databases the agent can query</span>
             </label>
             {connections.length === 0 ? (
-              <p className="text-[12px] text-[#9CA3AF]">No connections available. Add one in Connections first.</p>
+              <p className="text-z-small text-[#9CA3AF]">No connections available. Add one in Connections first.</p>
             ) : (
               <div className="space-y-1.5">
                 {connections.map(c => {
@@ -126,12 +126,12 @@ export default function AgentFormModal({ agent, onClose, onSaved }) {
                   return (
                     <label key={key}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors
-                                  ${checked ? 'border-[#111827] bg-[#F8F9FA]' : 'border-gray-200 hover:border-gray-300'}`}>
+                                  ${checked ? 'border-[#111827] bg-[#F8F9FA]' : 'border-z-border hover:border-z-border-strong'}`}>
                       <input type="checkbox" checked={checked} onChange={() => toggleConn(key)}
                         className="accent-[#111827]" />
                       <div>
-                        <div className="text-[13px] font-medium text-[#111827]">{c.name}</div>
-                        <div className="text-[11px] text-[#9CA3AF]">{key} · {c.connection_type ?? c.connectionType}</div>
+                        <div className="text-z-caption font-medium text-[#111827]">{c.name}</div>
+                        <div className="text-z-micro text-[#9CA3AF]">{key} · {c.connection_type ?? c.connectionType}</div>
                       </div>
                     </label>
                   );
@@ -146,39 +146,39 @@ export default function AgentFormModal({ agent, onClose, onSaved }) {
           {/* Max Iterations + Status */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[12px] font-medium text-[#374151] mb-1">
+              <label className="block text-z-small font-medium text-[#374151] mb-1">
                 Max Steps
                 <span className="text-[#9CA3AF] font-normal ml-1">({form.maxIterations})</span>
               </label>
               <input type="range" min={3} max={20} value={form.maxIterations}
                 onChange={e => set('maxIterations', Number(e.target.value))}
                 className="w-full accent-[#111827]" />
-              <div className="flex justify-between text-[10px] text-[#9CA3AF] mt-0.5">
+              <div className="flex justify-between text-z-nano text-[#9CA3AF] mt-0.5">
                 <span>3</span><span>20</span>
               </div>
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-[#374151] mb-1">Status</label>
+              <label className="block text-z-small font-medium text-[#374151] mb-1">Status</label>
               <select value={form.status} onChange={e => set('status', e.target.value)}
-                className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg
+                className="w-full px-3 py-2 text-z-caption border border-z-border rounded-lg
                            focus:outline-none focus:ring-1 focus:ring-[#111827]">
                 {['DRAFT', 'ACTIVE', 'ARCHIVED'].map(s => <option key={s}>{s}</option>)}
               </select>
             </div>
           </div>
 
-          {error && <p className="text-[12px] text-red-500">{error}</p>}
+          {error && <p className="text-z-small text-red-500">{error}</p>}
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-100">
+        <div className="flex justify-end gap-2 px-5 py-4 border-t border-z-border">
           <button onClick={onClose}
-            className="px-4 py-2 text-[13px] font-medium text-[#374151] bg-white border border-gray-200
-                       rounded-lg hover:bg-gray-50 transition-colors">
+            className="px-4 py-2 text-z-caption font-medium text-[#374151] bg-z-card border border-z-border
+                       rounded-lg hover:bg-z-card-2 transition-colors">
             Cancel
           </button>
           <button onClick={save} disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium text-white
+            className="flex items-center gap-1.5 px-4 py-2 text-z-caption font-medium text-white
                        bg-[#111827] rounded-lg hover:bg-[#1F2937] disabled:opacity-50 transition-colors">
             {saving ? <Spinner size={4} /> : <Plus size={13} />}
             {isEdit ? 'Save Changes' : 'Create Agent'}

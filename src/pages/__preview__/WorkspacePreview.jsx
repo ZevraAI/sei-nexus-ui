@@ -169,17 +169,17 @@ export default function WorkspacePreview() {
           previously understated the actual chrome budget. Scenario/theme switches are dev-only
           controls layered into that same real height, not extra chrome. */}
       <div className="flex h-16 shrink-0 items-center gap-2 border-b border-z-border bg-z-card px-4">
-        <span className="mr-2 text-[13px] font-semibold text-z-text">Zevra</span>
+        <span className="mr-2 text-z-caption font-semibold text-z-text">Zevra</span>
         {Object.keys(SCENARIOS).map((k) => (
           <button
             key={k}
             onClick={() => setScenario(k)}
-            className={`rounded-z-sm px-2.5 py-1 text-[12px] ${scenario === k ? 'bg-z-primary text-z-on-accent' : 'text-z-text-2'}`}
+            className={`rounded-z-sm px-2.5 py-1 text-z-small ${scenario === k ? 'bg-z-primary text-z-on-accent' : 'text-z-text-2'}`}
           >
             {k}
           </button>
         ))}
-        <button onClick={() => setDark((d) => !d)} className="ml-auto rounded-z-sm border border-z-border px-2.5 py-1 text-[12px] text-z-text-2">
+        <button onClick={() => setDark((d) => !d)} className="ml-auto rounded-z-sm border border-z-border px-2.5 py-1 text-z-small text-z-text-2">
           {dark ? 'Dark' : 'Light'}
         </button>
       </div>
@@ -221,7 +221,7 @@ export default function WorkspacePreview() {
           placeholder="Ask a follow-up…"
           disabled
         />
-        <p className="mt-1.5 text-center font-z-mono text-[11px] text-z-text-3">
+        <p className="mt-1.5 text-center text-z-micro text-z-text-3">
           Zevra queries approved data sources only · Results may require validation
         </p>
       </div>

@@ -66,7 +66,7 @@ export default function KnowledgeGaps() {
             {['ALL', 'OPEN', 'RESOLVED', 'DISMISSED'].map(s => (
               <button key={s} onClick={() => setFilter(s)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors
-                  ${filter === s ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                  ${filter === s ? 'bg-indigo-600 text-white' : 'bg-z-card border border-z-border text-z-text-2 hover:bg-z-card-2'}`}>
                 {s}
               </button>
             ))}
@@ -97,12 +97,12 @@ export default function KnowledgeGaps() {
                       <Badge label={g.gapType?.replace(/_/g, ' ')} color={TYPE_COLOR[g.gapType] ?? 'gray'} />
                       <Badge label={g.status ?? 'OPEN'} color={STATUS_COLOR[g.status] ?? 'gray'} />
                     </div>
-                    <p className="text-sm text-gray-800 mt-1 font-medium">{g.question}</p>
-                    {g.description && <p className="text-xs text-gray-500 mt-0.5">{g.description}</p>}
+                    <p className="text-sm text-z-text mt-1 font-medium">{g.question}</p>
+                    {g.description && <p className="text-xs text-z-text-3 mt-0.5">{g.description}</p>}
                     {g.proposedContent && (
                       <p className="text-xs text-blue-600 mt-0.5 italic">Proposed: {g.proposedContent}</p>
                     )}
-                    <p className="text-xs text-gray-400 mt-1">{g.detectedAt?.split('T')[0]}</p>
+                    <p className="text-xs text-z-text-3 mt-1">{g.detectedAt?.split('T')[0]}</p>
                   </div>
                   {g.status === 'OPEN' && (
                     <div className="flex gap-1 shrink-0">
@@ -131,7 +131,7 @@ export default function KnowledgeGaps() {
       {/* Resolve knowledge modal */}
       <Modal open={!!resolveModal} onClose={() => setResolveModal(null)} title="Resolve Knowledge Gap">
         <div className="space-y-3">
-          <p className="text-sm text-gray-700">{resolveModal?.question}</p>
+          <p className="text-sm text-z-text-2">{resolveModal?.question}</p>
           <Textarea label="Document or knowledge added to resolve this" rows={3} value={resolveDoc}
             onChange={e => setResolveDoc(e.target.value)} />
           <div className="flex justify-end gap-2">
@@ -146,7 +146,7 @@ export default function KnowledgeGaps() {
       {/* Resolve source modal */}
       <Modal open={!!sourceModal} onClose={() => setSourceModal(null)} title="Connect Data Source">
         <div className="space-y-3">
-          <p className="text-sm text-gray-700">{sourceModal?.question}</p>
+          <p className="text-sm text-z-text-2">{sourceModal?.question}</p>
           <Textarea label="Connection key that satisfies this request" rows={2} value={sourceConn}
             onChange={e => setSourceConn(e.target.value)} />
           <div className="flex justify-end gap-2">

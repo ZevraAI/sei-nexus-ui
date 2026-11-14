@@ -14,8 +14,8 @@ export function PageHeader({ title, subtitle, actions }) {
   return (
     <div className="flex items-start justify-between mb-6">
       <div>
-        <h1 className="text-[20px] font-bold text-[#111827] tracking-[-0.025em]">{title}</h1>
-        {subtitle && <p className="text-[13px] text-[#9CA3AF] mt-1">{subtitle}</p>}
+        <h1 className="text-z-h3 font-semibold text-[#111827] tracking-[-0.025em]">{title}</h1>
+        {subtitle && <p className="text-z-caption text-[#9CA3AF] mt-1">{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>
@@ -47,7 +47,7 @@ export function Badge({ label, color = 'blue' }) {
     orange: 'bg-[#FFEDD5] text-[#C2410C]',
   };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-600 ${colors[color] ?? colors.gray}`}
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-z-micro font-600 ${colors[color] ?? colors.gray}`}
           style={{ fontWeight: 600 }}>
       {label}
     </span>
@@ -60,11 +60,11 @@ export function EmptyState({ icon: Icon, title, body }) {
     <div className="flex flex-col items-center justify-center py-20 text-center">
       {Icon && (
         <div className="w-14 h-14 rounded-2xl bg-gray-100/80 flex items-center justify-center mb-4">
-          <Icon size={26} className="text-gray-300" />
+          <Icon size={26} className="text-z-text-3" />
         </div>
       )}
-      <p className="text-[14px] font-semibold text-[#374151]">{title}</p>
-      {body && <p className="text-[13px] text-[#9CA3AF] mt-1.5 max-w-xs leading-relaxed">{body}</p>}
+      <p className="text-z-body-sm font-semibold text-[#374151]">{title}</p>
+      {body && <p className="text-z-caption text-[#9CA3AF] mt-1.5 max-w-xs leading-relaxed">{body}</p>}
     </div>
   );
 }
@@ -73,13 +73,13 @@ export function EmptyState({ icon: Icon, title, body }) {
 export function Btn({ children, onClick, variant = 'primary', size = 'md', disabled, type = 'button', className = '' }) {
   const base = 'inline-flex items-center gap-1.5 font-medium rounded-[8px] transition-all focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed';
   const sizes = {
-    sm: 'text-[12px] px-[10px] py-[6px]',
-    md: 'text-[13px] px-[14px] py-[7px]',
-    lg: 'text-[13px] px-[18px] py-[9px]',
+    sm: 'text-z-small px-[10px] py-[6px]',
+    md: 'text-z-caption px-[14px] py-[7px]',
+    lg: 'text-z-caption px-[18px] py-[9px]',
   };
   const variants = {
     primary:   'bg-[#111827] hover:bg-[#1F2937] text-white shadow-sm',
-    secondary: 'bg-white/80 backdrop-blur-sm border border-gray-200 text-[#374151] hover:bg-gray-50',
+    secondary: 'bg-white/80 backdrop-blur-sm border border-z-border text-[#374151] hover:bg-z-card-2',
     danger:    'bg-[#FEE2E2] hover:bg-[#FECACA] text-[#DC2626] border border-[#FECACA]',
     ghost:     'text-[#6B7280] hover:bg-gray-100/80 hover:text-[#111827]',
     teal:      'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm',
@@ -103,9 +103,9 @@ export function Modal({ open, onClose, title, children, width = 'max-w-lg' }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
       <div className={`relative bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl w-full ${width} max-h-[90vh] flex flex-col border border-gray-200/70`}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="text-[15px] font-semibold text-[#111827]">{title}</h2>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors text-lg leading-none">&times;</button>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-z-border">
+          <h2 className="text-z-body font-semibold text-[#111827]">{title}</h2>
+          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-text-3 hover:text-z-text-2 hover:bg-z-card-2 transition-colors text-lg leading-none">&times;</button>
         </div>
         <div className="overflow-y-auto flex-1 px-5 py-4">
           {children}
@@ -119,14 +119,14 @@ export function Modal({ open, onClose, title, children, width = 'max-w-lg' }) {
 export function Input({ label, error, ...props }) {
   return (
     <div className="space-y-1.5">
-      {label && <label className="block text-[12px] font-semibold text-[#374151] uppercase tracking-wide">{label}</label>}
+      {label && <label className="block text-z-small font-semibold text-[#374151] uppercase tracking-wide">{label}</label>}
       <input
-        className="w-full border border-gray-200 rounded-[8px] px-3 py-2 text-[13px] text-[#111827] bg-white/80
+        className="w-full border border-z-border rounded-[8px] px-3 py-2 text-z-caption text-[#111827] bg-white/80
                    focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20
-                   placeholder:text-gray-300 disabled:bg-gray-50 disabled:text-gray-400 transition-all"
+                   placeholder:text-z-text-3 disabled:bg-z-card-2 disabled:text-z-text-3 transition-all"
         {...props}
       />
-      {error && <p className="text-[12px] text-red-500">{error}</p>}
+      {error && <p className="text-z-small text-red-500">{error}</p>}
     </div>
   );
 }
@@ -135,9 +135,9 @@ export function Input({ label, error, ...props }) {
 export function Select({ label, children, ...props }) {
   return (
     <div className="space-y-1.5">
-      {label && <label className="block text-[12px] font-semibold text-[#374151] uppercase tracking-wide">{label}</label>}
+      {label && <label className="block text-z-small font-semibold text-[#374151] uppercase tracking-wide">{label}</label>}
       <select
-        className="w-full border border-gray-200 rounded-[8px] px-3 py-2 text-[13px] text-[#111827] bg-white/80
+        className="w-full border border-z-border rounded-[8px] px-3 py-2 text-z-caption text-[#111827] bg-white/80
                    focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
         {...props}
       >
@@ -151,11 +151,11 @@ export function Select({ label, children, ...props }) {
 export function Textarea({ label, ...props }) {
   return (
     <div className="space-y-1.5">
-      {label && <label className="block text-[12px] font-semibold text-[#374151] uppercase tracking-wide">{label}</label>}
+      {label && <label className="block text-z-small font-semibold text-[#374151] uppercase tracking-wide">{label}</label>}
       <textarea
-        className="w-full border border-gray-200 rounded-[8px] px-3 py-2 text-[13px] text-[#111827] bg-white/80
+        className="w-full border border-z-border rounded-[8px] px-3 py-2 text-z-caption text-[#111827] bg-white/80
                    focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20
-                   resize-none placeholder:text-gray-300 transition-all"
+                   resize-none placeholder:text-z-text-3 transition-all"
         {...props}
       />
     </div>

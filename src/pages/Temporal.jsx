@@ -140,7 +140,7 @@ function AlertRulesTab({ baselines }) {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="text-[14px] font-semibold text-[#111827]">
+                      <span className="text-z-body-sm font-semibold text-[#111827]">
                         {rule.rule_name ?? rule.ruleName}
                       </span>
                       <Badge label={enabled ? 'ACTIVE' : 'DISABLED'} color={enabled ? 'green' : 'gray'} />
@@ -149,9 +149,9 @@ function AlertRulesTab({ baselines }) {
                       <Badge label={ch} color={CHANNEL_COLOR[ch] ?? 'gray'} />
                     </div>
 
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#6B7280]">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-z-small text-[#6B7280]">
                       {(rule.baseline_key ?? rule.baselineKey) && (
-                        <span>Baseline: <code className="text-[11.5px] bg-gray-100 px-1 rounded">
+                        <span>Baseline: <code className="text-z-micro bg-z-card-2 px-1 rounded">
                           {rule.baseline_key ?? rule.baselineKey}
                         </code></span>
                       )}
@@ -169,12 +169,12 @@ function AlertRulesTab({ baselines }) {
                     </div>
 
                     {ch === 'SLACK' && (rule.slack_webhook ?? rule.slackWebhook) && (
-                      <div className="mt-1 text-[11.5px] text-[#9CA3AF] flex items-center gap-1">
+                      <div className="mt-1 text-z-micro text-[#9CA3AF] flex items-center gap-1">
                         <Slack size={11} /> Slack webhook configured
                       </div>
                     )}
                     {(ch === 'EMAIL' || ch === 'ALL') && (rule.email_to ?? rule.emailTo) && (
-                      <div className="mt-1 text-[11.5px] text-[#9CA3AF] flex items-center gap-1">
+                      <div className="mt-1 text-z-micro text-[#9CA3AF] flex items-center gap-1">
                         <Mail size={11} /> {rule.email_to ?? rule.emailTo}
                       </div>
                     )}
@@ -185,18 +185,18 @@ function AlertRulesTab({ baselines }) {
                       onClick={() => testRule(key)}
                       disabled={testing === key}
                       title="Send test alert"
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-[7px] text-[12px]
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-[7px] text-z-small
                                  font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100
                                  border border-emerald-200 transition-colors disabled:opacity-50">
                       {testing === key ? <Spinner size={3} /> : <Play size={11} />}
                       Test
                     </button>
                     <button onClick={() => openEdit(rule)}
-                      className="p-1.5 rounded-[7px] text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                      className="p-1.5 rounded-[7px] text-z-text-3 hover:text-z-text-2 hover:bg-z-card-2 transition-colors">
                       <Pencil size={13} />
                     </button>
                     <button onClick={() => deleteRule(key)}
-                      className="p-1.5 rounded-[7px] text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                      className="p-1.5 rounded-[7px] text-z-text-3 hover:text-red-500 hover:bg-red-50 transition-colors">
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -217,12 +217,12 @@ function AlertRulesTab({ baselines }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[12px] font-semibold text-[#374151] uppercase tracking-wide mb-1.5">
+              <label className="block text-z-small font-semibold text-[#374151] uppercase tracking-wide mb-1.5">
                 Baseline
               </label>
               <select value={form.baselineKey} onChange={e => set('baselineKey', e.target.value)}
-                className="w-full border border-gray-200 rounded-[8px] px-3 py-2 text-[13px]
-                           text-[#111827] bg-white focus:outline-none focus:border-emerald-400">
+                className="w-full border border-z-border rounded-[8px] px-3 py-2 text-z-caption
+                           text-[#111827] bg-z-card focus:outline-none focus:border-emerald-400">
                 <option value="">— Select baseline —</option>
                 {baselines.map(b => (
                   <option key={b.baseline_key ?? b.baselineKey} value={b.baseline_key ?? b.baselineKey}>
@@ -275,16 +275,16 @@ function AlertRulesTab({ baselines }) {
               <input type="checkbox" className="sr-only"
                 checked={form.enabled} onChange={e => set('enabled', e.target.checked)} />
               <div className={`w-10 h-5 rounded-full transition-colors ${form.enabled ? 'bg-emerald-500' : 'bg-gray-300'}`} />
-              <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform
+              <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-z-card rounded-full shadow transition-transform
                               ${form.enabled ? 'translate-x-5' : ''}`} />
             </div>
-            <span className="text-[13px] font-medium text-[#374151]">
+            <span className="text-z-caption font-medium text-[#374151]">
               Rule enabled
             </span>
           </label>
 
           {error && (
-            <div className="px-3 py-2.5 bg-red-50 border border-red-200 rounded-[8px] text-[13px] text-red-600">
+            <div className="px-3 py-2.5 bg-red-50 border border-red-200 rounded-[8px] text-z-caption text-red-600">
               {error}
             </div>
           )}
@@ -373,9 +373,9 @@ export default function Temporal() {
       <div className="flex gap-1 mb-5 bg-gray-100/80 p-1 rounded-[10px] w-fit">
         {TABS.map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)}
-            className={`px-4 py-2 rounded-[8px] text-[13px] font-medium transition-all
+            className={`px-4 py-2 rounded-[8px] text-z-caption font-medium transition-all
               ${tab === k
-                ? 'bg-white text-[#111827] shadow-sm'
+                ? 'bg-z-card text-[#111827] shadow-sm'
                 : 'text-[#9CA3AF] hover:text-[#374151]'}`}>
             {l}
           </button>
@@ -400,19 +400,19 @@ export default function Temporal() {
             return (
               <Card key={key} className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 ${SEV_BG[sev] ?? 'bg-gray-50'}`}>
-                    <SevIcon size={17} className={SEV_TEXT[sev] ?? 'text-gray-500'} />
+                  <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 ${SEV_BG[sev] ?? 'bg-z-card-2'}`}>
+                    <SevIcon size={17} className={SEV_TEXT[sev] ?? 'text-z-text-3'} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                      <span className="text-[14px] font-semibold text-[#111827]">
+                      <span className="text-z-body-sm font-semibold text-[#111827]">
                         {a.metric_name ?? a.metricName ?? 'Metric anomaly'}
                       </span>
                       <Badge label={sev} color={SEV_COLOR[sev] ?? 'gray'} />
                       <Badge label={a.status ?? 'OPEN'}
                              color={a.status === 'RESOLVED' ? 'green' : a.status === 'INVESTIGATING' ? 'blue' : 'yellow'} />
                     </div>
-                    <div className="flex items-center gap-4 text-[12px] text-[#6B7280]">
+                    <div className="flex items-center gap-4 text-z-small text-[#6B7280]">
                       {a.observed_value  != null && <span>Observed: <strong className="text-[#374151]">{Number(a.observed_value).toLocaleString()}</strong></span>}
                       {a.baseline_value  != null && <span>Baseline: <strong className="text-[#374151]">{Number(a.baseline_value).toFixed(2)}</strong></span>}
                       {a.deviation_pct   != null && <span>Δ {a.deviation_pct > 0 ? '+' : ''}{Number(a.deviation_pct).toFixed(1)}%</span>}
@@ -447,13 +447,13 @@ export default function Temporal() {
               <Card key={key} className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-semibold text-[#111827] mb-1">{name}</p>
+                    <p className="text-z-body-sm font-semibold text-[#111827] mb-1">{name}</p>
                     <div className="flex gap-1.5 flex-wrap mb-2">
                       <Badge label={b.measurement_window ?? b.measurementWindow ?? 'DAILY'} color="navy" />
                       <Badge label={b.status ?? 'ACTIVE'} color={b.status === 'ACTIVE' ? 'green' : 'gray'} />
                     </div>
                     {b.current_value != null && (
-                      <p className="text-[12px] text-[#6B7280]">
+                      <p className="text-z-small text-[#6B7280]">
                         Current: <strong className="text-[#111827]">{Number(b.current_value).toLocaleString()}</strong>
                         {b.baseline_avg != null && (
                           <> · Avg: <strong className="text-[#374151]">{Number(b.baseline_avg).toFixed(1)}</strong></>
@@ -461,7 +461,7 @@ export default function Temporal() {
                       </p>
                     )}
                     {b.last_computed_at && (
-                      <p className="text-[11.5px] text-[#9CA3AF] mt-1">
+                      <p className="text-z-micro text-[#9CA3AF] mt-1">
                         Last run: {new Date(b.last_computed_at).toLocaleString()}
                       </p>
                     )}
@@ -496,7 +496,7 @@ export default function Temporal() {
             {['DAILY', 'WEEKLY', 'MONTHLY'].map(w => <option key={w}>{w}</option>)}
           </Select>
           {error && (
-            <div className="px-3 py-2.5 bg-red-50 border border-red-200 rounded-[8px] text-[13px] text-red-600">
+            <div className="px-3 py-2.5 bg-red-50 border border-red-200 rounded-[8px] text-z-caption text-red-600">
               {error}
             </div>
           )}

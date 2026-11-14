@@ -63,22 +63,22 @@ function NodeShell({ type, data, children, selected,
 
   return (
     <div
-      className={`w-[220px] rounded-xl bg-white shadow-lg ring-2 transition-all
+      className={`w-[220px] rounded-xl bg-z-card shadow-lg ring-2 transition-all
                   ${selected ? colors.ring : 'ring-gray-200/60'}
                   overflow-hidden font-sans`}
     >
       {/* Header */}
       <div className={`${colors.header} px-3 py-2 flex items-center gap-2`}>
         <Icon size={13} className="text-white/90 shrink-0" />
-        <span className="text-white text-[12px] font-semibold truncate flex-1">{label}</span>
-        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${colors.badge}`}>
+        <span className="text-white text-z-small font-semibold truncate flex-1">{label}</span>
+        <span className={`text-z-nano font-semibold px-1.5 py-0.5 rounded-full ${colors.badge}`}>
           {type}
         </span>
       </div>
 
       {/* Body */}
       {children && (
-        <div className="px-3 py-2.5 text-[11px] text-gray-500 space-y-1">
+        <div className="px-3 py-2.5 text-z-micro text-z-text-3 space-y-1">
           {children}
         </div>
       )}
@@ -102,7 +102,7 @@ function NodeShell({ type, data, children, selected,
           className="!w-3 !h-3 !border-2 !border-white !rounded-full !bg-gray-400"
         >
           <span
-            className="absolute top-4 text-[9px] font-semibold text-gray-500 -translate-x-1/2 left-1/2 whitespace-nowrap"
+            className="absolute top-4 text-z-nano font-semibold text-z-text-3 -translate-x-1/2 left-1/2 whitespace-nowrap"
           >{hl}</span>
         </Handle>
       ))}
@@ -114,8 +114,8 @@ function Preview({ label, value }) {
   if (!value) return null;
   return (
     <div className="flex gap-1">
-      <span className="text-gray-400 shrink-0">{label}:</span>
-      <span className="text-gray-600 truncate">{String(value).slice(0, 40)}</span>
+      <span className="text-z-text-3 shrink-0">{label}:</span>
+      <span className="text-z-text-2 truncate">{String(value).slice(0, 40)}</span>
     </div>
   );
 }
@@ -126,7 +126,7 @@ export function TriggerNode({ data, selected }) {
   return (
     <NodeShell type="TRIGGER" data={data} selected={selected} hasTarget={false}>
       <Preview label="type" value={data?.triggerType || 'WEBHOOK'} />
-      <div className="text-[10px] text-emerald-600 font-medium">Entry point</div>
+      <div className="text-z-nano text-emerald-600 font-medium">Entry point</div>
     </NodeShell>
   );
 }
@@ -181,7 +181,7 @@ export function TransformNode({ data, selected }) {
   const count = Array.isArray(data?.mappings) ? data.mappings.length : 0;
   return (
     <NodeShell type="TRANSFORM" data={data} selected={selected}>
-      <div className="text-gray-500">{count} field mapping{count !== 1 ? 's' : ''}</div>
+      <div className="text-z-text-3">{count} field mapping{count !== 1 ? 's' : ''}</div>
     </NodeShell>
   );
 }
@@ -190,8 +190,8 @@ export function ResponseNode({ data, selected }) {
   const count = Array.isArray(data?.fields) ? data.fields.length : 0;
   return (
     <NodeShell type="RESPONSE" data={data} selected={selected} hasSource={false}>
-      <div className="text-gray-500">{count > 0 ? `${count} output field${count !== 1 ? 's' : ''}` : 'Pass-through output'}</div>
-      <div className="text-[10px] text-rose-500 font-medium">Terminal node</div>
+      <div className="text-z-text-3">{count > 0 ? `${count} output field${count !== 1 ? 's' : ''}` : 'Pass-through output'}</div>
+      <div className="text-z-nano text-rose-500 font-medium">Terminal node</div>
     </NodeShell>
   );
 }
